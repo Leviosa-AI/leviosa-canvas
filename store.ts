@@ -585,9 +585,23 @@ export class CanvasStore {
   }
 
   /**
-   * 형제들을 그룹으로 묶는다. 그룹 상자는 자식들의 합집합이고, 자식 좌표는 그룹
-   * 기준으로 옮긴다 — 그룹에 base x/y를 남긴 채 자식도 원래 좌표를 들고 있으면
-   * 자식이 두 번 밀린다(예전에 실제로 겪은 사고다).
+   * 형제들을 그룹으로 묶는다.
+   *
+   * **그룹의 x/y는 0이고 자식은 원래 좌표를 그대로 든다.** 그룹 좌표는 "상자가
+   * 어디 있는가"가 아니라 **나중에 통째로 얼마나 옮겼는가**를 담는 자리다. 처음엔
+   * 안 옮겼으니 0이고, 자식은 페이지 기준 좌표를 계속 든다. 실제 문서가 그렇게
+   * 생겼다 — 디컴포저 브릿지·Polotno·export 문서 모델이 전부 이 규약이다.
+   *
+   * ```
+   * group hero-title-group-3  x=0 y=0 w=412 h=51
+   *    child figure  x=169 y=178      ← 페이지 좌표
+   * ```
+   *
+   * 합집합 상자를 잡아 `x=left, y=top`을 주고 자식을 그만큼 빼는 방식은 **우리
+   * 엔진 안에서만 맞다** — `absolutePosition`이 조상 x/y를 더해 주니까. 그렇게
+   * 만든 문서를 내보내는 순간 자식이 그룹 오프셋만큼 왼쪽 위로 몰린다. 조용히.
+   *
+   * `width/height`는 자식들의 잉크 span이다(위 예의 412×51). 위치를 뜻하지 않는다.
    */
   groupElements(ids: string[]): CanvasElement | null {
     const els = ids
@@ -610,8 +624,8 @@ export class CanvasStore {
 
     const group = new CanvasElement(this, {
       type: "group",
-      x: left,
-      y: top,
+      x: 0,
+      y: 0,
       width: right - left,
       height: bottom - top,
       children: [],
@@ -623,8 +637,7 @@ export class CanvasStore {
         if (from >= 0) siblings.splice(from, 1);
       }
       for (const el of ordered) {
-        setAttr(el, "x", (el.x ?? 0) - left);
-        setAttr(el, "y", (el.y ?? 0) - top);
+        // 자식 좌표는 손대지 않는다 — 그룹 원점이 0이라 그대로가 맞다.
         el.parent = group;
         el.version += 1;
         group.children.push(el);
@@ -742,7 +755,114 @@ export class CanvasStore {
       pages: this.pages.map((page) => page.toJSON()),
     };
   }
+
+  // -------------------------------------------------------------------------
+  // 페이지를 픽셀로 — 내려받기·미리보기·GIF가 쓴다
+  //
+  // 스토어는 캔버스를 안 들고 있다. 그리는 쪽(작업 영역)이 페이지마다 자기 그리기
+  // 면을 여기 걸어 두고, 스토어는 그걸 찾아 픽셀을 뽑는다. 화면 밖 페이지는 아예
+  // 안 그려 두므로(스크롤 최적화) 필요할 때 "이 페이지 좀 띄워 달라"고 부탁하고
+  // 걸릴 때까지 기다린다.
+
+  private surfaces = new Map<string, PageSurface>();
+  private forced = new Set<string>();
+  private waiters = new Map<string, Array<(surface: PageSurface) => void>>();
+
+  /** 작업 영역이 페이지를 그렸다(또는 지웠다)고 알린다. */
+  registerPageSurface(pageId: string, surface: PageSurface | null): void {
+    if (!surface) {
+      this.surfaces.delete(pageId);
+      return;
+    }
+    this.surfaces.set(pageId, surface);
+    const waiting = this.waiters.get(pageId);
+    if (waiting) {
+      this.waiters.delete(pageId);
+      for (const resolve of waiting) resolve(surface);
+    }
+  }
+
+  /** 화면 밖이어도 그려 둬야 하는 페이지인가. */
+  isPageForced(pageId: string): boolean {
+    return this.forced.has(pageId);
+  }
+
+  private surfaceFor(pageId: string, timeoutMs: number): Promise<PageSurface> {
+    const ready = this.surfaces.get(pageId);
+    if (ready) return Promise.resolve(ready);
+    return new Promise((resolve, reject) => {
+      const list = this.waiters.get(pageId) ?? [];
+      list.push(resolve);
+      this.waiters.set(pageId, list);
+      // 화면 밖 페이지를 띄워 달라고 부탁한다 — 구독자(작업 영역)가 다시 그린다.
+      this.uiChange(() => {
+        this.forced.add(pageId);
+        return true;
+      });
+      setTimeout(() => {
+        if (!this.waiters.get(pageId)?.includes(resolve)) return;
+        this.waiters.set(
+          pageId,
+          (this.waiters.get(pageId) ?? []).filter((one) => one !== resolve),
+        );
+        reject(new Error(`페이지를 그릴 수 없다: ${pageId}`));
+      }, timeoutMs);
+    });
+  }
+
+  /**
+   * 페이지 한 장을 이미지 data URI로.
+   *
+   * `pixelRatio`는 **문서 좌표 기준**이다 — 화면이 40%로 축소돼 있어도 1이면
+   * 문서 크기 그대로 나온다. 그리기 면이 화면 배율로 그려져 있으므로 그 배율을
+   * 나눠서 상쇄한다. 안 그러면 축소해 놓고 내려받았을 때만 그림이 작게 나온다.
+   */
+  async toDataURL(opts?: {
+    pageId?: string;
+    pixelRatio?: number;
+    mimeType?: string;
+    timeoutMs?: number;
+  }): Promise<string> {
+    const page = opts?.pageId
+      ? this.getPageById(opts.pageId)
+      : (this.activePage ?? this.pages[0] ?? null);
+    if (!page) throw new Error("내보낼 페이지가 없다");
+
+    const surface = await this.surfaceFor(page.id, opts?.timeoutMs ?? 5000);
+    const scale = surface.scale || 1;
+    try {
+      return surface.toDataURL({
+        x: 0,
+        y: 0,
+        width: page.width * scale,
+        height: page.height * scale,
+        pixelRatio: (opts?.pixelRatio ?? 1) / scale,
+        mimeType: opts?.mimeType,
+      });
+    } finally {
+      this.uiChange(() => this.forced.delete(page.id));
+    }
+  }
 }
+
+/**
+ * 페이지 하나를 그려 둔 면. 작업 영역이 Konva 레이어를 이 모양으로 걸어 준다.
+ *
+ * 선택 표시(트랜스포머)는 다른 레이어에 있어서 여기 안 딸려 온다 — 내려받은 그림에
+ * 파란 손잡이가 찍히지 않는다.
+ */
+export type PageSurface = {
+  /** 화면에 그려진 배율. 문서 좌표로 되돌리는 데 쓴다. */
+  scale: number;
+  toDataURL(config: {
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+    pixelRatio: number;
+    mimeType?: string;
+  }): string;
+};
 
 function findInList(list: CanvasElement[], id: string): CanvasElement | null {
   for (const el of list) {

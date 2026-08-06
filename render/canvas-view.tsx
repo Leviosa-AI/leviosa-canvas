@@ -26,6 +26,7 @@ import { elementPath, isTransformerPart, type HitNode } from "./hit-path";
 import {
   absorbTransform,
   applyInTransaction,
+  groupResizePatches,
   pickFromPath,
   toggleSelection,
   type TransformResult,
@@ -64,8 +65,8 @@ function useNearViewport(margin: number): {
 /**
  * 선택 표시와 크기 조절 손잡이.
  *
- * 그룹은 지금 **옮기고 돌릴 수만** 있다. 그룹을 늘리려면 자식 좌표를 전부 다시 계산해야
- * 하는데(M3 범위 밖), 반만 되는 손잡이를 띄우면 사람이 늘렸다가 그림이 깨진다.
+ * 그룹도 늘릴 수 있다 — 자손 좌표까지 `groupResizePatches`가 같이 흡수한다. 잠긴
+ * 요소만 손잡이를 안 띄운다.
  */
 function SelectionLayer({
   store,
@@ -98,10 +99,7 @@ function SelectionLayer({
     transformer.getLayer()?.batchDraw();
   }, [onPage]);
 
-  const resizable = onPage.every((id) => {
-    const el = store.getElementById(id);
-    return el ? !el.isContainer && !el.locked : false;
-  });
+  const resizable = onPage.every((id) => !store.getElementById(id)?.locked);
 
   return (
     <Layer>
@@ -146,6 +144,23 @@ function PageView({
   const width = page.width;
   const height = page.height;
   const { ref, near } = useNearViewport(600);
+  // 내려받기·GIF가 부탁하면 화면 밖 페이지도 그린다(안 그리면 뽑을 픽셀이 없다).
+  const mount = near || store.isPageForced(page.id);
+
+  const bindLayer = useCallback(
+    (layer: Konva.Layer | null) => {
+      store.registerPageSurface(
+        page.id,
+        layer
+          ? {
+              scale,
+              toDataURL: (config) => layer.toDataURL(config),
+            }
+          : null,
+      );
+    },
+    [store, page.id, scale],
+  );
   const editingEl =
     editingId && store.getPageOfElement(editingId)?.id === page.id
       ? store.getElementById(editingId)
@@ -177,7 +192,7 @@ function PageView({
         background: str(page, "background", "#ffffff"),
       }}
     >
-      {near ? (
+      {mount ? (
         <Stage
           width={width * scale}
           height={height * scale}
@@ -202,7 +217,7 @@ function PageView({
               : undefined
           }
         >
-          <Layer key={fontsVersion}>
+          <Layer key={fontsVersion} ref={bindLayer}>
             <Rect
               x={0}
               y={0}
@@ -320,7 +335,16 @@ export function CanvasView({
       onTransformEnd: (id, result: TransformResult) => {
         const el = store.getElementById(id);
         if (!el) return;
-        applyInTransaction(store, () => el.set(absorbTransform(el, result)));
+        applyInTransaction(store, () => {
+          if (!el.isContainer) {
+            el.set(absorbTransform(el, result));
+            return;
+          }
+          // 그룹은 자손 좌표까지 같이 흡수해야 그림이 안 깨진다.
+          for (const { id: target, patch } of groupResizePatches(el, result)) {
+            store.getElementById(target)?.set(patch);
+          }
+        });
       },
     }),
     [interactive, scopeId, editingId, store],

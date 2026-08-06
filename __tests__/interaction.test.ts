@@ -7,6 +7,7 @@ import {
 } from "@/lib/leviosa-canvas/render/hit-path";
 import {
   absorbTransform,
+  groupResizePatches,
   nudge,
   nudgeStep,
   pickFromPath,
@@ -150,6 +151,122 @@ describe("absorbTransform", () => {
     );
     expect(patch.width).toBe(1);
     expect(patch.height).toBe(1);
+  });
+});
+
+describe("groupResizePatches", () => {
+  /** 자식이 페이지 좌표를 드는 실제 규약대로 — 0,0에 몰아 두면 배율이 안 드러난다. */
+  function grouped() {
+    return createCanvasStore({
+      width: 750,
+      height: 500,
+      pages: [
+        {
+          id: "p",
+          children: [
+            {
+              id: "g",
+              type: "group",
+              x: 0,
+              y: 0,
+              width: 300,
+              height: 100,
+              children: [
+                {
+                  id: "box",
+                  type: "figure",
+                  x: 100,
+                  y: 200,
+                  width: 300,
+                  height: 100,
+                },
+                {
+                  id: "sub",
+                  type: "group",
+                  x: 0,
+                  y: 0,
+                  width: 80,
+                  height: 40,
+                  children: [
+                    {
+                      id: "txt",
+                      type: "text",
+                      x: 120,
+                      y: 220,
+                      width: 80,
+                      height: 40,
+                      text: "라벨",
+                      fontSize: 20,
+                    },
+                  ],
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    });
+  }
+
+  const grow = (sx: number, sy = sx) => ({
+    x: -50,
+    y: -100,
+    width: 300,
+    height: 100,
+    rotation: 0,
+    scaleX: sx,
+    scaleY: sy,
+  });
+
+  it("자손 좌표와 크기를 같은 비율로 흡수한다", () => {
+    const store = grouped();
+    const patches = groupResizePatches(store.getElementById("g")!, grow(2));
+    const by = Object.fromEntries(patches.map((p) => [p.id, p.patch]));
+
+    expect(by.g).toEqual({ x: -50, y: -100, width: 600, height: 200, rotation: 0 });
+    expect(by.box).toMatchObject({ x: 200, y: 400, width: 600, height: 200 });
+    // 중첩 그룹도 재귀로 — (g + c) × s = g×s + c×s
+    expect(by.sub).toMatchObject({ x: 0, y: 0, width: 160, height: 80 });
+    expect(by.txt).toMatchObject({ x: 240, y: 440, width: 160, height: 80 });
+  });
+
+  it("보이는 자리가 안 바뀐다", () => {
+    const store = grouped();
+    const group = store.getElementById("g")!;
+    const txt = store.getElementById("txt")!;
+    const sub = store.getElementById("sub")!;
+    // 조절 직후 화면 = 그룹 위치 + 자손 좌표 × scale
+    const seen = (result: ReturnType<typeof grow>) =>
+      result.x + (sub.x! + txt.x!) * result.scaleX;
+
+    const result = grow(2);
+    const before = seen(result);
+    for (const { id, patch } of groupResizePatches(group, result)) {
+      store.getElementById(id)!.set(patch);
+    }
+    // scale을 지운 뒤에도 같은 자리 — 이게 흡수가 맞았다는 뜻이다.
+    expect(group.x! + sub.x! + txt.x!).toBe(before);
+  });
+
+  it("모서리로 늘리면 자손 글자도 커지고, 옆 손잡이면 상자만 넓어진다", () => {
+    const store = grouped();
+    const group = store.getElementById("g")!;
+    const corner = Object.fromEntries(
+      groupResizePatches(group, grow(1.5)).map((p) => [p.id, p.patch]),
+    );
+    expect(corner.txt.fontSize).toBe(30);
+
+    const side = Object.fromEntries(
+      groupResizePatches(group, grow(1.5, 1)).map((p) => [p.id, p.patch]),
+    );
+    expect(side.txt.fontSize).toBeUndefined();
+    expect(side.txt.width).toBe(120);
+  });
+
+  it("늘리지 않고 옮기기만 하면 자손은 안 건드린다", () => {
+    const store = grouped();
+    const patches = groupResizePatches(store.getElementById("g")!, grow(1));
+    expect(patches.map((p) => p.id)).toEqual(["g"]);
   });
 });
 

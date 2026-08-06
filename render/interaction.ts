@@ -93,6 +93,69 @@ export function absorbTransform(
   return patch;
 }
 
+export type ElementPatch = { id: string; patch: Attrs };
+
+/**
+ * 그룹 크기 조절 — scale을 **자손 전부의 좌표·크기로** 흡수한다.
+ *
+ * 그룹은 자기 폭·높이로 자식을 담지 않는다. 자식이 페이지 좌표를 들고 있고(G0 계약),
+ * Konva는 그룹 scale을 자식 로컬 좌표에 곱해서 그린다. 그러니 scale을 지우면서 그림을
+ * 그대로 두려면 **자식 x/y까지 같은 비율로** 곱해야 한다.
+ *
+ * ```
+ * 보이는 자리 = group.x + child.x × scaleX
+ *            = group.x + (child.x × scaleX) × 1      ← scale을 자식에 흡수
+ * ```
+ *
+ * 트랜스포머가 잡아 준 `result.x/y`가 이미 기준점 보정을 담고 있으므로 그룹 자신은
+ * 그 값을 그대로 받는다. 중첩 그룹도 같은 규칙이 재귀로 성립한다 —
+ * `(g + c) × s = g×s + c×s`.
+ *
+ * 글자 크기는 잎에서와 같은 규칙이다. 모서리 손잡이(가로세로 같은 비율)면 같이 커지고,
+ * 옆 손잡이면 상자만 넓어진다.
+ */
+export function groupResizePatches(
+  group: CanvasElement,
+  result: TransformResult,
+): ElementPatch[] {
+  const sx = result.scaleX;
+  const sy = result.scaleY;
+  const uniform = Math.abs(sx - sy) < 0.001;
+  const scaled = Math.abs(sx - 1) > 0.001 || Math.abs(sy - 1) > 0.001;
+
+  const out: ElementPatch[] = [
+    {
+      id: group.id,
+      patch: {
+        x: result.x,
+        y: result.y,
+        width: Math.max(1, result.width * sx),
+        height: Math.max(1, result.height * sy),
+        rotation: result.rotation,
+      },
+    },
+  ];
+  if (!scaled) return out;
+
+  const walk = (list: ReadonlyArray<CanvasElement>) => {
+    for (const child of list) {
+      const patch: Attrs = {
+        x: num(child, "x", 0) * sx,
+        y: num(child, "y", 0) * sy,
+        width: Math.max(1, num(child, "width", 0) * sx),
+        height: Math.max(1, num(child, "height", 0) * sy),
+      };
+      if (child.type === "text" && uniform) {
+        patch.fontSize = num(child, "fontSize", 14) * sx;
+      }
+      out.push({ id: child.id, patch });
+      if (child.isContainer) walk(child.children);
+    }
+  };
+  walk(group.children);
+  return out;
+}
+
 /** 여러 요소를 한 번에 옮길 때, ⌘Z 한 번으로 돌아가게 묶는다. */
 export function applyInTransaction(
   store: CanvasStore,

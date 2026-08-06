@@ -15,6 +15,7 @@
 
 import "konva/lib/shapes/Ellipse";
 import "konva/lib/shapes/Image";
+import "konva/lib/shapes/Path";
 import "konva/lib/shapes/Rect";
 import "konva/lib/shapes/Text";
 
@@ -23,10 +24,15 @@ import {
   Ellipse,
   Group,
   Image as KonvaImage,
+  Path,
   Rect,
   Text,
 } from "react-konva/es/ReactKonvaCore";
 
+import {
+  bubblePathD,
+  readBubbleParams,
+} from "@/lib/detail-page-polotno/bubble-path";
 import { roundedRectPath } from "@/lib/detail-page-polotno/clip-rect";
 import { parseCssGradient } from "@/lib/detail-page-polotno/konva-fallback";
 import { computeHighlightBands } from "@/lib/detail-page-polotno/text-highlight-bands";
@@ -50,6 +56,7 @@ import {
   textStroke,
 } from "./attrs";
 import { useEditHandlers, type EditHandlers } from "./edit-context";
+import { svgSourceFor } from "./svg-source";
 import { useImage } from "./use-image";
 
 /**
@@ -190,9 +197,9 @@ function FigureBody({ el }: { el: CanvasElement }) {
   );
 }
 
-function ImageBody({ el }: { el: CanvasElement }) {
+function ImageBody({ el, src }: { el: CanvasElement; src?: string }) {
   const box = boxOf(el);
-  const image = useImage(imageSrc(el));
+  const image = useImage(src ?? imageSrc(el));
 
   if (!image) {
     // 빈 슬롯 자리표시. 투명하게 두면 "깨진 것"으로 읽힌다.
@@ -314,6 +321,42 @@ function TextBody({ el, editing }: { el: CanvasElement; editing: boolean }) {
   );
 }
 
+/**
+ * 벡터 장식.
+ *
+ * 말풍선은 **네이티브 path로 그린다.** 마크업을 이미지로 구워 붙이면 확대할 때 뭉개지고
+ * 꼬리를 끌 때마다 data URI를 다시 만들어 이미지가 깜빡인다. 몸통+꼬리가 한 path라
+ * (`bubble-path.ts`) 그대로 Konva에 넘기면 된다 — 우리가 렌더러를 들고 있어서 되는 일이다.
+ *
+ * 그 외 SVG는 색 치환을 먹인 마크업을 이미지로 그린다.
+ */
+function SvgBody({ el }: { el: CanvasElement }) {
+  const box = boxOf(el);
+  const bubble = readBubbleParams(el.custom);
+
+  if (bubble) {
+    // 마크업의 viewBox는 (-pad,-pad)에서 시작한다 — 요소 원점으로 옮기고 상자에 맞춘다.
+    const vbWidth = bubble.w + bubble.pad * 2;
+    const vbHeight = bubble.h + bubble.pad * 2;
+    const sx = vbWidth > 0 ? box.width / vbWidth : 1;
+    const sy = vbHeight > 0 ? box.height / vbHeight : 1;
+    return (
+      <Group x={bubble.pad * sx} y={bubble.pad * sy} scaleX={sx} scaleY={sy}>
+        <Path
+          data={bubblePathD(bubble)}
+          fill={bubble.fill}
+          stroke={bubble.stroke || undefined}
+          strokeWidth={bubble.stroke ? (bubble.strokeWidth ?? 2) : undefined}
+          lineJoin="round"
+          {...shadowProps(el)}
+        />
+      </Group>
+    );
+  }
+
+  return <ImageBody el={el} src={svgSourceFor(el) ?? undefined} />;
+}
+
 function GroupBody({ el }: { el: CanvasElement }) {
   return (
     <>
@@ -330,8 +373,9 @@ function bodyFor(el: CanvasElement, editing: boolean): ReactNode {
       return <GroupBody el={el} />;
     case "text":
       return <TextBody el={el} editing={editing} />;
-    case "image":
     case "svg":
+      return <SvgBody el={el} />;
+    case "image":
       return <ImageBody el={el} />;
     case "figure":
       return <FigureBody el={el} />;

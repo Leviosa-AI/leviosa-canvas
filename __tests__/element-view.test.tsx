@@ -4,6 +4,7 @@ import { describe, expect, it, vi } from "vitest";
 
 vi.mock("konva/lib/shapes/Ellipse", () => ({}));
 vi.mock("konva/lib/shapes/Image", () => ({}));
+vi.mock("konva/lib/shapes/Path", () => ({}));
 vi.mock("konva/lib/shapes/Rect", () => ({}));
 vi.mock("konva/lib/shapes/Text", () => ({}));
 
@@ -35,10 +36,12 @@ vi.mock("react-konva/es/ReactKonvaCore", () => {
     Text: node("text"),
     Image: node("image"),
     Ellipse: node("ellipse"),
+    Path: node("path"),
   };
 });
 
 import { ElementView } from "@/lib/leviosa-canvas/render/element-view";
+import { encodeSvgSrc } from "@/lib/leviosa-canvas/render/svg-source";
 import { createCanvasStore } from "@/lib/leviosa-canvas/store";
 import type { ElementJson } from "@/lib/leviosa-canvas/types";
 
@@ -247,5 +250,61 @@ describe("ElementView — 반응성", () => {
     expect(
       view.container.querySelector('[data-konva="text"]')!.getAttribute("data-text"),
     ).toBe("후");
+  });
+});
+
+describe("ElementView — svg", () => {
+  it("말풍선은 이미지가 아니라 네이티브 path로 그린다", () => {
+    const { view } = mount({
+      id: "b",
+      type: "svg",
+      x: 40,
+      y: 60,
+      width: 220,
+      height: 120,
+      src: "data:image/svg+xml;base64,PHN2Zy8+",
+      custom: {
+        bubble: {
+          w: 200,
+          h: 100,
+          r: 16,
+          pad: 10,
+          fill: "#ffffff",
+          stroke: "#111111",
+          strokeWidth: 2,
+          tip: [100, 140],
+        },
+      },
+    });
+    const path = view.container.querySelector('[data-konva="path"]')!;
+    expect(path).toBeTruthy();
+    expect(path.getAttribute("data-data")).toMatch(/^M/);
+    expect(path.getAttribute("data-fill")).toBe("#ffffff");
+    expect(path.getAttribute("data-stroke")).toBe("#111111");
+    // 이미지로 굽지 않는다 — 확대해도 안 뭉개지고 꼬리를 끌 때 안 깜빡인다.
+    expect(view.container.querySelector('[data-konva="image"]')).toBeNull();
+
+    // viewBox가 (-pad,-pad)에서 시작하므로 요소 원점으로 pad만큼 옮겨 그린다.
+    // 상자 220 ÷ viewBox 220 = 1배 → 10.
+    const frame = view.container.querySelector('[data-konva="group"] [data-konva="group"]')!;
+    expect(frame.getAttribute("data-x")).toBe("10");
+  });
+
+  it("말풍선이 아닌 svg는 마크업을 이미지로 그린다", () => {
+    const markup = '<svg xmlns="http://www.w3.org/2000/svg"><path fill="#3b3733"/></svg>';
+    const { view } = mount({
+      id: "s",
+      type: "svg",
+      x: 0,
+      y: 0,
+      width: 66,
+      height: 66,
+      src: encodeSvgSrc(markup),
+      colorsReplace: { "rgb(59, 55, 51)": "#c2410c" },
+    });
+    // path 경로로 새지 않는다(말풍선이 아니다). 색 치환 자체는 svg-source가 잰다 —
+    // jsdom에는 이미지 디코더가 없어 화면에서는 자리표시 사각형까지만 보인다.
+    expect(view.container.querySelector('[data-konva="path"]')).toBeNull();
+    expect(view.container.querySelector('[data-konva="rect"]')).toBeTruthy();
   });
 });

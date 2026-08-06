@@ -215,19 +215,43 @@ describe("CanvasStore — 순서·복제·삭제", () => {
 });
 
 describe("CanvasStore — 그룹", () => {
-  it("그룹 상자는 자식 합집합이고 자식 좌표는 그룹 기준으로 바뀐다", () => {
+  // `bg`(0,0)가 낀 조합은 left/top이 0이라 좌표 규약이 틀려도 티가 안 난다.
+  // 그래서 여기서는 left=40, top=200이 나오는 조합으로 잰다.
+  it("그룹 x/y는 0이고 자식은 원래 좌표를 그대로 든다", () => {
     const store = createCanvasStore(doc());
-    const group = store.groupElements(["bg", "photo"])!;
+    const group = store.groupElements(["grp", "photo"])!;
     expect({
       x: group.x,
       y: group.y,
       width: group.width,
       height: group.height,
-    }).toEqual({ x: 0, y: 0, width: 860, height: 800 });
+    }).toEqual({ x: 0, y: 0, width: 360, height: 600 });
+
+    // 합집합 상자로 옮겼다면 grp는 x=60, photo는 x=0이 됐을 것이다.
+    expect({ x: store.getElementById("grp")!.x }).toEqual({ x: 100 });
     const photo = store.getElementById("photo")!;
     expect({ x: photo.x, y: photo.y }).toEqual({ x: 40, y: 600 });
-    // 절대 좌표는 그대로여야 한다 — 묶었다고 그림이 움직이면 안 된다.
+    // 절대 좌표도 그대로여야 한다 — 묶었다고 그림이 움직이면 안 된다.
     expect(photo.absolutePosition).toEqual({ x: 40, y: 600 });
+  });
+
+  it("묶어도 자식 JSON이 안 바뀐다 (내보내기가 그룹 transform을 안 쓴다)", () => {
+    const store = createCanvasStore(doc());
+    const before = JSON.stringify(store.getElementById("photo")!.toJSON());
+    store.groupElements(["grp", "photo"]);
+    expect(JSON.stringify(store.getElementById("photo")!.toJSON())).toBe(before);
+  });
+
+  it("옮긴 그룹은 x/y에 옮긴 만큼을 담는다", () => {
+    const store = createCanvasStore(doc());
+    const group = store.groupElements(["grp", "photo"])!;
+    group.set({ x: 30, y: -10 });
+    // 자식은 그대로, 절대 좌표만 그룹 오프셋을 따라간다.
+    expect(store.getElementById("photo")!.x).toBe(40);
+    expect(store.getElementById("photo")!.absolutePosition).toEqual({
+      x: 70,
+      y: 590,
+    });
   });
 
   it("그룹은 첫 요소가 있던 z 자리에 들어간다", () => {
@@ -250,12 +274,24 @@ describe("CanvasStore — 그룹", () => {
     expect(store.selectedElementsIds).toEqual(["title", "sub"]);
   });
 
-  it("묶었다 풀면 원래 좌표로 돌아온다", () => {
+  it("묶었다 풀면 문서가 통째로 원래대로 돌아온다", () => {
     const store = createCanvasStore(doc());
-    const group = store.groupElements(["bg", "photo"])!;
+    const group = store.groupElements(["grp", "photo"])!;
+    store.ungroupElements([group.id]);
+
+    const json = store.toJSON();
+    const source = doc();
+    // 그룹은 흔적 없이 사라지고 나머지는 원본과 글자 하나까지 같다.
+    expect(json.pages).toEqual(source.pages);
+  });
+
+  it("옮긴 그룹을 풀면 옮긴 만큼이 자식에 얹힌다", () => {
+    const store = createCanvasStore(doc());
+    const group = store.groupElements(["grp", "photo"])!;
+    group.set({ x: 30, y: -10 });
     store.ungroupElements([group.id]);
     const photo = store.getElementById("photo")!;
-    expect({ x: photo.x, y: photo.y }).toEqual({ x: 40, y: 600 });
+    expect({ x: photo.x, y: photo.y }).toEqual({ x: 70, y: 590 });
   });
 });
 
