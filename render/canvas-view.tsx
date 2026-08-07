@@ -11,14 +11,23 @@
  * 히트 테스트·드래그·캐럿 계산이 전부 한 좌표계에서 끝난다.
  */
 
+import "konva/lib/shapes/Line";
 import "konva/lib/shapes/Transformer";
 
 import type Konva from "konva";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Layer, Rect, Stage, Transformer } from "react-konva/es/ReactKonvaCore";
+import { Layer, Line, Rect, Stage, Transformer } from "react-konva/es/ReactKonvaCore";
 
-import type { CanvasPage, CanvasStore } from "../store";
-import { str } from "../types";
+import { CanvasElement, type CanvasPage, type CanvasStore } from "../store";
+import { num, str } from "../types";
+import { elementRect, type Rect as DocRect } from "../edit/rect";
+import { handleCanvasHotkey } from "../edit/hotkeys";
+import {
+  rectFromPoints,
+  rectsOverlap,
+  snapRect,
+  type Guide,
+} from "../edit/snap";
 import { useCanvasVersion, usePageVersion, useSelectionKey } from "../use-canvas";
 import { EditContext, type EditHandlers } from "./edit-context";
 import { ElementView } from "./element-view";
@@ -31,8 +40,99 @@ import {
   toggleSelection,
   type TransformResult,
 } from "./interaction";
+import { createValueBus, useBusValue, type ValueBus } from "./overlay-bus";
 import { TextEditorOverlay } from "./text-editor";
 import { useDocumentFonts, type FontLoader } from "./use-document-fonts";
+
+/** 정렬선에 붙는 거리 — 화면에서 잰다(축소해 놓아도 손맛이 같아야 한다). */
+const SNAP_TOLERANCE_PX = 6;
+
+/** 지금 집을 수 있는 형제들과, 그들이 놓인 좌표계의 원점. */
+function scopeOf(
+  store: CanvasStore,
+  page: CanvasPage,
+  scopeId: string | null,
+): { list: CanvasElement[]; ox: number; oy: number } {
+  const scope = scopeId ? store.getElementById(scopeId) : null;
+  if (scope?.isContainer && store.getPageOfElement(scope.id)?.id === page.id) {
+    return {
+      list: scope.children,
+      ox: num(scope, "x", 0),
+      oy: num(scope, "y", 0),
+    };
+  }
+  return { list: page.children, ox: 0, oy: 0 };
+}
+
+type GuideState = { pageId: string; guides: Guide[]; ox: number; oy: number } | null;
+type MarqueeState = { pageId: string; rect: DocRect } | null;
+
+/**
+ * 잠깐 떴다 사라지는 것들 — 정렬선과 마퀴 상자.
+ *
+ * 요소를 그리는 층과 **따로** 둔다. 여기만 다시 그려지므로 끄는 내내 요소 트리는
+ * 건드리지 않는다.
+ */
+function OverlayLayer({
+  page,
+  scale,
+  guideBus,
+  marqueeBus,
+}: {
+  page: CanvasPage;
+  scale: number;
+  guideBus: ValueBus<GuideState>;
+  marqueeBus: ValueBus<MarqueeState>;
+}) {
+  const guideState = useBusValue(guideBus);
+  const marquee = useBusValue(marqueeBus);
+  const guides =
+    guideState && guideState.pageId === page.id ? guideState : null;
+  const box = marquee && marquee.pageId === page.id ? marquee.rect : null;
+  // 배율이 얼마든 선은 항상 1px로 보여야 한다(Stage가 좌표를 통째로 늘린다).
+  const hair = 1 / Math.max(scale, 0.01);
+
+  return (
+    <Layer listening={false}>
+      {guides
+        ? guides.guides.map((guide, i) => (
+            <Line
+              key={`${guide.orientation}-${i}`}
+              points={
+                guide.orientation === "v"
+                  ? [
+                      guide.position + guides.ox,
+                      guide.from + guides.oy,
+                      guide.position + guides.ox,
+                      guide.to + guides.oy,
+                    ]
+                  : [
+                      guide.from + guides.ox,
+                      guide.position + guides.oy,
+                      guide.to + guides.ox,
+                      guide.position + guides.oy,
+                    ]
+              }
+              stroke="#f43f5e"
+              strokeWidth={hair}
+              dash={[4 * hair, 4 * hair]}
+            />
+          ))
+        : null}
+      {box ? (
+        <Rect
+          x={box.x}
+          y={box.y}
+          width={box.width}
+          height={box.height}
+          fill="rgba(37, 99, 235, 0.08)"
+          stroke="#2563eb"
+          strokeWidth={hair}
+        />
+      ) : null}
+    </Layer>
+  );
+}
 
 /** 이 페이지가 화면 근처에 왔는가 — 멀리 있는 페이지는 Stage를 안 만든다. */
 function useNearViewport(margin: number): {
@@ -125,6 +225,8 @@ function PageView({
   interactive,
   scopeId,
   editingId,
+  guideBus,
+  marqueeBus,
   onPick,
   onDrill,
   onEditDone,
@@ -136,6 +238,8 @@ function PageView({
   interactive: boolean;
   scopeId: string | null;
   editingId: string | null;
+  guideBus: ValueBus<GuideState>;
+  marqueeBus: ValueBus<MarqueeState>;
   onPick: (id: string | null, shift: boolean) => void;
   onDrill: (id: string) => void;
   onEditDone: () => void;
@@ -181,6 +285,46 @@ function PageView({
     [store, scopeId],
   );
 
+  /** 마퀴를 시작한 자리(문서 좌표). 빈 곳을 눌렀을 때만 생긴다. */
+  const marqueeFrom = useRef<{ x: number; y: number } | null>(null);
+
+  const docPoint = useCallback(
+    (event: Konva.KonvaEventObject<PointerEvent>) => {
+      const stage = event.target.getStage();
+      const position = stage?.getPointerPosition();
+      if (!position) return null;
+      return { x: position.x / scale, y: position.y / scale };
+    },
+    [scale],
+  );
+
+  const endMarquee = useCallback(
+    (event: Konva.KonvaEventObject<PointerEvent>) => {
+      const from = marqueeFrom.current;
+      marqueeFrom.current = null;
+      marqueeBus.set(null);
+      if (!from) return;
+      const to = docPoint(event);
+      if (!to) return;
+      const box = rectFromPoints(from.x, from.y, to.x, to.y);
+      // 그냥 클릭(거의 안 끈 것)은 선택 해제로 남긴다 — 이미 pointerdown이 했다.
+      if (box.width < 3 && box.height < 3) return;
+      const { list, ox, oy } = scopeOf(store, page, scopeId);
+      const hit = list.filter((el) => {
+        if (el.locked) return false;
+        const rect = elementRect(el);
+        return rectsOverlap(box, {
+          x: rect.x + ox,
+          y: rect.y + oy,
+          width: rect.width,
+          height: rect.height,
+        });
+      });
+      store.selectElements(hit.map((el) => el.id));
+    },
+    [docPoint, marqueeBus, page, scopeId, store],
+  );
+
   return (
     <div
       ref={ref}
@@ -204,9 +348,27 @@ function PageView({
                   const { id, skip } = hitId(event);
                   if (skip) return;
                   onPick(id, event.evt.shiftKey);
+                  // 빈 곳에서 시작한 끌기는 마퀴다(요소 위에서 시작하면 그 요소가 끌린다).
+                  if (!id) marqueeFrom.current = docPoint(event);
                 }
               : undefined
           }
+          onPointerMove={
+            interactive
+              ? (event: Konva.KonvaEventObject<PointerEvent>) => {
+                  const from = marqueeFrom.current;
+                  if (!from) return;
+                  const to = docPoint(event);
+                  if (!to) return;
+                  marqueeBus.set({
+                    pageId: page.id,
+                    rect: rectFromPoints(from.x, from.y, to.x, to.y),
+                  });
+                }
+              : undefined
+          }
+          onPointerUp={interactive ? endMarquee : undefined}
+          onPointerLeave={interactive ? endMarquee : undefined}
           onDblClick={
             interactive
               ? (event: Konva.KonvaEventObject<MouseEvent>) => {
@@ -231,6 +393,14 @@ function PageView({
             ))}
           </Layer>
           {interactive ? <SelectionLayer store={store} page={page} /> : null}
+          {interactive ? (
+            <OverlayLayer
+              page={page}
+              scale={scale}
+              guideBus={guideBus}
+              marqueeBus={marqueeBus}
+            />
+          ) : null}
         </Stage>
       ) : null}
       {editingEl ? (
@@ -267,6 +437,9 @@ export function CanvasView({
   const fontsVersion = useDocumentFonts(store, mounted, loadFont);
   /** 지금 안쪽을 들여다보고 있는 그룹. */
   const [scopeId, setScopeId] = useState<string | null>(null);
+  // 정렬선·마퀴는 React 상태가 아니다(overlay-bus.ts의 이유).
+  const guideBus = useMemo(() => createValueBus<GuideState>(null), []);
+  const marqueeBus = useMemo(() => createValueBus<MarqueeState>(null), []);
   /** 지금 글자를 고치고 있는 요소. */
   const [editingId, setEditingId] = useState<string | null>(null);
 
@@ -316,26 +489,91 @@ export function CanvasView({
   useEffect(() => {
     if (!interactive) return;
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key !== "Escape") return;
-      // 편집 중이면 편집기 자신이 Esc를 처리한다(여기까지 오지 않는다).
-      setScopeId(null);
-      store.selectElements([]);
+      if (event.key === "Escape") {
+        // 편집 중이면 편집기 자신이 Esc를 처리한다(여기까지 오지 않는다).
+        setScopeId(null);
+        store.selectElements([]);
+        return;
+      }
+      handleCanvasHotkey(event, store);
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [interactive, store]);
+
+  /** 끌기 한 번 동안만 사는 것들 — 스냅 상대와 내 상자. */
+  const dragRef = useRef<{
+    pageId: string;
+    ox: number;
+    oy: number;
+    offX: number;
+    offY: number;
+    width: number;
+    height: number;
+    targets: DocRect[];
+  } | null>(null);
 
   const handlers = useMemo<EditHandlers>(
     () => ({
       interactive,
       scopeId,
       editingId,
-      onDragEnd: (id, position) => {
+      onDragStart: (id) => {
+        const el = store.getElementById(id);
+        const page = store.getPageOfElement(id);
+        if (!el || !page) return;
+        const { list, ox, oy } = scopeOf(store, page, scopeId);
+        const rect = elementRect(el);
+        dragRef.current = {
+          pageId: page.id,
+          ox,
+          oy,
+          // 그룹은 자기 x/y와 그려지는 자리가 다르다 — 그 차이를 들고 있어야 끄는 중에도
+          // 같은 상자를 잰다.
+          offX: rect.x - num(el, "x", 0),
+          offY: rect.y - num(el, "y", 0),
+          width: rect.width,
+          height: rect.height,
+          targets: list
+            .filter((other) => other.id !== id)
+            .map((other) => elementRect(other)),
+        };
+      },
+      onDragMove: (id, position) => {
+        const drag = dragRef.current;
+        if (!drag) return position;
+        const moving: DocRect = {
+          x: position.x + drag.offX,
+          y: position.y + drag.offY,
+          width: drag.width,
+          height: drag.height,
+        };
+        // 손이 흔들리는 정도는 화면 기준이라, 문서 좌표로 바꿔서 잰다.
+        const { dx, dy, guides } = snapRect(
+          moving,
+          drag.targets,
+          { width: store.width, height: store.height },
+          SNAP_TOLERANCE_PX / Math.max(store.scale, 0.01),
+        );
+        guideBus.set(
+          guides.length
+            ? { pageId: drag.pageId, guides, ox: drag.ox, oy: drag.oy }
+            : null,
+        );
+        return { x: position.x + dx, y: position.y + dy };
+      },
+      onDragEnd: (id, position, altClone) => {
+        dragRef.current = null;
+        guideBus.set(null);
         const el = store.getElementById(id);
         if (!el) return;
         // 여럿을 함께 끌면 Konva가 노드마다 dragEnd를 부른다 — 한 트랜잭션으로 묶어
         // ⌘Z 한 번에 전부 돌아오게 한다.
-        applyInTransaction(store, () => el.set({ x: position.x, y: position.y }));
+        applyInTransaction(store, () => {
+          // ⌥ 끌기 — 원래 자리에 복제본을 남기고, 끌던 쪽이 새 자리로 간다.
+          if (altClone) el.clone(undefined, { skipSelect: true });
+          el.set({ x: position.x, y: position.y });
+        });
       },
       onTransformEnd: (id, result: TransformResult) => {
         const el = store.getElementById(id);
@@ -352,7 +590,7 @@ export function CanvasView({
         });
       },
     }),
-    [interactive, scopeId, editingId, store],
+    [interactive, scopeId, editingId, store, guideBus],
   );
 
   // Konva는 브라우저 캔버스가 있어야 산다. 서버 렌더에서는 자리만 잡아 둔다.
@@ -382,6 +620,8 @@ export function CanvasView({
             interactive={interactive}
             scopeId={scopeId}
             editingId={editingId}
+            guideBus={guideBus}
+            marqueeBus={marqueeBus}
             onPick={onPick}
             onDrill={onDrill}
             onEditDone={() => setEditingId(null)}

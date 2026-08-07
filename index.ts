@@ -30,6 +30,39 @@ export {
 
 export { CanvasView } from "./render/canvas-view";
 export {
+  alignElements,
+  clearClipboard,
+  copyElements,
+  cutElements,
+  duplicateElements,
+  isClipboardEmpty,
+  moveElements,
+  pasteElements,
+  type AlignMode,
+  type OrderMove,
+} from "./edit/commands";
+export { handleCanvasHotkey, type HotkeyOptions } from "./edit/hotkeys";
+export {
+  SectionTab,
+  SidePanel,
+  type PanelSection,
+  type PanelTabProps,
+} from "./shell/side-panel";
+export { ZoomButtons } from "./shell/zoom-buttons";
+export {
+  elementRect,
+  moveElementTo,
+  unionRect,
+  type Rect,
+} from "./edit/rect";
+export {
+  rectFromPoints,
+  rectsOverlap,
+  snapRect,
+  type Guide,
+  type SnapResult,
+} from "./edit/snap";
+export {
   collectFontRequests,
   useDocumentFonts,
   type FontLoader,

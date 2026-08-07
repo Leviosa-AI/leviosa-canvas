@@ -46,6 +46,29 @@ export interface CanvasContainer {
   setElementZIndex(id: string, index: number): void;
 }
 
+/**
+ * 메서드를 인스턴스에 묶는다.
+ *
+ * 편집기 쪽 코드는 `const byId = store.getElementById` 처럼 **떼어서** 들고 다니는
+ * 자리가 있다. 예전 스토어(MST)의 액션은 항상 묶여 있어서 그게 통했다. 우리 것은
+ * 프로토타입 메서드라 떼는 순간 `this`를 잃고 조용히 터진다 — 계약을 맞춰 준다.
+ * 열거 불가로 박아 직렬화에는 섞이지 않는다.
+ */
+function bindMethods(target: object, proto: object): void {
+  for (const name of Object.getOwnPropertyNames(proto)) {
+    if (name === "constructor") continue;
+    const desc = Object.getOwnPropertyDescriptor(proto, name);
+    // 게터는 `value`가 없다 — 묶을 것도 없고 묶으면 값이 얼어붙는다.
+    if (!desc || typeof desc.value !== "function") continue;
+    Object.defineProperty(target, name, {
+      value: (desc.value as (...args: unknown[]) => unknown).bind(target),
+      enumerable: false,
+      writable: true,
+      configurable: true,
+    });
+  }
+}
+
 /** 직렬화에 섞이면 안 되는 엔진 내부 상태를 열거 불가로 박는다. */
 function defineInternal(target: object, values: Record<string, unknown>): void {
   for (const [key, value] of Object.entries(values)) {
@@ -303,6 +326,13 @@ export class CanvasPage implements CanvasContainer {
   constructor(store: CanvasStore, json: PageJson) {
     const attrs = { ...json };
     if (typeof attrs.id !== "string" || !attrs.id) attrs.id = createId("pg");
+    // 페이지 크기는 숫자일 때만 자기 속성으로 얹는다. 문서 포맷에는 "문서 값을 따르라"는
+    // 뜻으로 `"auto"`가 들어오는데(페이지 추가 버튼이 그렇게 부른다), 그대로 얹으면
+    // `page.width`가 문자열이 되어 상자 계산이 조용히 NaN으로 무너진다.
+    for (const key of ["width", "height"] as const) {
+      const value = attrs[key];
+      if (typeof value !== "number" || !Number.isFinite(value)) delete attrs[key];
+    }
     const kids = asArray(json[CHILDREN_KEY]).map((child) => asRecord(child));
 
     defineInternal(this, { store, version: 0, children: [] });
@@ -352,6 +382,33 @@ export class CanvasPage implements CanvasContainer {
 
   setElementZIndex(id: string, index: number): void {
     reorderChild(this.store, this, this.children, id, index);
+  }
+
+  /** 문서 안 몇 번째 페이지인가를 바꾼다 — 페이지 툴바의 위/아래 화살표가 부른다. */
+  setZIndex(index: number): void {
+    const list = this.store.pages;
+    const from = list.indexOf(this);
+    if (from < 0) return;
+    const to = Math.max(0, Math.min(list.length - 1, index));
+    if (from === to) return;
+    this.store.mutate(() => {
+      const [moved] = list.splice(from, 1);
+      list.splice(to, 0, moved);
+      return true;
+    });
+  }
+
+  /** 바로 뒤에 사본을 끼운다. 페이지·자손 id는 전부 새로 딴다. */
+  clone(): CanvasPage {
+    const json = this.toJSON();
+    const copy: PageJson = {
+      ...json,
+      id: createId("pg"),
+      [CHILDREN_KEY]: asArray(json[CHILDREN_KEY]).map((child) =>
+        withFreshIds(asRecord(child) as ElementJson),
+      ),
+    };
+    return this.store.addPage(copy, this.store.pages.indexOf(this) + 1);
   }
 
   toJSON(): PageJson {
@@ -484,6 +541,7 @@ export class CanvasStore {
   private dirty = false;
 
   constructor(json?: DocumentJson) {
+    bindMethods(this, CanvasStore.prototype);
     if (json) this.loadJSON(json);
   }
 
@@ -517,8 +575,32 @@ export class CanvasStore {
     };
   };
 
+  /**
+   * **문서**가 바뀔 때만 부른다 — 선택·배율·열린 패널은 문서가 아니라서 안 온다.
+   *
+   * `subscribe`와 나눠 둔 이유가 그것이다. 구독은 화면을 다시 그리는 신호라 선택까지
+   * 포함해야 하지만, 저장·QA 스냅샷처럼 "문서가 달라졌는가"를 묻는 쪽은 선택이 바뀔
+   * 때마다 깨어나면 안 된다.
+   *
+   * 바뀐 문서를 **실어 보내지 않는다.** 듣는 쪽이 필요할 때 `toJSON()`을 부르면 되고,
+   * 그래야 글자 한 자마다 문서 전체를 직렬화하는 값을 안 치른다.
+   */
+  private changeListeners = new Set<Listener>();
+
+  on(event: "change", listener: Listener): () => void {
+    if (event !== "change") return () => {};
+    this.changeListeners.add(listener);
+    return () => {
+      this.changeListeners.delete(listener);
+    };
+  }
+
   private notify(): void {
     for (const listener of [...this.listeners]) listener();
+  }
+
+  private notifyChange(): void {
+    for (const listener of [...this.changeListeners]) listener();
   }
 
   /**
@@ -538,6 +620,7 @@ export class CanvasStore {
       if (this.notifyDepth === 0 && this.dirty) {
         this.dirty = false;
         this.notify();
+        this.notifyChange();
       }
     }
   }
@@ -604,6 +687,23 @@ export class CanvasStore {
     this.uiChange(() => {
       if (this.viewScale === next) return false;
       this.viewScale = next;
+      return true;
+    });
+  }
+
+  /**
+   * 지금 열려 있는 좌측 패널의 이름. 빈 문자열이면 접혀 있다.
+   *
+   * 배율과 같은 자리다 — 보는 방식이라 히스토리에도 `toJSON()`에도 안 간다. 그런데
+   * 캔버스 쪽이 이걸 읽는다(페이지 패널을 열면 썸네일을 전부 굽는다), 그래서 패널
+   * 컴포넌트의 지역 상태가 아니라 스토어에 있다.
+   */
+  openedSidePanel = "";
+
+  openSidePanel(name: string): void {
+    this.uiChange(() => {
+      if (this.openedSidePanel === name) return false;
+      this.openedSidePanel = name;
       return true;
     });
   }
@@ -785,6 +885,34 @@ export class CanvasStore {
     });
   }
 
+  /**
+   * 문서가 데리고 다니는 글꼴 목록(`{fontFamily, styles}`). 저장 포맷의 `fonts` 자리
+   * 그대로다 — 우리가 새로 만든 필드가 아니라 이미 문서에 있던 것이다.
+   *
+   * 엔진은 이 목록으로 글자를 그리지 않는다(그리는 데 필요한 face는 주입된 폰트
+   * 로더가 `document.fonts`에 올린다). 여기 담는 이유는 **문서를 다시 열었을 때**
+   * 어떤 글꼴을 쓰는 문서인지 남기기 위해서다.
+   */
+  get fonts(): Array<{ fontFamily: string; styles?: unknown[] }> {
+    return asArray(this.docAttrs.fonts) as Array<{
+      fontFamily: string;
+      styles?: unknown[];
+    }>;
+  }
+
+  /** 같은 이름이 있으면 갈아 끼운다. 글꼴 등록은 사용자의 편집이 아니라 히스토리에 안 남는다. */
+  addFont(font: { fontFamily: string; styles?: unknown[] }): void {
+    if (!font?.fontFamily) return;
+    const next = this.fonts.filter(
+      (one) => one.fontFamily !== font.fontFamily,
+    );
+    next.push(font);
+    this.uiChange(() => {
+      this.docAttrs.fonts = next;
+      return true;
+    });
+  }
+
   // -- 직렬화 --------------------------------------------------------------
 
   /**
@@ -809,6 +937,7 @@ export class CanvasStore {
     );
     this.version += 1;
     this.notify();
+    this.notifyChange();
   }
 
   toJSON(): DocumentJson {

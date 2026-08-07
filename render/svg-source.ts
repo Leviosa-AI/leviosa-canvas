@@ -103,6 +103,18 @@ export function decodeSvgSrc(src: string): string | null {
   }
 }
 
+/**
+ * `src`가 무엇이든 마크업 문자열로. data URI면 그 자리에서 풀고, 주소면 받아 온다.
+ * (도형을 GIF·이미지로 굽는 길이 이걸 쓴다 — 화면에 그릴 때는 `<img>`가 알아서 한다.)
+ */
+export async function loadSvgMarkup(src: string): Promise<string> {
+  const inline = decodeSvgSrc(src);
+  if (inline !== null) return inline;
+  const response = await fetch(src);
+  if (!response.ok) throw new Error(`SVG를 못 받았다: ${response.status}`);
+  return response.text();
+}
+
 export function encodeSvgSrc(markup: string): string {
   const bytes = new TextEncoder().encode(markup);
   let binary = "";

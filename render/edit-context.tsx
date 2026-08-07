@@ -18,7 +18,22 @@ export type EditHandlers = {
   scopeId: string | null;
   /** 지금 글자를 고치고 있는 요소 — 캔버스는 그 글자를 안 그린다(편집기가 그린다). */
   editingId: string | null;
-  onDragEnd: (id: string, position: { x: number; y: number }) => void;
+  /** 끌기 시작 — 스냅 상대를 이때 한 번만 모은다(움직일 때마다 다시 모으면 느리다). */
+  onDragStart: (id: string) => void;
+  /**
+   * 끄는 중. **붙일 자리를 되돌려 준다** — 부르는 쪽(요소 뷰)이 그 자리로 노드를 옮긴다.
+   * 문서는 아직 안 고친다(끌기 한 번이 히스토리 한 줄이어야 한다).
+   */
+  onDragMove: (
+    id: string,
+    position: { x: number; y: number },
+  ) => { x: number; y: number };
+  /** 끌기 끝. `altClone`이면 원래 자리에 복제본을 하나 남긴다(⌥ 끌기). */
+  onDragEnd: (
+    id: string,
+    position: { x: number; y: number },
+    altClone?: boolean,
+  ) => void;
   onTransformEnd: (id: string, result: TransformResult) => void;
 };
 

@@ -19,7 +19,7 @@ import "konva/lib/shapes/Path";
 import "konva/lib/shapes/Rect";
 import "konva/lib/shapes/Text";
 
-import type { ReactNode } from "react";
+import { useRef, type ReactNode } from "react";
 import {
   Ellipse,
   Group,
@@ -74,7 +74,10 @@ function isDraggable(el: CanvasElement, edit: EditHandlers | null): boolean {
   return parent.id === edit.scopeId;
 }
 
-type DragEvent = { target: { x(): number; y(): number } };
+type DragEvent = {
+  target: { x(): number; y(): number; position(pos: { x: number; y: number }): void };
+  evt?: { altKey?: boolean };
+};
 type TransformEvent = {
   target: {
     x(): number;
@@ -100,6 +103,10 @@ function ElementFrame({
 }) {
   const box = boxOf(el);
   const draggable = isDraggable(el, edit);
+  // ⌥를 누른 채 끌면 복제 — Figma·Canva·미리캔버스가 전부 같은 손버릇이다. 누른 사실은
+  // **시작할 때** 잡아 둔다. 놓는 순간에는 이미 손을 뗐을 수 있고, 끄는 도중에 트리를
+  // 건드리면 리렌더가 끌고 있는 노드의 좌표를 문서 값으로 되돌려 그림이 튄다.
+  const altRef = useRef(false);
 
   return (
     <Group
@@ -113,13 +120,40 @@ function ElementFrame({
       opacity={num(el, "opacity", 1)}
       listening={edit?.interactive ?? false}
       draggable={draggable}
+      onDragStart={
+        draggable && edit
+          ? (event: DragEvent) => {
+              altRef.current = event.evt?.altKey === true;
+              edit.onDragStart(el.id);
+            }
+          : undefined
+      }
+      onDragMove={
+        draggable && edit
+          ? (event: DragEvent) => {
+              const node = event.target;
+              const snapped = edit.onDragMove(el.id, {
+                x: node.x(),
+                y: node.y(),
+              });
+              // 붙일 자리가 있으면 그 자리로 노드를 옮긴다. 문서는 아직 그대로다.
+              if (snapped.x !== node.x() || snapped.y !== node.y()) {
+                node.position(snapped);
+              }
+            }
+          : undefined
+      }
       onDragEnd={
         draggable && edit
-          ? (event: DragEvent) =>
-              edit.onDragEnd(el.id, {
-                x: event.target.x(),
-                y: event.target.y(),
-              })
+          ? (event: DragEvent) => {
+              const alt = altRef.current;
+              altRef.current = false;
+              edit.onDragEnd(
+                el.id,
+                { x: event.target.x(), y: event.target.y() },
+                alt,
+              );
+            }
           : undefined
       }
       onTransformEnd={
