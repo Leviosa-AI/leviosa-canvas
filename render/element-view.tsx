@@ -32,10 +32,10 @@ import {
 import {
   bubblePathD,
   readBubbleParams,
-} from "@/lib/detail-page-polotno/bubble-path";
-import { roundedRectPath } from "@/lib/detail-page-polotno/clip-rect";
-import { parseCssGradient } from "@/lib/detail-page-polotno/konva-fallback";
-import { computeHighlightBands } from "@/lib/detail-page-polotno/text-highlight-bands";
+} from "../paint/bubble-path";
+import { roundedRectPath } from "../paint/clip-rect";
+import { parseCssGradient } from "../paint/konva-fallback";
+import { computeHighlightBands } from "../paint/text-highlight-bands";
 
 import { CanvasElement } from "../store";
 import { num, str, type Attrs } from "../types";
@@ -56,6 +56,8 @@ import {
   textStroke,
 } from "./attrs";
 import { useEditHandlers, type EditHandlers } from "./edit-context";
+import { imageFrame, imageHasAlpha } from "./image-frame";
+import { measureTextLayout } from "./text-layout";
 import { svgSourceFor } from "./svg-source";
 import { useImage } from "./use-image";
 
@@ -218,14 +220,18 @@ function ImageBody({ el, src }: { el: CanvasElement; src?: string }) {
     );
   }
 
+  const natural = { width: image.naturalWidth, height: image.naturalHeight };
+  const { dest, crop } = imageFrame(el, natural, box, imageHasAlpha(image));
+
   return (
     <KonvaImage
       {...shadowProps(el)}
-      x={0}
-      y={0}
+      x={dest.x}
+      y={dest.y}
       image={image}
-      width={box.width}
-      height={box.height}
+      width={dest.width}
+      height={dest.height}
+      crop={crop}
       cornerRadius={cornerRadius(el)}
     />
   );
@@ -259,6 +265,18 @@ function TextBody({ el, editing }: { el: CanvasElement; editing: boolean }) {
 
   const backgroundEnabled = el.backgroundEnabled === true;
   const padding = backgroundEnabled ? num(el, "backgroundPadding", 0) : 0;
+
+  /*
+   * 상자 높이를 Konva에 주지 않는다. 주면 **넘치는 줄을 조용히 버린다**
+   * (`Text._setTextData`의 `fixedHeight` 분기). 디컴포저가 잰 상자는 실제 글꼴보다
+   * 몇 px 짧을 때가 있어서, 헤아림 1쪽의 "100% 환불해 드립니다."가 그렇게 통째로
+   * 사라졌다 — 넘칠지언정 글자를 버리지는 않는 쪽이 맞다(문서를 만든 렌더러도 넘긴다).
+   *
+   * 대신 세로 정렬은 우리가 계산해서 앉힌다. 맨 위 정렬이면 잴 것도 없다.
+   */
+  const verticalAlign = str(el, "verticalAlign", "top");
+  const offsetY =
+    verticalAlign === "top" ? 0 : measureTextLayout(el, text).offsetY;
 
   return (
     <ClipTo el={el}>
@@ -294,9 +312,8 @@ function TextBody({ el, editing }: { el: CanvasElement; editing: boolean }) {
       {editing ? null : (
       <Text
         x={padding}
-        y={0}
+        y={offsetY}
         width={Math.max(1, box.width - padding * 2)}
-        height={box.height}
         text={text}
         fontSize={fontSize}
         fontFamily={fontFamily}
@@ -304,7 +321,6 @@ function TextBody({ el, editing }: { el: CanvasElement; editing: boolean }) {
         textDecoration={textDecoration(el)}
         fill={str(el, "fill", "#000000")}
         align={align}
-        verticalAlign={str(el, "verticalAlign", "top")}
         lineHeight={ratio}
         // Polotno의 letterSpacing은 em 단위다(Konva는 px). 문서가 그 세계에서
         // 왔으니 폰트 크기를 곱해 되돌린다.

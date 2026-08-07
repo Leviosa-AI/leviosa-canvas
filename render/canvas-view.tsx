@@ -32,7 +32,7 @@ import {
   type TransformResult,
 } from "./interaction";
 import { TextEditorOverlay } from "./text-editor";
-import { useDocumentFonts } from "./use-document-fonts";
+import { useDocumentFonts, type FontLoader } from "./use-document-fonts";
 
 /** 이 페이지가 화면 근처에 왔는가 — 멀리 있는 페이지는 Stage를 안 만든다. */
 function useNearViewport(margin: number): {
@@ -250,16 +250,21 @@ export function CanvasView({
   scale = 1,
   gap = 0,
   interactive = false,
+  loadFont,
 }: {
   store: CanvasStore;
   scale?: number;
   gap?: number;
   interactive?: boolean;
+  /** 폰트를 받아 오는 사람. 안 주면 브라우저가 이미 아는 서체만 그려진다 (G7 경계). */
+  loadFont?: FontLoader;
 }) {
   useCanvasVersion(store);
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
-  const fontsVersion = useDocumentFonts(store, mounted);
+  // 캔버스 위에 얹히는 층(표 레일 같은 것)이 줌을 알아야 상자를 다시 잰다.
+  useEffect(() => store.setScale(scale), [store, scale]);
+  const fontsVersion = useDocumentFonts(store, mounted, loadFont);
   /** 지금 안쪽을 들여다보고 있는 그룹. */
   const [scopeId, setScopeId] = useState<string | null>(null);
   /** 지금 글자를 고치고 있는 요소. */

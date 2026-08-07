@@ -6,7 +6,7 @@
  * 재 준다), 세로 정렬 오프셋은 그 결과로 계산한다.
  */
 
-import { measureHighlightLines } from "@/lib/detail-page-polotno/text-highlight-bands";
+import { measureHighlightLines } from "../paint/text-highlight-bands";
 
 import { num, str, type Attrs } from "../types";
 import { isSingleLineBox, lineHeightRatio } from "./attrs";
@@ -39,7 +39,8 @@ export function measureTextLayout(el: Attrs, text?: string): TextLayout {
     fontSize,
     fontFamily: str(el, "fontFamily", "Arial"),
     fontWeight: el.fontWeight,
-    fontStyle: str(el, "fontStyle") || (el.custom as Attrs)?.fontStyle,
+    // 그리는 쪽과 같은 규칙 — `custom.fontStyle`은 안 본다(`konvaFontStyle` 참고).
+    fontStyle: str(el, "fontStyle"),
     boxWidth: wrapWidth,
     lineHeightRatio: ratio,
   });

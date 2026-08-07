@@ -186,6 +186,17 @@ export class CanvasElement implements CanvasContainer {
   }
 
   /**
+   * 그룹 안에 자식을 바로 넣는다. 컨테이너가 아니면 아무 일도 안 한다.
+   *
+   * 표·차트가 값 하나 고칠 때마다 도는 길이다(`spec-group/sync`). 해체·재구성 대신
+   * 자식만 밀어 넣는 쪽이라 그룹 id와 z 위치가 그대로 남는다.
+   */
+  addElement(json: ElementJson, options?: AddOptions): CanvasElement | null {
+    if (!this._children) return null;
+    return insertChild(this.store, this, this._children, json, options);
+  }
+
+  /**
    * 바로 뒤에 복제본을 끼우고 선택까지 옮긴다(`skipSelect`로 끌 수 있다).
    * 자손 id는 전부 새로 딴다 — 같은 id가 둘이면 나중에 조용히 한쪽을 잃는다.
    */
@@ -224,6 +235,34 @@ export function withFreshIds(json: ElementJson): ElementJson {
     );
   }
   return out;
+}
+
+/**
+ * `addElement`의 두 번째 인자.
+ *
+ * 숫자는 끼울 자리다. 객체를 받는 것은 `spec-group/sync`가 `{ skipSelect: true }`로
+ * 부르기 때문인데, **우리 `addElement`는 원래 선택을 옮기지 않는다**(Polotno는 옮긴다).
+ * 그래서 `skipSelect`는 받아 두기만 하고 하는 일이 없다 — 계약을 맞추는 자리다.
+ */
+export type AddOptions = number | { index?: number; skipSelect?: boolean };
+
+function insertChild(
+  store: CanvasStore,
+  container: CanvasContainer,
+  list: CanvasElement[],
+  json: ElementJson,
+  options?: AddOptions,
+): CanvasElement {
+  const index = typeof options === "number" ? options : options?.index;
+  const el = new CanvasElement(store, json);
+  store.mutate(() => {
+    el.parent = container;
+    const at = index === undefined ? list.length : index;
+    list.splice(Math.max(0, Math.min(list.length, at)), 0, el);
+    container.version += 1;
+    return true;
+  });
+  return el;
 }
 
 function reorderChild(
@@ -287,6 +326,18 @@ export class CanvasPage implements CanvasContainer {
     return this.store.height;
   }
 
+  /**
+   * 게터 두 개는 `src/lib/detail-page/*`가 부르는 이름이다(Polotno에서 온 이름).
+   * 우리 쪽에서는 `width`/`height`와 같은 값이지만, 그 모듈들을 한 줄도 안 고치기로
+   * 했으므로 이름을 맞춰 준다.
+   */
+  get computedWidth(): number {
+    return this.width;
+  }
+  get computedHeight(): number {
+    return this.height;
+  }
+
   set(patch: Attrs): void {
     this.store.mutate(() => {
       const changed = applyPatch(this, patch, ["id"]);
@@ -295,20 +346,8 @@ export class CanvasPage implements CanvasContainer {
     });
   }
 
-  addElement(json: ElementJson, index?: number): CanvasElement {
-    const el = new CanvasElement(this.store, json);
-    this.store.mutate(() => {
-      el.parent = this;
-      const at = index === undefined ? this.children.length : index;
-      this.children.splice(
-        Math.max(0, Math.min(this.children.length, at)),
-        0,
-        el,
-      );
-      this.version += 1;
-      return true;
-    });
-    return el;
+  addElement(json: ElementJson, options?: AddOptions): CanvasElement {
+    return insertChild(this.store, this, this.children, json, options);
   }
 
   setElementZIndex(id: string, index: number): void {
@@ -550,6 +589,25 @@ export class CanvasStore {
     });
   }
 
+  /**
+   * 화면 배율. 문서가 아니라 **보는 방식**이라 히스토리에 안 남고 `toJSON()`에도 안 간다.
+   * 캔버스 위에 얹히는 층(표 레일 같은 것)이 줌이 바뀐 걸 알아야 상자를 다시 잰다.
+   */
+  private viewScale = 1;
+
+  get scale(): number {
+    return this.viewScale;
+  }
+
+  setScale(scale: number): void {
+    const next = Number.isFinite(scale) && scale > 0 ? scale : 1;
+    this.uiChange(() => {
+      if (this.viewScale === next) return false;
+      this.viewScale = next;
+      return true;
+    });
+  }
+
   selectPage(id: string): void {
     this.uiChange(() => {
       if (this.activePageId === id) return false;
@@ -602,8 +660,11 @@ export class CanvasStore {
    * 만든 문서를 내보내는 순간 자식이 그룹 오프셋만큼 왼쪽 위로 몰린다. 조용히.
    *
    * `width/height`는 자식들의 잉크 span이다(위 예의 412×51). 위치를 뜻하지 않는다.
+   *
+   * `attrs`는 만들어진 그룹에 얹을 값이다 — 표·차트가 `custom`에 스펙을, `name`에
+   * 레이어 트리에 뜰 이름을 실어 보낸다. `x`/`y`는 여기서 못 덮는다(계약이다).
    */
-  groupElements(ids: string[]): CanvasElement | null {
+  groupElements(ids: string[], attrs?: Attrs): CanvasElement | null {
     const els = ids
       .map((id) => this.getElementById(id))
       .filter((el): el is CanvasElement => el !== null);
@@ -623,6 +684,7 @@ export class CanvasStore {
     const at = siblings.indexOf(ordered[0]);
 
     const group = new CanvasElement(this, {
+      ...(attrs ?? {}),
       type: "group",
       x: 0,
       y: 0,

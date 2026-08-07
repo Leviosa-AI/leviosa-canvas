@@ -44,12 +44,20 @@ describe("konvaFontStyle", () => {
     expect(konvaFontStyle({ fontWeight: "bold" })).toBe("bold");
   });
 
-  it("디컴포저가 custom에 넣어 둔 italic도 읽는다", () => {
-    // Polotno는 이 필드를 못 읽어서 어댑터가 달래야 했다. 우리는 그냥 읽는다.
-    expect(konvaFontStyle({ fontWeight: "600", custom: { fontStyle: "italic" } })).toBe(
+  it("기울기는 문서의 fontStyle만 본다", () => {
+    expect(konvaFontStyle({ fontStyle: "italic", fontWeight: "600" })).toBe(
       "italic bold",
     );
-    expect(konvaFontStyle({ custom: { fontStyle: "italic" } })).toBe("italic normal");
+    expect(konvaFontStyle({ fontStyle: "italic" })).toBe("italic normal");
+  });
+
+  it("custom에 남은 CSS 기울기는 그리지 않는다", () => {
+    // 디컴포저의 기록일 뿐 계약이 아니다. 읽으면 오늘 팔리는 그림에 없던 기울임이
+    // 생긴다(cremolab 표지 Didot). 승격은 문서를 싣는 앱의 몫.
+    expect(konvaFontStyle({ fontWeight: "600", custom: { fontStyle: "italic" } })).toBe(
+      "bold",
+    );
+    expect(konvaFontStyle({ custom: { fontStyle: "italic" } })).toBe("normal");
   });
 });
 

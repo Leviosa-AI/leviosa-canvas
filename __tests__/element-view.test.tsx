@@ -71,6 +71,7 @@ describe("ElementView — 텍스트", () => {
       lineHeight: "48.4px",
       letterSpacing: 0.01,
       fontWeight: "600",
+      fontStyle: "italic",
       custom: { fontStyle: "italic" },
     });
     const text = view.container.querySelector('[data-konva="text"]')!;
@@ -82,6 +83,44 @@ describe("ElementView — 텍스트", () => {
     expect(text.getAttribute("data-wrap")).toBe("none");
     expect(text.textContent).toBe("");
     expect(text.getAttribute("data-text")).toBe("T.E.N. Miracle");
+  });
+
+  it("상자가 짧아도 줄을 버리지 않는다", () => {
+    // Konva는 height를 주면 넘치는 줄을 조용히 삼킨다 — 헤아림 1쪽의 마지막 문장이
+    // 그렇게 사라졌다. 높이를 안 주는 것이 그 방지책이라 여기서 못 박는다.
+    const { view } = mount({
+      id: "t",
+      type: "text",
+      x: 0,
+      y: 0,
+      width: 200,
+      height: 40,
+      text: "저희는 제품의 품질과 효과에 대해 자신 있습니다. 100% 환불해 드립니다.",
+      fontSize: 20,
+      lineHeight: 1.5,
+    });
+    const text = view.container.querySelector('[data-konva="text"]')!;
+    expect(text.getAttribute("data-height")).toBe(null);
+    expect(text.getAttribute("data-y")).toBe("0");
+  });
+
+  it("custom에만 있는 italic으로는 기울이지 않는다", () => {
+    // 싱크로 하네스가 잡아낸 것 — 오늘 팔리는 그림에는 없는 기울임이었다.
+    const { view } = mount({
+      id: "t",
+      type: "text",
+      x: 10,
+      y: 20,
+      width: 300,
+      height: 48,
+      text: "T.E.N. Miracle",
+      fontSize: 44,
+      fontFamily: "Didot",
+      fontWeight: "600",
+      custom: { fontStyle: "italic" },
+    });
+    const text = view.container.querySelector('[data-konva="text"]')!;
+    expect(text.getAttribute("data-fontstyle")).toBe("bold");
   });
 
   it("본문처럼 키가 큰 상자는 줄바꿈한다", () => {
