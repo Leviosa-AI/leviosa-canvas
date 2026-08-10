@@ -11,8 +11,8 @@
 
 import { describe, expect, it } from "vitest";
 
-import type { ExportDocument } from "@/lib/detail-page-polotno/export/document-model";
-import { buildSvgDocument } from "@/lib/detail-page-polotno/export/svg";
+import type { ExportDocument } from "@/lib/detail-page-canvas/export/document-model";
+import { buildSvgDocument } from "@/lib/detail-page-canvas/export/svg";
 import { createCanvasStore } from "@/lib/leviosa-canvas/store";
 import type { DocumentJson } from "@/lib/leviosa-canvas/types";
 

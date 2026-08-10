@@ -21,7 +21,7 @@ export type AlignMode = "left" | "center" | "right" | "top" | "middle" | "bottom
  * 고른 것들을 맞춰 세운다.
  *
  * **하나만 골랐으면 페이지가 기준이고, 여럿이면 고른 것들의 바깥 네모가 기준이다.**
- * 이건 Polotno·Figma·Canva가 모두 같은 손버릇이라 그대로 따른다 — 하나짜리 선택에
+ * 이건 Canvas·Figma·Canva가 모두 같은 손버릇이라 그대로 따른다 — 하나짜리 선택에
  * 자기 자신을 기준으로 맞추면 아무 일도 안 일어나서 고장으로 보인다.
  */
 export function alignElements(store: CanvasStore, mode: AlignMode): void {
@@ -84,7 +84,7 @@ export type OrderMove = "up" | "down" | "top" | "bottom";
 /**
  * 앞뒤 순서를 바꾼다.
  *
- * **부모 안에서** 움직인다는 점이 중요하다. Polotno의 `page.moveElementsUp`은 페이지
+ * **부모 안에서** 움직인다는 점이 중요하다. 스톡 편집기의 `page.moveElementsUp`은 페이지
  * 자식만 훑어서 그룹 안 요소에는 아무 일도 안 했다(조용히). 여기서는 각 요소의 부모를
  * 찾아 그 안에서 옮긴다.
  *

@@ -1,7 +1,7 @@
 /**
  * 캔버스 손버릇.
  *
- * Polotno의 `canvas/hotkeys`가 하던 일이다. 키 배치는 그대로 물려받는다 — 이미 쓰던
+ * 스톡 편집기의 `canvas/hotkeys`가 하던 일이다. 키 배치는 그대로 물려받는다 — 이미 쓰던
  * 사람의 손가락을 바꾸는 것이 이 관문의 목적은 아니다.
  *
  * **일부러 안 옮긴 것:** 스톡에는 `T`·`R`·`L`·`O`를 그냥 누르면 "Sample Text"와
@@ -141,7 +141,7 @@ export function handleCanvasHotkey(
     return done();
   }
 
-  // ⌥ + 방향 글자 = 정렬. Polotno와 같은 배치(A 왼쪽 · D 오른쪽 · W 위 · S 아래).
+  // ⌥ + 방향 글자 = 정렬. 스톡 편집기와 같은 배치(A 왼쪽 · D 오른쪽 · W 위 · S 아래).
   if (alt && !mod && ALIGN_BY_CODE[event.code]) {
     if (!ids.length) return false;
     alignElements(store, ALIGN_BY_CODE[event.code]);

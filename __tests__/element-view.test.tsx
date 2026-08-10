@@ -181,7 +181,7 @@ describe("ElementView — 도형·이미지", () => {
     expect(rect.getAttribute("data-filllineargradientcolorstops")).toBe(
       JSON.stringify([0, "#000", 1, "#fff"]),
     );
-    // Polotno가 못 읽던 custom.shadow도 그냥 읽는다.
+    // 스톡 편집기가 못 읽던 custom.shadow도 그냥 읽는다.
     expect(rect.getAttribute("data-shadowblur")).toBe("4");
   });
 

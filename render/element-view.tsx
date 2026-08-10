@@ -6,7 +6,7 @@
  * 요소마다 **자기 Group으로 감싼다.** 위치·회전·투명도·끌기·크기조절은 전부 그 Group이
  * 지고, 안쪽 그림은 (0,0) 기준으로 그린다. 그래서 배경 상자와 글자처럼 조각이 여럿인
  * 요소도 한 덩어리로 움직이고, 모든 노드에 요소 id가 박혀 히트 테스트가 경로 그대로
- * 나온다(Polotno는 그룹에 id를 안 박아서 잎에서 거꾸로 되짚어야 했다).
+ * 나온다(스톡 편집기는 그룹에 id를 안 박아서 잎에서 거꾸로 되짚어야 했다).
  *
  * 트리를 접지 않는다 — 그룹은 Konva Group이 되고 자식은 그룹 로컬 좌표를 그대로 쓴다
  * (문서 모델과 같은 좌표계). 미리보기(`detail-page-konva-json-preview`)가 트리를 평평하게
@@ -356,7 +356,7 @@ function TextBody({ el, editing }: { el: CanvasElement; editing: boolean }) {
         fill={str(el, "fill", "#000000")}
         align={align}
         lineHeight={ratio}
-        // Polotno의 letterSpacing은 em 단위다(Konva는 px). 문서가 그 세계에서
+        // 스톡 편집기의 letterSpacing은 em 단위다(Konva는 px). 문서가 그 세계에서
         // 왔으니 폰트 크기를 곱해 되돌린다.
         letterSpacing={num(el, "letterSpacing", 0) * fontSize}
         // 디컴포저는 보이는 줄마다 요소를 하나씩 뽑고 상자를 그 줄에 맞춘다. 한 줄

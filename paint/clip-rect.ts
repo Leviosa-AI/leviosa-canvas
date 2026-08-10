@@ -1,7 +1,7 @@
 /**
  * Pure helpers for clipping HTML-decomposed decoration to its owning card
- * rectangle. Kept free of React/Polotno/Konva imports so both the native Konva
- * preview and the Polotno SDK clip-aware shape component can reuse them, and so
+ * rectangle. Kept free of React/Canvas/Konva imports so both the native Konva
+ * preview and the Canvas SDK clip-aware shape component can reuse them, and so
  * they stay trivially unit-testable.
  */
 
@@ -40,7 +40,7 @@ export function roundedRectPath(
   ctx.closePath();
 }
 
-/** Read a usable ``clipToRect`` off a Polotno element's ``custom`` payload. */
+/** Read a usable ``clipToRect`` off a Canvas element's ``custom`` payload. */
 export function readClipRect(element: unknown): ClipRectShape | null {
   const custom =
     element && typeof element === "object"

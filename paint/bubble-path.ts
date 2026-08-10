@@ -158,7 +158,7 @@ export function bubbleSvgMarkup(p: BubbleParams): string {
   );
 }
 
-/** Polotno의 svg 요소는 ``src``로 그린다 — 마크업을 data URL로 굽는다. */
+/** 스톡 편집기의 svg 요소는 ``src``로 그린다 — 마크업을 data URL로 굽는다. */
 export function bubbleSvgDataUrl(p: BubbleParams): string {
   return `data:image/svg+xml;base64,${btoa(unescape(encodeURIComponent(bubbleSvgMarkup(p))))}`;
 }

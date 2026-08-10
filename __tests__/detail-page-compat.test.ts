@@ -1,7 +1,7 @@
 /**
  * 이 파일이 이 프로젝트의 성립 근거다.
  *
- * `src/lib/detail-page/*` 의 편집 로직들은 Polotno 스토어를 보고 짠 것이지만, 전부
+ * `src/lib/detail-page/*` 의 편집 로직들은 Canvas 스토어를 보고 짠 것이지만, 전부
  * **구조적 타입**으로만 스토어를 받는다. 그래서 새 엔진이 같은 이름으로 같은 일을 하면
  * 그 모듈들은 한 줄도 안 고치고 돈다 — 여기서 실제로 그걸 확인한다.
  *
@@ -223,7 +223,7 @@ describe("canvas-menu — 그대로 돈다", () => {
     runCanvasMenuAction(store, "duplicate");
     const ids = store.pages[0].children.map((el) => el.id);
     expect(ids).toHaveLength(5);
-    // Polotno의 clone()은 그룹 자식이어도 사본을 페이지로 꺼냈다. 우리는 원본 바로
+    // 스톡 편집기의 clone()은 그룹 자식이어도 사본을 페이지로 꺼냈다. 우리는 원본 바로
     // 뒤, 같은 부모 안에 넣는다 — 그룹 안 도형을 복제해도 그룹이 유지된다.
     expect(ids[1]).toBe("b");
     expect(store.getElementById(ids[2])!.text).toBe("용량 30ml 입니다");

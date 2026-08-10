@@ -1,7 +1,7 @@
 /**
  * 요소 JSON → Konva 속성.
  *
- * 여기가 자체 엔진의 첫 번째 배당금이다. 디컴포저는 Polotno가 **읽을 수 없는** 장식을
+ * 여기가 자체 엔진의 첫 번째 배당금이다. 디컴포저는 스톡 편집기가 **읽을 수 없는** 장식을
  * `custom` 아래에 숨겨 두었고(`gradient`, `shadow`, `clipToRect`, `fontStyle`,
  * `strokeWidth`, `strokeColor`, `decoration`, `textTransform`), SDK 경로는 그걸
  * 렌더 가능한 형태로 승격하는 어댑터 897줄로 달래고 있었다.
@@ -61,7 +61,7 @@ export function lineHeightRatio(raw: unknown, fontSize: number): number {
  * Konva의 `fontStyle`은 굵기와 기울기를 한 문자열에 담는다("italic bold").
  *
  * 기울기는 **문서의 `fontStyle`만** 본다. 디컴포저가 원본 CSS를 `custom.fontStyle`에도
- * 적어 두지만 그건 기록일 뿐 계약이 아니다 — 지금 팔리는 렌더러(Polotno)는 그 값을
+ * 적어 두지만 그건 기록일 뿐 계약이 아니다 — 지금 팔리는 렌더러(Canvas)는 그 값을
  * 읽지 않고, 우리가 읽으면 오늘 나가는 그림에 없던 기울임이 생긴다(cremolab 표지
  * Didot 헤드라인). custom을 승격할지는 문서를 싣는 앱이 정할 일이지 렌더러가 정할 일이 아니다.
  */

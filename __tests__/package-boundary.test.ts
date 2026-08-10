@@ -8,7 +8,7 @@
  * 재는 것은 셋이다.
  *
  * 1. 엔진 소스가 `@/…`(앱 전용 경로 별칭)를 안 쓴다.
- * 2. 엔진 소스가 `polotno`를 안 부른다 — 이건 애초에 이 프로젝트의 전제다.
+ * 2. 엔진 소스가 `canvas`를 안 부른다 — 이건 애초에 이 프로젝트의 전제다.
  * 3. 패키지 안으로 들여온 순수 모듈이 **원본과 안 갈라졌다.** 하드룰 1 때문에 기존
  *    경로의 원본은 그대로 두고 복사해 왔다. 둘이 갈라지면 G9에서 원본을 지울 때
  *    조용히 동작이 바뀐다.
@@ -20,7 +20,7 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
 const ENGINE = join(process.cwd(), "src", "lib", "leviosa-canvas");
-const FROZEN = join(process.cwd(), "src", "lib", "detail-page-polotno");
+const FROZEN = join(process.cwd(), "src", "lib", "detail-page-canvas");
 
 /** 엔진 소스 전부(테스트 제외). */
 function sourceFiles(dir: string = ENGINE): string[] {
@@ -52,8 +52,8 @@ describe("엔진은 앱 바깥에서도 돈다", () => {
     expect(guilty.map((path) => path.replace(process.cwd(), ""))).toEqual([]);
   });
 
-  it("polotno를 안 부른다", () => {
-    const guilty = files.filter((path) => /from ["']polotno/.test(readFileSync(path, "utf8")));
+  it("canvas를 안 부른다", () => {
+    const guilty = files.filter((path) => /from ["']canvas/.test(readFileSync(path, "utf8")));
     expect(guilty.map((path) => path.replace(process.cwd(), ""))).toEqual([]);
   });
 

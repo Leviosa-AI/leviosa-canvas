@@ -32,7 +32,7 @@ function isTransparentColor(value: unknown): boolean {
  * the visible text does.
  *
  * The band is stored on the element as ``custom.highlightColor`` (a single source of
- * truth); Polotno's native ``backgroundEnabled`` box is left off so the two never
+ * truth); the stock editor's native ``backgroundEnabled`` box is left off so the two never
  * double up. Both renderers — the SDK editor (``BackgroundAwareText``) and the Konva
  * export/preview — draw bands from the same computation here.
  */
@@ -63,7 +63,7 @@ export type HighlightBandInput = {
 const PAD_X_RATIO = 0.16; // horizontal overhang past the glyphs on each side
 const BAND_H_RATIO = 1.3; // band height around the glyphs (tight, not the line box)
 
-/** Resolve a Polotno/CSS line-height (number ratio or ``"30.78px"``) to a ratio. */
+/** Resolve a Canvas/CSS line-height (number ratio or ``"30.78px"``) to a ratio. */
 export function lineHeightRatioFor(raw: unknown, fontSize: number): number {
   if (typeof raw === "number" && Number.isFinite(raw) && raw > 0) return raw;
   if (typeof raw === "string") {

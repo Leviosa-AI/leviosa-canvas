@@ -84,7 +84,7 @@ function ids(store: CanvasStore, pageIndex = 0): string[] {
 }
 
 describe("CanvasStore — 직렬화", () => {
-  it("Polotno JSON을 무손실로 되돌려 쓴다 (모르는 필드 포함)", () => {
+  it("Canvas JSON을 무손실로 되돌려 쓴다 (모르는 필드 포함)", () => {
     const source = doc();
     const store = createCanvasStore(source);
     expect(store.toJSON()).toEqual(source);

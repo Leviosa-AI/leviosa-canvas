@@ -264,7 +264,7 @@ export function withFreshIds(json: ElementJson): ElementJson {
  * `addElement`의 두 번째 인자.
  *
  * 숫자는 끼울 자리다. 객체를 받는 것은 `spec-group/sync`가 `{ skipSelect: true }`로
- * 부르기 때문인데, **우리 `addElement`는 원래 선택을 옮기지 않는다**(Polotno는 옮긴다).
+ * 부르기 때문인데, **우리 `addElement`는 원래 선택을 옮기지 않는다**(스톡 편집기는 옮긴다).
  * 그래서 `skipSelect`는 받아 두기만 하고 하는 일이 없다 — 계약을 맞추는 자리다.
  */
 export type AddOptions = number | { index?: number; skipSelect?: boolean };
@@ -357,7 +357,7 @@ export class CanvasPage implements CanvasContainer {
   }
 
   /**
-   * 게터 두 개는 `src/lib/detail-page/*`가 부르는 이름이다(Polotno에서 온 이름).
+   * 게터 두 개는 `src/lib/detail-page/*`가 부르는 이름이다(스톡 편집기에서 온 이름).
    * 우리 쪽에서는 `width`/`height`와 같은 값이지만, 그 모듈들을 한 줄도 안 고치기로
    * 했으므로 이름을 맞춰 준다.
    */
@@ -748,7 +748,7 @@ export class CanvasStore {
    * **그룹의 x/y는 0이고 자식은 원래 좌표를 그대로 든다.** 그룹 좌표는 "상자가
    * 어디 있는가"가 아니라 **나중에 통째로 얼마나 옮겼는가**를 담는 자리다. 처음엔
    * 안 옮겼으니 0이고, 자식은 페이지 기준 좌표를 계속 든다. 실제 문서가 그렇게
-   * 생겼다 — 디컴포저 브릿지·Polotno·export 문서 모델이 전부 이 규약이다.
+   * 생겼다 — 디컴포저 브릿지·Canvas·export 문서 모델이 전부 이 규약이다.
    *
    * ```
    * group hero-title-group-3  x=0 y=0 w=412 h=51

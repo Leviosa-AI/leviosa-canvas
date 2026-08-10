@@ -19,8 +19,8 @@ import { join } from "node:path";
 
 import { describe, expect, it } from "vitest";
 
-import type { ExportDocument } from "@/lib/detail-page-polotno/export/document-model";
-import { buildSvgDocument } from "@/lib/detail-page-polotno/export/svg";
+import type { ExportDocument } from "@/lib/detail-page-canvas/export/document-model";
+import { buildSvgDocument } from "@/lib/detail-page-canvas/export/svg";
 import { createCanvasStore } from "@/lib/leviosa-canvas/store";
 import type { DocumentJson } from "@/lib/leviosa-canvas/types";
 
@@ -34,7 +34,7 @@ function fixtures(): Array<{ name: string; doc: DocumentJson }> {
     .sort()
     .map((name) => {
       const raw = JSON.parse(readFileSync(join(FIXTURE_DIR, name), "utf8"));
-      return { name, doc: (raw.polotno_json ?? raw) as DocumentJson };
+      return { name, doc: (raw.canvas_json ?? raw) as DocumentJson };
     });
 }
 

@@ -1,4 +1,4 @@
-export type PolotnoFallbackElementKind = "text" | "image" | "rect" | "unknown";
+export type CanvasFallbackElementKind = "text" | "image" | "rect" | "unknown";
 
 export type GradientStop = { offset: number; color: string };
 
@@ -28,9 +28,9 @@ export type ClipRect = {
   radius: number;
 };
 
-export type PolotnoFallbackElement = {
+export type CanvasFallbackElement = {
   id: string;
-  kind: PolotnoFallbackElementKind;
+  kind: CanvasFallbackElementKind;
   x: number;
   y: number;
   width: number;
@@ -48,7 +48,7 @@ export type PolotnoFallbackElement = {
   lineHeight: number;
   align: "left" | "center" | "right";
   verticalAlign: "top" | "middle" | "bottom";
-  /** Polotno text badge background (decomposer emits these in pixels). */
+  /** Canvas text badge background (decomposer emits these in pixels). */
   backgroundEnabled: boolean;
   backgroundColor: string;
   backgroundPadding: number;
@@ -56,7 +56,7 @@ export type PolotnoFallbackElement = {
   /**
    * A CSS gradient highlight behind the text (decomposer's
    * ``custom.backgroundGradient``, e.g. a highlighter band drawn with
-   * ``linear-gradient(transparent 60%, <color> 60%)``). Polotno's solid
+   * ``linear-gradient(transparent 60%, <color> 60%)``). the stock editor's solid
    * ``backgroundColor`` cannot express it, so it is carried separately and
    * painted as a gradient-filled rect behind the glyphs.
    */
@@ -69,19 +69,19 @@ export type PolotnoFallbackElement = {
    */
   highlightColor: string | null;
   slot: string;
-  /** Native-renderable decoration the Polotno SDK ignores (carried in custom). */
+  /** Native-renderable decoration the Canvas SDK ignores (carried in custom). */
   cornerRadius: number;
   gradient: ParsedGradient | null;
   shadow: ParsedShadow | null;
   clipToRect: ClipRect | null;
 };
 
-export type PolotnoFallbackPage = {
+export type CanvasFallbackPage = {
   id: string;
   width: number;
   height: number;
   background: string;
-  elements: PolotnoFallbackElement[];
+  elements: CanvasFallbackElement[];
 };
 
 type UnknownRecord = Record<string, unknown>;
@@ -104,20 +104,20 @@ function finiteString(value: unknown, fallback = ""): string {
   return typeof value === "string" ? value : fallback;
 }
 
-function normalizeAlign(value: unknown): PolotnoFallbackElement["align"] {
+function normalizeAlign(value: unknown): CanvasFallbackElement["align"] {
   return value === "center" || value === "right" ? value : "left";
 }
 
 function normalizeVerticalAlign(
   value: unknown,
-): PolotnoFallbackElement["verticalAlign"] {
-  // The decomposer emits Polotno's "center"; Konva's name for it is "middle".
+): CanvasFallbackElement["verticalAlign"] {
+  // The decomposer emits the stock editor's "center"; Konva's name for it is "middle".
   if (value === "middle" || value === "center") return "middle";
   if (value === "bottom") return "bottom";
   return "top";
 }
 
-function normalizeKind(element: UnknownRecord): PolotnoFallbackElementKind {
+function normalizeKind(element: UnknownRecord): CanvasFallbackElementKind {
   if (element.type === "text") return "text";
   if (element.type === "image") return "image";
   if (element.type === "figure" && element.subType === "rect") return "rect";
@@ -391,7 +391,7 @@ function flattenElements(elements: unknown[]): UnknownRecord[] {
   return flattened;
 }
 
-export function normalizePolotnoJsonForKonva(json: unknown): PolotnoFallbackPage[] {
+export function normalizeCanvasJsonForKonva(json: unknown): CanvasFallbackPage[] {
   const root = asRecord(json);
   const rootWidth = finiteNumber(root.width, 750);
   const rootHeight = finiteNumber(root.height, 900);
@@ -408,7 +408,7 @@ export function normalizePolotnoJsonForKonva(json: unknown): PolotnoFallbackPage
       rootBackground,
     );
     const elements = flattenElements(asArray(page.children)).map(
-      (element, elementIndex): PolotnoFallbackElement => {
+      (element, elementIndex): CanvasFallbackElement => {
         const custom = asRecord(element.custom);
         const widthValue = Math.max(1, finiteNumber(element.width, 1));
         const heightValue = Math.max(1, finiteNumber(element.height, 1));
