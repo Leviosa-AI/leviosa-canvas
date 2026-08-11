@@ -41,6 +41,7 @@ import {
   type TransformResult,
 } from "./interaction";
 import { createValueBus, useBusValue, type ValueBus } from "./overlay-bus";
+import { waitForPageImages } from "./page-images";
 import { TextEditorOverlay } from "./text-editor";
 import { useDocumentFonts, type FontLoader } from "./use-document-fonts";
 
@@ -258,12 +259,17 @@ function PageView({
         layer
           ? {
               scale,
+              ready: async () => {
+                await waitForPageImages(page);
+                // 리액트가 받은 그림으로 다시 커밋했으니 한 번 더 그려 놓고 뽑는다.
+                layer.batchDraw();
+              },
               toDataURL: (config) => layer.toDataURL(config),
             }
           : null,
       );
     },
-    [store, page.id, scale],
+    [store, page, scale],
   );
   const editingEl =
     editingId && store.getPageOfElement(editingId)?.id === page.id

@@ -89,4 +89,32 @@ describe("CanvasStore.toDataURL", () => {
   it("없는 페이지를 부르면 실패한다", async () => {
     await expect(store().toDataURL({ pageId: "없음", timeoutMs: 10 })).rejects.toThrow();
   });
+
+  it("그림이 다 붙기를 기다린 뒤에 뽑는다", async () => {
+    // 안 기다리면 글자와 도형만 있는 썸네일이 나온다 — 실제로 그랬다.
+    const s = store();
+    const order: string[] = [];
+    let release = () => {};
+    const surface: PageSurface = {
+      scale: 1,
+      ready: () =>
+        new Promise<void>((resolve) => {
+          order.push("ready");
+          release = resolve;
+        }),
+      toDataURL: vi.fn(() => {
+        order.push("draw");
+        return "data:image/png;base64,AAA";
+      }),
+    };
+    s.registerPageSurface("p1", surface);
+
+    const pending = s.toDataURL({ pageId: "p1" });
+    await Promise.resolve();
+    expect(order).toEqual(["ready"]);
+
+    release();
+    await pending;
+    expect(order).toEqual(["ready", "draw"]);
+  });
 });

@@ -1022,6 +1022,8 @@ export class CanvasStore {
     const surface = await this.surfaceFor(page.id, opts?.timeoutMs ?? 5000);
     const scale = surface.scale || 1;
     try {
+      // 사진이 다 붙기 전에 뽑으면 글자만 있는 그림이 나온다.
+      await surface.ready?.();
       return surface.toDataURL({
         x: 0,
         y: 0,
@@ -1045,6 +1047,13 @@ export class CanvasStore {
 export type PageSurface = {
   /** 화면에 그려진 배율. 문서 좌표로 되돌리는 데 쓴다. */
   scale: number;
+  /**
+   * 뽑아도 되는 상태인가 — 이 페이지의 그림이 전부 붙을 때까지 기다린다.
+   *
+   * Stage는 붙는 즉시 그려지지만 사진은 그때 아직 안 왔다. 안 기다리면 글자와 도형만
+   * 있는 그림이 나온다(페이지 패널 썸네일에서 실제로 그랬다).
+   */
+  ready?(): Promise<void>;
   toDataURL(config: {
     x: number;
     y: number;
