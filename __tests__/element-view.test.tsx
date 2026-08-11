@@ -185,6 +185,45 @@ describe("ElementView — 도형·이미지", () => {
     expect(rect.getAttribute("data-shadowblur")).toBe("4");
   });
 
+  it("굵기 0인 획은 색까지 같이 떨어뜨린다", () => {
+    // Konva는 strokeWidth를 안 주면 1로 채운다. 분해기 문서는 획을 안 쓰는 figure에도
+    // `stroke: rgb(26,26,26) / strokeWidth: 0`을 남기므로, 색만 넘기면 섹션 바탕마다
+    // 검은 1px 테두리가 생긴다. 내보내기 넷은 모두 `width > 0`으로 게이트한다.
+    const { view } = mount({
+      id: "f",
+      type: "figure",
+      subType: "rect",
+      x: 0,
+      y: 0,
+      width: 750,
+      height: 238,
+      fill: "#f4f4f5",
+      stroke: "rgb(26, 26, 26)",
+      strokeWidth: 0,
+    });
+    const rect = view.container.querySelector('[data-konva="rect"]')!;
+    expect(rect.getAttribute("data-stroke")).toBeNull();
+    expect(rect.getAttribute("data-strokewidth")).toBeNull();
+  });
+
+  it("굵기가 있으면 획을 그대로 그린다", () => {
+    const { view } = mount({
+      id: "f",
+      type: "figure",
+      subType: "rect",
+      x: 0,
+      y: 0,
+      width: 100,
+      height: 50,
+      fill: "#ffffff",
+      stroke: "#169dc0",
+      strokeWidth: 2,
+    });
+    const rect = view.container.querySelector('[data-konva="rect"]')!;
+    expect(rect.getAttribute("data-stroke")).toBe("#169dc0");
+    expect(rect.getAttribute("data-strokewidth")).toBe("2");
+  });
+
   it("타원은 중심 좌표로 옮겨 그린다", () => {
     const { view } = mount({
       id: "f",

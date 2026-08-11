@@ -200,11 +200,18 @@ function ClipTo({ el, children }: { el: Attrs; children: ReactNode }) {
 
 function FigureBody({ el }: { el: CanvasElement }) {
   const box = boxOf(el);
+  // 굵기가 0이면 **색까지 같이 떨어뜨린다.** Konva는 strokeWidth를 안 주면 1로 채우므로
+  // `stroke`만 넘기면 굵기 0인 도형에 1px 선이 그려진다. 분해기 문서는 획을 안 쓰는
+  // figure에도 `stroke: rgb(26,26,26) / strokeWidth: 0`을 남기기 때문에, 섹션 바탕마다
+  // 검은 테두리가 생긴다. 내보내기 네 갈래(ai·svg·raster·psd)는 모두 `width > 0`으로
+  // 게이트하고 있었다 — 어긋나 있던 쪽은 화면이다.
+  const strokeWidth = num(el, "strokeWidth", 0);
+  const stroke = strokeWidth > 0 ? str(el, "stroke") || undefined : undefined;
   const shared = {
     ...fillProps(el, box.width, box.height),
     ...shadowProps(el),
-    stroke: str(el, "stroke") || undefined,
-    strokeWidth: num(el, "strokeWidth", 0) || undefined,
+    stroke,
+    strokeWidth: stroke ? strokeWidth : undefined,
   };
   const subType = str(el, "subType", "rect");
 
