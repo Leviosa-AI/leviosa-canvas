@@ -1,0 +1,55 @@
+{
+  "name": "@leviosa-ai/canvas",
+  "version": "0.1.0",
+  "description": "Leviosa in-house Konva editor engine. Source-only: consumers compile it through Next transpilePackages. Zero runtime dependencies beyond konva/react/react-konva, zero server calls.",
+  "type": "module",
+  "license": "UNLICENSED",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Leviosa-AI/leviosa-canvas.git",
+    "directory": "packages/canvas"
+  },
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  },
+  "sideEffects": false,
+  "exports": {
+    ".": "./index.ts",
+    "./license": "./license.ts",
+    "./store": "./store.ts",
+    "./types": "./types.ts",
+    "./use-canvas": "./use-canvas.ts",
+    "./shell/side-panel": "./shell/side-panel.tsx",
+    "./paint/figure-svg": "./paint/figure-svg.ts",
+    "./edit/rect": "./edit/rect.ts",
+    "./edit/commands": "./edit/commands.ts",
+    "./edit/snap": "./edit/snap.ts",
+    "./edit/hotkeys": "./edit/hotkeys.ts",
+    "./render/attrs": "./render/attrs.ts",
+    "./render/canvas-view": "./render/canvas-view.tsx",
+    "./render/element-view": "./render/element-view.tsx",
+    "./render/hit-path": "./render/hit-path.ts",
+    "./render/image-cache": "./render/image-cache.ts",
+    "./render/image-frame": "./render/image-frame.ts",
+    "./render/interaction": "./render/interaction.ts",
+    "./render/page-images": "./render/page-images.ts",
+    "./render/svg-source": "./render/svg-source.ts",
+    "./render/text-editor": "./render/text-editor.tsx",
+    "./render/use-document-fonts": "./render/use-document-fonts.ts"
+  },
+  "files": [
+    "*.ts",
+    "edit",
+    "paint",
+    "render",
+    "shell",
+    "!**/__tests__"
+  ],
+  "peerDependencies": {
+    "konva": "^10.0.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "react-konva": "^19.0.0"
+  }
+}
