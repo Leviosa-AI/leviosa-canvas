@@ -35,7 +35,13 @@ jobs:
           scope: "@leviosa-ai"
 
       # 러너 기본 npm이 11.5.1보다 낮으면 OIDC를 모른다.
-      - run: npm install -g npm@latest
+      #
+      # @latest 가 아니라 11.x 로 못 박은 이유: npm 12는 의존성의 install 스크립트를
+      # 기본으로 **막는다**. 그러면 `canvas`(node-gyp)가 안 서고, jsdom이 2D 컨텍스트
+      # 없이 뜨고, Konva가 글자를 재다가 죽는다 — 실제로 canvas-v0.1.1 첫 시도가
+      # 여기서 깨졌다. ci.yml 은 러너 기본 npm(11.x)을 그대로 쓰므로 초록이었다.
+      # 러너 기본이 12로 올라가면 그때는 allowScripts 를 선언해야 한다.
+      - run: npm install -g "npm@^11.5.1"
 
       - run: npm ci
 
