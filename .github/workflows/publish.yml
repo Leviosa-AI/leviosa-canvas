@@ -1,7 +1,11 @@
 name: publish
 
-# @leviosa-ai/canvas 를 공개 npm에 올린다. 버전 태그를 밀면 돈다.
-#   git tag canvas-v0.1.0 && git push origin canvas-v0.1.0
+# 이 저장소의 패키지를 공개 npm에 올린다. 버전 태그를 밀면 돈다.
+#   git tag canvas-v0.1.0             && git push origin canvas-v0.1.0
+#   git tag detail-page-editor-v0.1.0 && git push origin detail-page-editor-v0.1.0
+#
+# 태그 접두어가 곧 `packages/` 아래 폴더 이름이다. 패키지가 늘어도 여기 손댈 일이
+# 없도록 접두어에서 폴더를 뽑는다 — 이름을 두 군데 적으면 언젠가 갈라진다.
 #
 # 인증은 **Trusted Publishing(OIDC)** 이다 — 저장소에 NPM_TOKEN 시크릿이 없다.
 # 발행 때마다 GitHub이 발급하는 단명 토큰으로 npm에 붙는다.
@@ -18,6 +22,7 @@ on:
   push:
     tags:
       - "canvas-v*"
+      - "detail-page-editor-v*"
 
 jobs:
   publish:
@@ -49,13 +54,21 @@ jobs:
 
       - run: npm test
 
-      # package.json 버전과 밀린 태그가 다르면 여기서 시끄럽게 죽는다.
-      - name: Verify tag matches package version
+      # 태그에서 패키지와 버전을 뽑는다. `<폴더>-v<버전>` 이 규칙이고,
+      # package.json 버전과 다르면 여기서 시끄럽게 죽는다.
+      - name: Resolve package from tag
+        id: target
         run: |
-          PKG=$(node -p "require('./packages/canvas/package.json').version")
-          TAG=${GITHUB_REF_NAME#canvas-v}
-          if [ "$PKG" != "$TAG" ]; then
-            echo "::error::packages/canvas/package.json version ($PKG) != tag ($TAG)"; exit 1
+          NAME=${GITHUB_REF_NAME%-v*}
+          TAG=${GITHUB_REF_NAME##*-v}
+          DIR="packages/$NAME"
+          if [ ! -f "$DIR/package.json" ]; then
+            echo "::error::$DIR/package.json 이 없다 (태그 $GITHUB_REF_NAME)"; exit 1
           fi
+          PKG=$(node -p "require('./$DIR/package.json').version")
+          if [ "$PKG" != "$TAG" ]; then
+            echo "::error::$DIR/package.json version ($PKG) != tag ($TAG)"; exit 1
+          fi
+          echo "dir=$DIR" >> "$GITHUB_OUTPUT"
 
-      - run: npm publish --workspace packages/canvas
+      - run: npm publish --workspace ${{ steps.target.outputs.dir }}
