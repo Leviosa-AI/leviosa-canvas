@@ -1,0 +1,373 @@
+[
+  {
+    "id": "paperlogy",
+    "family": "Paperozi",
+    "label": "페이퍼로지",
+    "labelEn": "Paperlogy",
+    "tags": ["heading", "body", "gothic", "angular"],
+    "previewText": "페이퍼로지 Paperlogy",
+    "previewWeight": 600,
+    "licenseName": "SIL Open Font License 1.1",
+    "licenseUrl": "https://noonnu.cc/font_page/1456",
+    "styles": [
+      { "weight": 100, "style": "normal", "format": "woff2", "url": "https://cdn.jsdelivr.net/gh/projectnoonnu/2408-3@1.0/Paperlogy-1Thin.woff2" },
+      { "weight": 200, "style": "normal", "format": "woff2", "url": "https://cdn.jsdelivr.net/gh/projectnoonnu/2408-3@1.0/Paperlogy-2ExtraLight.woff2" },
+      { "weight": 300, "style": "normal", "format": "woff2", "url": "https://cdn.jsdelivr.net/gh/projectnoonnu/2408-3@1.0/Paperlogy-3Light.woff2" },
+      { "weight": 400, "style": "normal", "format": "woff2", "url": "https://cdn.jsdelivr.net/gh/projectnoonnu/2408-3@1.0/Paperlogy-4Regular.woff2" },
+      { "weight": 500, "style": "normal", "format": "woff2", "url": "https://cdn.jsdelivr.net/gh/projectnoonnu/2408-3@1.0/Paperlogy-5Medium.woff2" },
+      { "weight": 600, "style": "normal", "format": "woff2", "url": "https://cdn.jsdelivr.net/gh/projectnoonnu/2408-3@1.0/Paperlogy-6SemiBold.woff2" },
+      { "weight": 700, "style": "normal", "format": "woff2", "url": "https://cdn.jsdelivr.net/gh/projectnoonnu/2408-3@1.0/Paperlogy-7Bold.woff2" },
+      { "weight": 800, "style": "normal", "format": "woff2", "url": "https://cdn.jsdelivr.net/gh/projectnoonnu/2408-3@1.0/Paperlogy-8ExtraBold.woff2" },
+      { "weight": 900, "style": "normal", "format": "woff2", "url": "https://cdn.jsdelivr.net/gh/projectnoonnu/2408-3@1.0/Paperlogy-9Black.woff2" }
+    ]
+  },
+  {
+    "id": "escoredream",
+    "family": "Escoredream",
+    "label": "에스코어드림",
+    "labelEn": "S-Core Dream",
+    "tags": ["body", "gothic"],
+    "previewText": "에스코어드림 S-Core Dream",
+    "previewWeight": 500,
+    "licenseName": "에스코어드림 라이선스",
+    "licenseUrl": "https://noonnu.cc/font_page/223",
+    "licenseNoteKey": "noModificationOrSale",
+    "styles": [
+      { "weight": 100, "style": "normal", "format": "woff", "url": "https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_six@1.2/S-CoreDream-1Thin.woff" },
+      { "weight": 200, "style": "normal", "format": "woff", "url": "https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_six@1.2/S-CoreDream-2ExtraLight.woff" },
+      { "weight": 300, "style": "normal", "format": "woff", "url": "https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_six@1.2/S-CoreDream-3Light.woff" },
+      { "weight": 400, "style": "normal", "format": "woff", "url": "https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_six@1.2/S-CoreDream-4Regular.woff" },
+      { "weight": 500, "style": "normal", "format": "woff", "url": "https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_six@1.2/S-CoreDream-5Medium.woff" },
+      { "weight": 600, "style": "normal", "format": "woff", "url": "https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_six@1.2/S-CoreDream-6Bold.woff" },
+      { "weight": 700, "style": "normal", "format": "woff", "url": "https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_six@1.2/S-CoreDream-7ExtraBold.woff" },
+      { "weight": 800, "style": "normal", "format": "woff", "url": "https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_six@1.2/S-CoreDream-8Heavy.woff" },
+      { "weight": 900, "style": "normal", "format": "woff", "url": "https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_six@1.2/S-CoreDream-9Black.woff" }
+    ]
+  },
+  {
+    "id": "freesentation",
+    "family": "Presentation",
+    "label": "프리젠테이션",
+    "labelEn": "Freesentation",
+    "tags": ["body", "gothic"],
+    "previewText": "프리젠테이션 Freesentation",
+    "previewWeight": 500,
+    "licenseName": "SIL Open Font License 1.1",
+    "licenseUrl": "https://freesentation.blog/freesentation",
+    "styles": [
+      { "weight": 100, "style": "normal", "format": "woff2", "url": "https://cdn.jsdelivr.net/gh/projectnoonnu/2404@1.0/Freesentation-1Thin.woff2" },
+      { "weight": 200, "style": "normal", "format": "woff2", "url": "https://cdn.jsdelivr.net/gh/projectnoonnu/2404@1.0/Freesentation-2ExtraLight.woff2" },
+      { "weight": 300, "style": "normal", "format": "woff2", "url": "https://cdn.jsdelivr.net/gh/projectnoonnu/2404@1.0/Freesentation-3Light.woff2" },
+      { "weight": 400, "style": "normal", "format": "woff2", "url": "https://cdn.jsdelivr.net/gh/projectnoonnu/2404@1.0/Freesentation-4Regular.woff2" },
+      { "weight": 500, "style": "normal", "format": "woff2", "url": "https://cdn.jsdelivr.net/gh/projectnoonnu/2404@1.0/Freesentation-5Medium.woff2" },
+      { "weight": 600, "style": "normal", "format": "woff2", "url": "https://cdn.jsdelivr.net/gh/projectnoonnu/2404@1.0/Freesentation-6SemiBold.woff2" },
+      { "weight": 700, "style": "normal", "format": "woff2", "url": "https://cdn.jsdelivr.net/gh/projectnoonnu/2404@1.0/Freesentation-7Bold.woff2" },
+      { "weight": 800, "style": "normal", "format": "woff2", "url": "https://cdn.jsdelivr.net/gh/projectnoonnu/2404@1.0/Freesentation-8ExtraBold.woff2" },
+      { "weight": 900, "style": "normal", "format": "woff2", "url": "https://cdn.jsdelivr.net/gh/projectnoonnu/2404@1.0/Freesentation-9Black.woff2" }
+    ]
+  },
+  {
+    "id": "wanted-sans",
+    "family": "WantedSans",
+    "label": "원티드 산스",
+    "labelEn": "Wanted Sans",
+    "tags": ["body", "gothic"],
+    "previewText": "원티드 산스 Wanted Sans",
+    "previewWeight": 500,
+    "licenseName": "SIL Open Font License 1.1",
+    "licenseUrl": "https://github.com/wanteddev/wanted-sans",
+    "styles": [
+      { "weight": 400, "style": "normal", "format": "woff2", "url": "https://cdn.jsdelivr.net/npm/wanted-sans@1.0.3/fonts/webfonts/static/complete/woff2/WantedSans-Regular.woff2" },
+      { "weight": 500, "style": "normal", "format": "woff2", "url": "https://cdn.jsdelivr.net/npm/wanted-sans@1.0.3/fonts/webfonts/static/complete/woff2/WantedSans-Medium.woff2" },
+      { "weight": 600, "style": "normal", "format": "woff2", "url": "https://cdn.jsdelivr.net/npm/wanted-sans@1.0.3/fonts/webfonts/static/complete/woff2/WantedSans-SemiBold.woff2" },
+      { "weight": 700, "style": "normal", "format": "woff2", "url": "https://cdn.jsdelivr.net/npm/wanted-sans@1.0.3/fonts/webfonts/static/complete/woff2/WantedSans-Bold.woff2" },
+      { "weight": 800, "style": "normal", "format": "woff2", "url": "https://cdn.jsdelivr.net/npm/wanted-sans@1.0.3/fonts/webfonts/static/complete/woff2/WantedSans-ExtraBold.woff2" },
+      { "weight": 900, "style": "normal", "format": "woff2", "url": "https://cdn.jsdelivr.net/npm/wanted-sans@1.0.3/fonts/webfonts/static/complete/woff2/WantedSans-Black.woff2" }
+    ]
+  },
+  {
+    "id": "aggro",
+    "family": "Aggravo",
+    "label": "에스비 어그로",
+    "labelEn": "SB Aggro",
+    "tags": ["heading", "gothic", "angular"],
+    "previewText": "에스비 어그로 SB Aggro",
+    "previewWeight": 500,
+    "licenseName": "SB Aggro font license",
+    "licenseUrl": "https://noonnu.cc/font_page/738",
+    "licenseNoteKey": "noRedistributionOrSale",
+    "styles": [
+      { "weight": 300, "style": "normal", "format": "woff", "url": "https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_2108@1.1/SBAggroL.woff" },
+      { "weight": 500, "style": "normal", "format": "woff", "url": "https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_2108@1.1/SBAggroM.woff" },
+      { "weight": 700, "style": "normal", "format": "woff", "url": "https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_2108@1.1/SBAggroB.woff" }
+    ]
+  },
+  {
+    "id": "cafe24-surround",
+    "family": "Cafe24Surround",
+    "label": "카페24 써라운드",
+    "labelEn": "Cafe24 Surround",
+    "tags": ["heading", "gothic", "angular"],
+    "previewText": "카페24 써라운드",
+    "previewWeight": 400,
+    "licenseName": "Cafe24 font license",
+    "licenseUrl": "https://fonts.cafe24.com/",
+    "styles": [
+      { "weight": 400, "style": "normal", "format": "woff", "url": "https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_2105_2@1.0/Cafe24Ssurround.woff" }
+    ]
+  },
+  {
+    "id": "a2z",
+    "family": "A2z",
+    "label": "에이투지체",
+    "labelEn": "A2Z",
+    "tags": ["body", "gothic"],
+    "previewText": "에이투지체 A2Z",
+    "previewWeight": 500,
+    "licenseName": "A2Z font license",
+    "licenseUrl": "https://noonnu.cc/font_page/1778",
+    "licenseNoteKey": "noFontSale",
+    "styles": [
+      { "weight": 100, "style": "normal", "format": "woff2", "url": "https://cdn.jsdelivr.net/gh/projectnoonnu/2601-6@1.0/%EC%97%90%EC%9D%B4%ED%88%AC%EC%A7%80%EC%B2%B4-1Thin.woff2" },
+      { "weight": 200, "style": "normal", "format": "woff2", "url": "https://cdn.jsdelivr.net/gh/projectnoonnu/2601-6@1.0/%EC%97%90%EC%9D%B4%ED%88%AC%EC%A7%80%EC%B2%B4-2ExtraLight.woff2" },
+      { "weight": 300, "style": "normal", "format": "woff2", "url": "https://cdn.jsdelivr.net/gh/projectnoonnu/2601-6@1.0/%EC%97%90%EC%9D%B4%ED%88%AC%EC%A7%80%EC%B2%B4-3Light.woff2" },
+      { "weight": 400, "style": "normal", "format": "woff2", "url": "https://cdn.jsdelivr.net/gh/projectnoonnu/2601-6@1.0/%EC%97%90%EC%9D%B4%ED%88%AC%EC%A7%80%EC%B2%B4-4Regular.woff2" },
+      { "weight": 500, "style": "normal", "format": "woff2", "url": "https://cdn.jsdelivr.net/gh/projectnoonnu/2601-6@1.0/%EC%97%90%EC%9D%B4%ED%88%AC%EC%A7%80%EC%B2%B4-5Medium.woff2" },
+      { "weight": 600, "style": "normal", "format": "woff2", "url": "https://cdn.jsdelivr.net/gh/projectnoonnu/2601-6@1.0/%EC%97%90%EC%9D%B4%ED%88%AC%EC%A7%80%EC%B2%B4-6SemiBold.woff2" },
+      { "weight": 700, "style": "normal", "format": "woff2", "url": "https://cdn.jsdelivr.net/gh/projectnoonnu/2601-6@1.0/%EC%97%90%EC%9D%B4%ED%88%AC%EC%A7%80%EC%B2%B4-7Bold.woff2" },
+      { "weight": 800, "style": "normal", "format": "woff2", "url": "https://cdn.jsdelivr.net/gh/projectnoonnu/2601-6@1.0/%EC%97%90%EC%9D%B4%ED%88%AC%EC%A7%80%EC%B2%B4-8ExtraBold.woff2" },
+      { "weight": 900, "style": "normal", "format": "woff2", "url": "https://cdn.jsdelivr.net/gh/projectnoonnu/2601-6@1.0/%EC%97%90%EC%9D%B4%ED%88%AC%EC%A7%80%EC%B2%B4-9Black.woff2" }
+    ]
+  },
+  {
+    "id": "mona12",
+    "family": "Mona12",
+    "label": "모나 12",
+    "labelEn": "Mona12",
+    "tags": ["pixel"],
+    "previewText": "모나 12 Mona12",
+    "previewWeight": 400,
+    "licenseName": "SIL Open Font License 1.1",
+    "licenseUrl": "https://github.com/MonadABXY/mona-font",
+    "styles": [
+      { "weight": 400, "style": "normal", "format": "woff2", "url": "https://cdn.jsdelivr.net/gh/MonadABXY/mona-font/web/Mona12.woff2" },
+      { "weight": 700, "style": "normal", "format": "woff2", "url": "https://cdn.jsdelivr.net/gh/MonadABXY/mona-font/web/Mona12-Bold.woff2" }
+    ]
+  },
+  {
+    "id": "kookmin-sunggok-serif",
+    "family": "KookminUniversitySunggokSerif",
+    "label": "국민대학교 성곡서체",
+    "labelEn": "KMU Sungkok Serif",
+    "tags": ["heading", "myeongjo"],
+    "previewText": "국민대학교 성곡서체",
+    "previewWeight": 400,
+    "licenseName": "Kookmin University Sungkok font license",
+    "licenseUrl": "https://noonnu.cc/font_page/1863",
+    "licenseNoteKey": "attributionNoModification",
+    "styles": [
+      { "weight": 400, "style": "normal", "format": "woff2", "url": "https://cdn.jsdelivr.net/gh/Project-Noonnu/2607101542@kmu80sungkokserif/kmu80sungkokserif/KMU80SungkokSerif.woff2" }
+    ]
+  },
+  {
+    "id": "maruburi",
+    "family": "MaruBuri",
+    "label": "마루 부리",
+    "labelEn": "MaruBuri",
+    "tags": ["body", "batang"],
+    "previewText": "마루 부리 MaruBuri",
+    "previewWeight": 400,
+    "licenseName": "SIL Open Font License 1.1",
+    "licenseUrl": "https://hangeul.naver.com/font/maru-buri",
+    "styles": [
+      { "weight": 200, "style": "normal", "format": "woff2", "url": "https://hangeul.pstatic.net/hangeul_static/webfont/MaruBuri/MaruBuri-ExtraLight.woff2" },
+      { "weight": 300, "style": "normal", "format": "woff2", "url": "https://hangeul.pstatic.net/hangeul_static/webfont/MaruBuri/MaruBuri-Light.woff2" },
+      { "weight": 400, "style": "normal", "format": "woff2", "url": "https://hangeul.pstatic.net/hangeul_static/webfont/MaruBuri/MaruBuri-Regular.woff2" },
+      { "weight": 600, "style": "normal", "format": "woff2", "url": "https://hangeul.pstatic.net/hangeul_static/webfont/MaruBuri/MaruBuri-SemiBold.woff2" },
+      { "weight": 700, "style": "normal", "format": "woff2", "url": "https://hangeul.pstatic.net/hangeul_static/webfont/MaruBuri/MaruBuri-Bold.woff2" }
+    ]
+  },
+  {
+    "id": "diphylleia",
+    "family": "Diphylleia",
+    "label": "산하엽",
+    "labelEn": "Diphylleia",
+    "tags": ["heading", "myeongjo"],
+    "previewText": "산하엽 Diphylleia",
+    "previewWeight": 400,
+    "licenseName": "SIL Open Font License 1.1",
+    "licenseUrl": "https://fonts.google.com/specimen/Diphylleia",
+    "styles": [
+      { "weight": 400, "style": "normal", "format": "woff2", "url": "https://cdn.jsdelivr.net/npm/@fontsource/diphylleia@5.3.0/files/diphylleia-korean-400-normal.woff2" }
+    ]
+  },
+  {
+    "id": "im-fell-english-sc",
+    "family": "ImFellEnglishSC",
+    "label": "IM 펠 잉글리시 SC",
+    "labelEn": "IM Fell English SC",
+    "tags": ["heading", "myeongjo"],
+    "latinOnly": true,
+    "previewText": "IM Fell English SC",
+    "previewWeight": 400,
+    "licenseName": "SIL Open Font License 1.1",
+    "licenseUrl": "https://fonts.google.com/specimen/IM+Fell+English+SC",
+    "styles": [
+      { "weight": 400, "style": "normal", "format": "woff2", "url": "https://cdn.jsdelivr.net/npm/@fontsource/im-fell-english-sc@5.3.0/files/im-fell-english-sc-latin-400-normal.woff2" }
+    ]
+  },
+  {
+    "id": "bodoni-moda",
+    "family": "BodoniModa",
+    "label": "보도니 모다",
+    "labelEn": "Bodoni Moda",
+    "tags": ["heading", "myeongjo"],
+    "latinOnly": true,
+    "previewText": "Bodoni Moda",
+    "previewWeight": 500,
+    "licenseName": "SIL Open Font License 1.1",
+    "licenseUrl": "https://fonts.google.com/specimen/Bodoni+Moda",
+    "styles": [
+      { "weight": 400, "style": "normal", "format": "woff2", "url": "https://cdn.jsdelivr.net/npm/@fontsource/bodoni-moda@5.3.0/files/bodoni-moda-latin-400-normal.woff2" },
+      { "weight": 500, "style": "normal", "format": "woff2", "url": "https://cdn.jsdelivr.net/npm/@fontsource/bodoni-moda@5.3.0/files/bodoni-moda-latin-500-normal.woff2" },
+      { "weight": 600, "style": "normal", "format": "woff2", "url": "https://cdn.jsdelivr.net/npm/@fontsource/bodoni-moda@5.3.0/files/bodoni-moda-latin-600-normal.woff2" },
+      { "weight": 700, "style": "normal", "format": "woff2", "url": "https://cdn.jsdelivr.net/npm/@fontsource/bodoni-moda@5.3.0/files/bodoni-moda-latin-700-normal.woff2" },
+      { "weight": 800, "style": "normal", "format": "woff2", "url": "https://cdn.jsdelivr.net/npm/@fontsource/bodoni-moda@5.3.0/files/bodoni-moda-latin-800-normal.woff2" },
+      { "weight": 900, "style": "normal", "format": "woff2", "url": "https://cdn.jsdelivr.net/npm/@fontsource/bodoni-moda@5.3.0/files/bodoni-moda-latin-900-normal.woff2" }
+    ]
+  },
+  {
+    "id": "rounded-fixedsys",
+    "family": "RoundedFixedsys",
+    "label": "둥근모꼴",
+    "labelEn": "Rounded Fixedsys",
+    "tags": ["pixel", "rounded"],
+    "previewText": "둥근모꼴 Rounded Fixedsys",
+    "previewWeight": 400,
+    "licenseName": "Public domain",
+    "licenseUrl": "https://noonnu.cc/font_page/250",
+    "styles": [
+      { "weight": 400, "style": "normal", "format": "woff", "url": "https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_six@1.2/DungGeunMo.woff" }
+    ]
+  },
+  {
+    "id": "daegu-catholic-university",
+    "family": "DaeguCatholicUniversity",
+    "label": "대구가톨릭대학교체",
+    "labelEn": "Daegu Catholic University",
+    "tags": ["heading", "gothic", "angular"],
+    "previewText": "대구가톨릭대학교체",
+    "previewWeight": 400,
+    "licenseName": "Daegu Catholic University font license",
+    "licenseUrl": "https://noonnu.cc/font_page/1570",
+    "licenseNoteKey": "noModificationOrRedistribution",
+    "styles": [
+      { "weight": 400, "style": "normal", "format": "woff2", "url": "https://cdn.jsdelivr.net/gh/projectnoonnu/2503@1.0/DaeguCatholicUniversity.woff2" }
+    ]
+  },
+  {
+    "id": "nexon-maplestory",
+    "family": "NexonMaplestory",
+    "label": "넥슨 메이플스토리",
+    "labelEn": "NEXON MapleStory",
+    "tags": ["heading", "gothic", "rounded"],
+    "previewText": "넥슨 메이플스토리",
+    "previewWeight": 700,
+    "licenseName": "NEXON MapleStory font license",
+    "licenseUrl": "https://noonnu.cc/font_page/427",
+    "licenseNoteKey": "originalEmbeddingNotice",
+    "styles": [
+      { "weight": 300, "style": "normal", "format": "woff", "url": "https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_20-04@2.1/MaplestoryOTFLight.woff" },
+      { "weight": 700, "style": "normal", "format": "woff", "url": "https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_20-04@2.1/MaplestoryOTFBold.woff" }
+    ]
+  },
+  {
+    "id": "galmuri9",
+    "family": "Galmuri9",
+    "label": "갈무리9",
+    "labelEn": "Galmuri9",
+    "tags": ["pixel"],
+    "previewText": "갈무리9 Galmuri9",
+    "previewWeight": 400,
+    "licenseName": "SIL Open Font License 1.1",
+    "licenseUrl": "https://github.com/quiple/galmuri",
+    "styles": [
+      { "weight": 400, "style": "normal", "format": "woff2", "url": "https://cdn.jsdelivr.net/npm/galmuri@2.40.3/dist/Galmuri9.woff2" }
+    ]
+  },
+  {
+    "id": "dnf-bitbit",
+    "family": "DungeonFighterOnlineBeatBeat",
+    "label": "던파 비트비트체",
+    "labelEn": "DNF BitBit",
+    "tags": ["pixel"],
+    "previewText": "던파 비트비트체",
+    "previewWeight": 400,
+    "licenseName": "DNF BitBit font license",
+    "licenseUrl": "https://noonnu.cc/font_page/1043",
+    "licenseNoteKey": "noBrandIdentity",
+    "styles": [
+      { "weight": 400, "style": "normal", "format": "woff", "url": "https://cdn.df.nexon.com/img/common/font/DNFBitBit-Regular.woff" }
+    ]
+  },
+  {
+    "id": "d2coding",
+    "family": "D2Coding",
+    "label": "D2Coding",
+    "labelEn": "D2 Coding",
+    "tags": ["body", "gothic"],
+    "previewText": "D2Coding 코드 0123",
+    "previewWeight": 400,
+    "licenseName": "SIL Open Font License 1.1",
+    "licenseUrl": "https://github.com/naver/d2codingfont",
+    "styles": [
+      { "weight": 400, "style": "normal", "format": "woff", "url": "https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_three@1.0/D2Coding.woff" }
+    ]
+  },
+  {
+    "id": "bookk-myungjo",
+    "family": "BookkMyungjo",
+    "label": "부크크 명조",
+    "labelEn": "Bookk Myungjo",
+    "tags": ["body", "myeongjo"],
+    "previewText": "부크크 명조 Bookk Myungjo",
+    "previewWeight": 400,
+    "licenseName": "부크크 명조 라이선스",
+    "licenseUrl": "https://noonnu.cc/font_page/1084",
+    "licenseNoteKey": "noRedistributionOrSale",
+    "styles": [
+      { "weight": 400, "style": "normal", "format": "woff2", "url": "https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_2302@1.0/BookkMyungjo-Lt.woff2" },
+      { "weight": 700, "style": "normal", "format": "woff2", "url": "https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_2302@1.0/BookkMyungjo-Bd.woff2" }
+    ]
+  },
+  {
+    "id": "ownglyph-park-dahyun",
+    "family": "OngleipParkDahyeon",
+    "label": "온글잎 박다현체",
+    "labelEn": "Ownglyph ParkDaHyun",
+    "tags": ["handwriting"],
+    "previewText": "온글잎 박다현체",
+    "previewWeight": 400,
+    "licenseName": "온글잎 박다현체 라이선스",
+    "licenseUrl": "https://noonnu.cc/font_page/1541",
+    "licenseNoteKey": "noRedistributionOrSale",
+    "styles": [
+      { "weight": 400, "style": "normal", "format": "woff2", "url": "https://cdn.jsdelivr.net/gh/projectnoonnu/2411-3@1.0/Ownglyph_ParkDaHyun.woff2" }
+    ]
+  },
+  {
+    "id": "87mm-ilsang-oblique",
+    "family": "PalchilmmDailyItalic",
+    "label": "팔칠엠엠 일상 기울임",
+    "labelEn": "87MM Ilsang Oblique",
+    "tags": ["heading", "gothic", "italic"],
+    "previewText": "팔칠엠엠 일상 기울임",
+    "previewWeight": 400,
+    "licenseName": "팔칠엠엠 라이선스",
+    "licenseUrl": "https://noonnu.cc/font_page/790",
+    "licenseNoteKey": "noPackagingOrBrandIdentity",
+    "styles": [
+      { "weight": 400, "style": "normal", "format": "woff2", "url": "https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_2201@1.0/87MMILSANG-Oblique.woff2" }
+    ]
+  }
+]
