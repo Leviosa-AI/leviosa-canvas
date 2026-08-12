@@ -1,4 +1,9 @@
-node_modules/
+# 슬래시를 붙이면 디렉터리만 걸린다. 워크트리는 루트 환경을 링크로 재사용하므로
+# 여기 놓이는 것은 디렉터리가 아니라 심볼릭 링크다 — 슬래시가 있으면 그게 통과한다.
+node_modules
 .worktrees/
 *.tsbuildinfo
 .DS_Store
+.env
+.env.*
+!.env.example
