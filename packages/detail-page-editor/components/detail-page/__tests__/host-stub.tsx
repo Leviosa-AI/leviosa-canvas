@@ -60,6 +60,8 @@ export function stubDetailPageHost(
     product?: Partial<DetailPageHost["product"]>;
     toast?: Partial<DetailPageHost["toast"]>;
     queryKeys?: DetailPageHost["queryKeys"];
+    // 슬롯은 자동 스텁을 안 씌운다 — 안 꽂은 슬롯은 없는 것이 곧 계약이다.
+    slots?: DetailPageHost["slots"];
   } = {},
 ): DetailPageHost {
   return {
@@ -68,6 +70,7 @@ export function stubDetailPageHost(
     product: autoStub(overrides.product ?? {}),
     toast: autoStub(overrides.toast ?? {}),
     queryKeys: overrides.queryKeys ?? keyPath(),
+    slots: overrides.slots,
   };
 }
 
