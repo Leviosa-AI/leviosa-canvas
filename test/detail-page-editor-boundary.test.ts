@@ -33,8 +33,6 @@ const ALLOWED_PACKAGES = [
   "@leviosa-ai/canvas",
   "@leviosa-ai/konva",
   "@tanstack/react-query",
-  "@testing-library/react",
-  "@testing-library/user-event",
   "ag-psd",
   "class-variance-authority",
   "clsx",
@@ -47,7 +45,6 @@ const ALLOWED_PACKAGES = [
   "lucide-react",
   "mp4-muxer",
   "next",
-  "node:fs",
   "qrcode-generator",
   "radix-ui",
   "react",
@@ -55,13 +52,20 @@ const ALLOWED_PACKAGES = [
   "react-i18next",
   "react-konva",
   "tailwind-merge",
-  "vitest",
   "woff2-encoder",
 ];
 
+/**
+ * 발행되는 것만 잰다.
+ *
+ * `__tests__` 는 `files` 의 제외 규칙으로 tarball 에서 빠지므로 소비자에게 도달하지
+ * 않는다. 그걸 같이 세면 테스트가 쓰는 `node:child_process` 같은 것이 셸의 결합으로
+ * 잡혀서, 진짜 신호가 노이즈에 묻힌다.
+ */
 function sourceFiles(dir: string): string[] {
   const out: string[] = [];
   for (const name of readdirSync(dir)) {
+    if (name === "__tests__") continue;
     const path = join(dir, name);
     if (statSync(path).isDirectory()) out.push(...sourceFiles(path));
     else if (/\.tsx?$/.test(name)) out.push(path);
@@ -101,7 +105,7 @@ for (const file of FILES) {
 
 describe("셸은 앱 없이 선다", () => {
   it("소스를 실제로 읽었다", () => {
-    expect(FILES.length).toBeGreaterThan(300);
+    expect(FILES.length).toBeGreaterThan(150);
   });
 
   it("소비자 앱의 경로 별칭을 하나도 안 쓴다", () => {
