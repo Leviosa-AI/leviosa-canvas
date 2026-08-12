@@ -1,3 +1,7 @@
+// 이 선언은 패키지가 들고 오지만, 소비자의 tsconfig 는 node_modules 안의 .d.ts 를 자동으로
+// 집지 않는다. 프론트엔드에서는 같은 파일이 src/types 에 있어서 우연히 포함됐을 뿐이다.
+// 여기서 직접 가리켜야 설치한 쪽에서도 타입이 선다.
+/// <reference path="../../../types/gifenc.d.ts" />
 /**
  * Animation-aware raster export: builds a ZIP where contiguous still sections
  * are stacked into PNGs and every animated section is encoded as its own

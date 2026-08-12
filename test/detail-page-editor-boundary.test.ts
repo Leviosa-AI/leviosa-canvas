@@ -127,4 +127,24 @@ describe("셸이 쓰는 npm 패키지", () => {
     const stale = ALLOWED_PACKAGES.filter((n) => !packageImports.has(n));
     expect(stale).toEqual([]);
   });
+
+  /**
+   * 쓰는 것을 package.json 에 다 적었는지 본다.
+   *
+   * 허용 목록과 선언은 **다른 것**이다. 여기 이름을 올려 두면 이 저장소에서는 통과하지만,
+   * 설치한 소비자에게는 그 패키지가 없다 — 첫 소비자(leviosa-frontend)가 우연히 같은 것을
+   * 들고 있었던 탓에 `clsx`·`cmdk` 넷이 안 적힌 채 두 번 발행됐다. 두 번째 소비자에
+   * 꽂고서야 드러났다.
+   */
+  it("쓰는 것을 package.json 이 다 선언한다", () => {
+    const manifest = JSON.parse(
+      readFileSync(join(PACKAGE, "package.json"), "utf8"),
+    ) as { dependencies?: Record<string, string>; peerDependencies?: Record<string, string> };
+    const declared = new Set([
+      ...Object.keys(manifest.dependencies ?? {}),
+      ...Object.keys(manifest.peerDependencies ?? {}),
+    ]);
+    const undeclared = [...packageImports.keys()].filter((name) => !declared.has(name));
+    expect(undeclared.sort()).toEqual([]);
+  });
 });

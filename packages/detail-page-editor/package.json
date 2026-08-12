@@ -1,6 +1,6 @@
 {
   "name": "@leviosa-ai/detail-page-editor",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "description": "Leviosa detail-page editor shell. Source-only: consumers compile it through Next transpilePackages. Every app coupling (sourcing server, brand store, cache keys, toast) arrives through the DetailPageHost interface.",
   "type": "module",
   "license": "UNLICENSED",
@@ -46,12 +46,16 @@
     "@dnd-kit/sortable": "^10.0.0",
     "@dnd-kit/utilities": "^3.2.2",
     "ag-psd": "^28.5.1",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
+    "cmdk": "^1.1.1",
     "fontkit": "^2.0.4",
     "gifenc": "^1.0.3",
     "gifuct-js": "^2.1.2",
     "jszip": "^3.10.1",
     "mp4-muxer": "^5.2.2",
     "qrcode-generator": "^2.0.4",
+    "tailwind-merge": "^3.5.0",
     "woff2-encoder": "2.0.0"
   },
   "peerDependencies": {
