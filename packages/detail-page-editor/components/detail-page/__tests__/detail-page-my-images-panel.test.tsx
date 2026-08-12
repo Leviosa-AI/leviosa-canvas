@@ -193,3 +193,58 @@ describe("DetailPageMyImagesPanel", () => {
     ).toBeTruthy();
   });
 });
+
+// 저작 사진은 앱 도메인이라 슬롯으로 받는다. 두 갈래를 한 그리드에 안 섞는 이유는
+// 고르는 방식이 달라서다 — 자산은 이름으로, 저작 사진은 "그때 그 상세페이지"로 찾는다.
+describe("DetailPageMyImagesPanel 서랍 전환", () => {
+  function renderWithAuthored(Panel: () => React.ReactElement) {
+    const client = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    });
+    return renderWithDetailPageHost(
+      <QueryClientProvider client={client}>
+        <DetailPageMyImagesPanel store={{ pages: [] }} />
+      </QueryClientProvider>,
+      { brand: BRAND, slots: { AuthoredImagesPanel: Panel } },
+    );
+  }
+
+  it("브랜드 자산이 기본이고, 저작 갤러리로 갈아탈 수 있다", async () => {
+    const user = userEvent.setup();
+    mockList.mockResolvedValue([]);
+    const authored = vi.fn(() => <div>저작 갤러리</div>);
+
+    renderWithAuthored(authored);
+
+    // 기본은 브랜드 자산이다 — 업로드 자리가 그 갈래에만 있다.
+    expect(
+      await screen.findByText("detailPage.brandAssets.uploadImage"),
+    ).toBeInTheDocument();
+    // 서랍을 열기만 해도 수백 장짜리 목록을 서명해 오면 편집기가 열릴 때마다 그 값을 문다.
+    expect(authored).not.toHaveBeenCalled();
+
+    await user.click(
+      screen.getByRole("button", { name: "detailPage.brandAssets.sourceAuthored" }),
+    );
+
+    expect(await screen.findByText("저작 갤러리")).toBeInTheDocument();
+    // 갈아탄 갈래에는 업로드가 없다. 저작 사진은 올리는 물건이 아니라 나온 물건이다.
+    expect(
+      screen.queryByText("detailPage.brandAssets.uploadImage"),
+    ).not.toBeInTheDocument();
+  });
+
+  it("슬롯을 안 꽂으면 탭 없이 브랜드 자산만 뜬다", async () => {
+    mockList.mockResolvedValue([]);
+
+    renderPanel();
+
+    expect(
+      await screen.findByText("detailPage.brandAssets.uploadImage"),
+    ).toBeInTheDocument();
+    // 저작이라는 앱 도메인이 없는 소비자에게 빈 탭을 보이느니 한 갈래로 둔다.
+    expect(
+      screen.queryByRole("button", { name: "detailPage.brandAssets.sourceAuthored" }),
+    ).not.toBeInTheDocument();
+  });
+});

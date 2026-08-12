@@ -28,7 +28,80 @@ function uploadKind(file: File): BrandAssetKind {
   return "image";
 }
 
+/**
+ * 브랜드 이미지 서랍. 앱이 저작 갤러리를 꽂아 주면 두 갈래를 한 자리에서 고른다.
+ *
+ * - **브랜드 자산** — 셀러가 올려 둔 사진. 오래 사는 물건이다.
+ * - **저작 생성 이미지** — 저작이 구운 사진. 한 건이 최대 30장인데 고른 한 벌에
+ *   들어가는 것은 열 몇 장이라, 나머지를 여기서 못 찾으면 다음 상품에서 같은 사진을
+ *   다시 굽는다.
+ *
+ * 한 그리드에 섞지 않는 이유는 고르는 방식이 달라서다. 브랜드 자산은 이름으로 찾고,
+ * 저작 사진은 "그때 그 상세페이지"로 찾는다 — 뒤쪽은 페이지 단위 묶음이 필요하다.
+ *
+ * 슬롯이 없으면 탭도 없다. 저작이라는 앱 도메인이 없는 소비자에게 빈 탭을 보이느니
+ * 브랜드 자산 하나로 두는 편이 맞다.
+ */
 export function DetailPageMyImagesPanel({ store }: { store: unknown }) {
+  const { slots } = useDetailPageHost();
+  const { t } = useTranslation("branding");
+  const [source, setSource] = useState<"brand" | "authored">("brand");
+  const AuthoredPanel = slots?.AuthoredImagesPanel;
+
+  if (!AuthoredPanel) return <BrandAssetGallery store={store} />;
+
+  return (
+    <div className="flex h-full flex-col">
+      <div className="flex gap-1 border-b border-neutral-200 px-4 pt-3">
+        <SourceTab
+          label={t("detailPage.brandAssets.sourceBrand")}
+          active={source === "brand"}
+          onClick={() => setSource("brand")}
+        />
+        <SourceTab
+          label={t("detailPage.brandAssets.sourceAuthored")}
+          active={source === "authored"}
+          onClick={() => setSource("authored")}
+        />
+      </div>
+      <div className="min-h-0 flex-1">
+        {source === "brand" ? (
+          <BrandAssetGallery store={store} />
+        ) : (
+          <AuthoredPanel store={store} />
+        )}
+      </div>
+    </div>
+  );
+}
+
+function SourceTab({
+  label,
+  active,
+  onClick,
+}: {
+  label: string;
+  active: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-pressed={active}
+      className={
+        "-mb-px border-b-2 px-2.5 pb-2 text-[11px] font-medium " +
+        (active
+          ? "border-neutral-800 text-neutral-800"
+          : "border-transparent text-neutral-400 hover:text-neutral-600")
+      }
+    >
+      {label}
+    </button>
+  );
+}
+
+function BrandAssetGallery({ store }: { store: unknown }) {
   const { brand, queryKeys, toast } = useDetailPageHost();
   const { t } = useTranslation("branding");
   const queryClient = useQueryClient();

@@ -421,6 +421,14 @@ export interface DetailPageHostSlots {
     store: never;
     className?: string;
   }>;
+  /**
+   * '내 이미지' 서랍의 두 번째 탭 — 저작이 구운 사진.
+   *
+   * 브랜드 자산과 한 그리드에 안 섞는 이유는 고르는 방식이 달라서다. 자산은 이름으로
+   * 찾고, 저작 사진은 "그때 그 상세페이지"로 찾는다. 뒤쪽은 상세페이지 저작이라는 앱
+   * 도메인을 알아야 묶이므로 앱이 꽂는다. 안 꽂으면 탭 없이 브랜드 자산만 뜬다.
+   */
+  AuthoredImagesPanel?: ComponentType<{ store: unknown }>;
 }
 
 export interface DetailPageHost {
