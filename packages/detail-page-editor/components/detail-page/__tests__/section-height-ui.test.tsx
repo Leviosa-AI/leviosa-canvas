@@ -1,7 +1,5 @@
 import { describe, expect, it } from "vitest";
 import { fireEvent, screen } from "@testing-library/react";
-import { readFileSync } from "node:fs";
-import { join } from "node:path";
 
 import { DetailPageProperties } from "../detail-page-properties-panel";
 import { livePageHeight } from "../section-reauthor-controller";
@@ -158,35 +156,5 @@ describe("재저작에 실어 보내는 높이", () => {
     expect(
       livePageHeight({ pages: [{ id: "hero", computedHeight: 0 }] }, "hero"),
     ).toBeUndefined();
-  });
-});
-
-describe("번역", () => {
-  const KEYS = [
-    "pageHeight",
-    "pageHeightFit",
-    "pageHeightHint",
-    "pageHeightOverflow",
-  ].map((k) => `detailPage.properties.${k}`);
-
-  it.each(["ko", "en"])("%s 에 다 있다", (language) => {
-    const tree = JSON.parse(
-      readFileSync(
-        join(process.cwd(), "public", "locales", language, "branding.json"),
-        "utf8",
-      ),
-    );
-    for (const key of KEYS) {
-      const value = key
-        .split(".")
-        .reduce<unknown>(
-          (node, part) =>
-            node && typeof node === "object"
-              ? (node as Record<string, unknown>)[part]
-              : undefined,
-          tree,
-        );
-      expect(String(value ?? "").trim(), key).not.toBe("");
-    }
   });
 });

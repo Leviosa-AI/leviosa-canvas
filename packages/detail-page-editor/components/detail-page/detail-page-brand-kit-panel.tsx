@@ -4,11 +4,12 @@ import { useQuery } from "@tanstack/react-query";
 import { Loader2, Palette } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
-import { BrandKitPanel } from "@/components/branding/brand-kit-panel";
 import { useDetailPageHost } from "./detail-page-host-context";
 
 export function DetailPageBrandKitPanel({ store }: { store: unknown }) {
-  const { brand, queryKeys } = useDetailPageHost();
+  // 킷을 그리는 화면은 브랜드 도메인이라 호스트가 꽂는다. 편집기는 활성 브랜드의
+  // 무드보드를 불러 킷으로 바꾼 뒤 그 자리에 넘길 뿐이다.
+  const { brand, queryKeys, slots } = useDetailPageHost();
   const { t } = useTranslation("branding");
   const {
     brands,
@@ -38,7 +39,8 @@ export function DetailPageBrandKitPanel({ store }: { store: unknown }) {
     );
   }
 
-  if (!activeBrand || !moodboardQuery.data) {
+  const KitPanel = slots?.BrandKitPanel;
+  if (!activeBrand || !moodboardQuery.data || !KitPanel) {
     return (
       <div className="flex h-full flex-col items-center justify-center gap-2 p-5 text-center text-neutral-400">
         <Palette size={22} />
@@ -65,7 +67,7 @@ export function DetailPageBrandKitPanel({ store }: { store: unknown }) {
           </select>
         </label>
       </div>
-      <BrandKitPanel
+      <KitPanel
         kit={brand.deriveBrandKit(moodboardQuery.data)}
         store={store as never}
         className="flex-1"

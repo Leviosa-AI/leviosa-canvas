@@ -31,7 +31,8 @@
     "./lib/table/*": "./lib/detail-page/table/*.ts",
     "./lib/chart/*": "./lib/detail-page/chart/*.ts",
     "./canvas/*": "./lib/detail-page-canvas/*.ts",
-    "./canvas/export/*": "./lib/detail-page-canvas/export/*.ts"
+    "./canvas/export/*": "./lib/detail-page-canvas/export/*.ts",
+    "./properties-panel": "./components/detail-page/detail-page-properties-panel.tsx"
   },
   "files": [
     "index.ts",

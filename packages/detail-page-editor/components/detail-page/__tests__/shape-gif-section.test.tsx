@@ -15,7 +15,7 @@ const { mockShapeSourceImage } = vi.hoisted(() => ({
 }));
 vi.mock("../../../lib/detail-page/shape-to-image", async () => {
   const actual = await vi.importActual<
-    typeof import("@/lib/detail-page/shape-to-image")
+    typeof import("../../../lib/detail-page/shape-to-image")
   >("../../../lib/detail-page/shape-to-image");
   return { ...actual, shapeSourceImage: mockShapeSourceImage };
 });

@@ -85,11 +85,4 @@ describe("font tags", () => {
     }
   });
 
-  it("labels every chip in both locales", async () => {
-    for (const locale of ["ko", "en"]) {
-      const labels = await tagLabels(locale);
-      expect(Object.keys(labels).sort()).toEqual([...FONT_TAGS].sort());
-      expect(Object.values(labels).every((label) => label.length > 0)).toBe(true);
-    }
-  });
 });

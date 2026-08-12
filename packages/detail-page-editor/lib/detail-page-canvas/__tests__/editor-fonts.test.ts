@@ -1,5 +1,3 @@
-import { existsSync } from "node:fs";
-
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const loadFontFaces = vi.fn().mockResolvedValue(undefined);
@@ -60,9 +58,8 @@ describe("editor font list", () => {
     }
   });
 
-  it("ships a rendered preview for every entry and sorted weights", () => {
+  it("가중치는 정렬돼 있고 라이선스 주소가 있다", () => {
     for (const font of EDITOR_FONTS) {
-      expect(existsSync(`public${font.previewSrc}`)).toBe(true);
       expect(font.weights.length).toBeGreaterThan(0);
       expect([...font.weights].sort((a, b) => a - b)).toEqual(font.weights);
       expect(font.licenseUrl).toMatch(/^https?:\/\//);

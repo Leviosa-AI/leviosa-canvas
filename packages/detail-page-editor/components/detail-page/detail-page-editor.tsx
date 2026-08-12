@@ -38,7 +38,7 @@ import { DetailPageProperties } from "./detail-page-properties-panel";
 import type { ImageTier } from "../../lib/detail-page/image-credit";
 import { DetailPageHistoryButtons } from "./detail-page-history-buttons";
 import { DetailPageDownloadDialog } from "./detail-page-download-dialog";
-import { PricingModal } from "@/components/app/pricing-modal";
+import { useDetailPageHost } from "./detail-page-host-context";
 import { SectionReauthorController } from "./section-reauthor-controller";
 import type {
   GenerateGifFn,
@@ -442,6 +442,8 @@ export function DetailPageEditor({
   headerActions,
 }: DetailPageEditorProps) {
   const { t } = useTranslation("branding");
+  // 요금제 모달은 호스트가 꽂는다 — 편집기가 열지만 무엇을 얼마에 파는지는 앱이 안다.
+  const { slots } = useDetailPageHost();
   const [saveError, setSaveError] = useState<string | null>(null);
   const [saveOk, setSaveOk] = useState(false);
   // 편집 한도 소진 시 "편집 크레딧 추가하기" → pricing 모달을 인플레이스로 연다.
@@ -963,7 +965,9 @@ export function DetailPageEditor({
         generatedId={generatedId}
         templateId={initialDocument.template_id ?? undefined}
       />
-      <PricingModal open={pricingOpen} onOpenChange={setPricingOpen} />
+      {slots?.PricingModal ? (
+        <slots.PricingModal open={pricingOpen} onOpenChange={setPricingOpen} />
+      ) : null}
     </div>
     </CanvasStoreContext.Provider>
   );

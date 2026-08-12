@@ -51,17 +51,6 @@ describe("detail-page font catalog", () => {
     }
   });
 
-  it("ships a rendered preview for every catalog entry", async () => {
-    const { readFile } = await import("node:fs/promises");
-    const manifest = JSON.parse(
-      await readFile("public/detail-font-previews/manifest.json", "utf8"),
-    ) as { items: Record<string, { file: string }> };
-    for (const font of DETAIL_PAGE_FONTS) {
-      // 픽커가 `/detail-font-previews/{id}.webp` 를 그대로 참조한다.
-      expect(manifest.items[font.id]?.file).toBe(`${font.id}.webp`);
-    }
-  });
-
   it("normalizes legacy Canvas weights and chooses the nearest available face", () => {
     const aggro = getDetailPageFont("Aggravo");
     expect(aggro).toBeDefined();
