@@ -1,0 +1,70 @@
+{
+  "name": "@leviosa-ai/detail-page-editor",
+  "version": "0.1.0",
+  "description": "Leviosa detail-page editor shell. Source-only: consumers compile it through Next transpilePackages. Every app coupling (sourcing server, brand store, cache keys, toast) arrives through the DetailPageHost interface.",
+  "type": "module",
+  "license": "UNLICENSED",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Leviosa-AI/leviosa-canvas.git",
+    "directory": "packages/detail-page-editor"
+  },
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  },
+  "sideEffects": false,
+  "exports": {
+    ".": "./index.ts",
+    "./package.json": "./package.json",
+    "./host": "./components/detail-page/detail-page-host-context.tsx",
+    "./editor": "./components/detail-page/detail-page-editor.tsx",
+    "./editor-header-actions": "./components/detail-page/detail-page-editor-header-actions.tsx",
+    "./konva-json-preview": "./components/detail-page/detail-page-konva-json-preview.tsx",
+    "./canvas-store-facade": "./components/detail-page/canvas-store-facade.ts",
+    "./canvas-overlay-host": "./components/detail-page/canvas-overlay-host.tsx",
+    "./ai-generate-panel": "./components/detail-page/ai-generate-panel.tsx",
+    "./design-reference-picker": "./components/detail-page/design-reference-picker.tsx",
+    "./generation-progress-fill": "./components/detail-page/generation-progress-fill.tsx",
+    "./types": "./types/detail-page-canvas.ts",
+    "./lib/*": "./lib/detail-page/*.ts",
+    "./lib/table/*": "./lib/detail-page/table/*.ts",
+    "./lib/chart/*": "./lib/detail-page/chart/*.ts",
+    "./canvas/*": "./lib/detail-page-canvas/*.ts",
+    "./canvas/export/*": "./lib/detail-page-canvas/export/*.ts"
+  },
+  "files": [
+    "index.ts",
+    "components",
+    "config",
+    "lib",
+    "types",
+    "!**/__tests__"
+  ],
+  "dependencies": {
+    "@dnd-kit/core": "^6.3.1",
+    "@dnd-kit/sortable": "^10.0.0",
+    "@dnd-kit/utilities": "^3.2.2",
+    "ag-psd": "^28.5.1",
+    "fontkit": "^2.0.4",
+    "gifenc": "^1.0.3",
+    "gifuct-js": "^2.1.2",
+    "jszip": "^3.10.1",
+    "mp4-muxer": "^5.2.2",
+    "qrcode-generator": "^2.0.4",
+    "woff2-encoder": "2.0.0"
+  },
+  "peerDependencies": {
+    "@leviosa-ai/canvas": "^0.1.1",
+    "@leviosa-ai/konva": "^0.8.0",
+    "@tanstack/react-query": "^5.100.3",
+    "konva": "^10.0.0",
+    "lucide-react": "^0.563.0",
+    "next": "^16.0.0",
+    "radix-ui": "^1.4.3",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "react-i18next": "^16.0.0",
+    "react-konva": "^19.0.0"
+  }
+}
