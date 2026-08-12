@@ -9,7 +9,7 @@
  *
  * ## 앱 안에 살 때와 무엇이 달라졌나
  *
- * 프론트 안에 있을 때 이 파일은 `import type * as SourcingApi from "@/lib/sourcing-api"`
+ * 프론트 안에 있을 때 이 파일은 앱의 소싱 API 모듈을 이름공간 타입으로 들여오는 문
  * 열두 줄로 계약을 적었다. 이름만 고르고 시그니처는 앱에서 끌어오면 드리프트가 0이라
  * 그게 옳았다 — **앱 안에 사는 동안에는**. 패키지는 그 모듈에 닿을 수 없으므로 이제
  * 시그니처를 직접 적는다.
@@ -231,7 +231,6 @@ export type BrandAssetKind =
   | "svg"
   | "gif"
   | "other"
-  | "image_prompt"
   | "shape";
 
 export type BrandAssetGifKind = "shape" | "text" | "image_effect" | "image_prompt";

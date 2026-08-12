@@ -30,7 +30,10 @@ export default defineConfig({
           globals: true,
           environment: "jsdom",
           setupFiles: ["./test/setup.ts", "./test/setup-editor.tsx"],
-          include: ["packages/detail-page-editor/**/*.test.{ts,tsx}"],
+          include: [
+            "packages/detail-page-editor/**/*.test.{ts,tsx}",
+            "test/detail-page-editor-*.test.ts",
+          ],
         },
       },
     ],

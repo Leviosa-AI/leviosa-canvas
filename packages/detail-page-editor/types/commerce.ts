@@ -30,19 +30,32 @@ export interface Cafe24ProductListParams {
   query?: string;
   category_name?: string;
   include_sub_category?: boolean;
-  display?: Cafe24Flag | string | null;
-  selling?: Cafe24Flag | string | null;
+  display?: Cafe24Flag;
+  selling?: Cafe24Flag;
   include_details?: boolean;
 }
 
-/** 목록 한 줄. 이름과 썸네일 후보만 본다. */
+/**
+ * 목록 한 줄.
+ *
+ * 번호와 이름이 **필수**인 것은 우리가 그렇게 정해서가 아니라, 호스트가 꽂아 줄
+ * `getCafe24ProductNo` 가 그 둘을 요구하기 때문이다. 여기서 옵셔널로 열어 두면 앱이
+ * 자기 함수를 못 꽂는다 — 인자는 반변이라 우리 쪽이 더 느슨하면 대입이 깨진다.
+ */
 export interface Cafe24ProductSummary {
-  product_name?: string | null;
-  name?: string | null;
+  product_no: number;
+  origin_product_no: number;
+  product_name: string;
+  name: string;
   list_image?: string | null;
   tiny_image?: string | null;
   small_image?: string | null;
   detail_image?: string | null;
+  /**
+   * 카페24 목록은 계정 설정에 따라 필드가 늘고 준다. 앱의 타입도 이 서명을 갖고 있고,
+   * 없으면 앱 함수를 못 꽂는다 — 색인 서명이 있는 타입에는 없는 타입을 못 넣는다.
+   */
+  [key: string]: unknown;
 }
 
 export interface Cafe24ProductListPage {
