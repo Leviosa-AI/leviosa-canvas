@@ -36,6 +36,14 @@ export default defineConfig({
           ],
         },
       },
+      {
+        // 패키지가 아니라 저장소 자체를 재는 자리. jsdom 도 setup 도 필요 없다.
+        test: {
+          name: "repo",
+          environment: "node",
+          include: ["test/no-tracked-symlinks.test.ts"],
+        },
+      },
     ],
     pool: "forks",
   },
