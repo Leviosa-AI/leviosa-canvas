@@ -6,8 +6,10 @@ const NODE_TYPES = new Set([
   "group",
   "text",
   "image",
+  "video",
   "svg",
   "shape",
+  "particles",
   "divider",
 ]);
 const FORBIDDEN_SVG = /<\s*script\b|<\s*foreignObject\b|\son[a-z]+\s*=|javascript:|(?:href|xlink:href)\s*=\s*["']\s*(?:https?:|\/\/|data:)|url\(\s*["']?\s*(?:https?:|\/\/|javascript:|data:)/i;
@@ -52,17 +54,26 @@ function validateNode(
   if (!NODE_TYPES.has(node.type)) fail("DPNEXT-SCHEMA-006", `${path}.type`, "unknown node type");
   validateSafeScalars(node.style, `${path}.style`);
   validateSafeScalars(node.layout, `${path}.layout`);
+  validateSafeScalars(node.metadata, `${path}.metadata`);
   if (node.type === "text" && typeof node.content !== "string") {
     fail("DPNEXT-SCHEMA-001", `${path}.content`, "text content must be a string");
   }
-  if (node.type === "image") {
+  if (node.type === "image" || node.type === "video") {
     if (!node.assetId || !document.assets[node.assetId]) {
       fail("DPNEXT-ASSET-007", `${path}.assetId`, "referenced asset does not exist");
     }
-    if (typeof node.alt !== "string") fail("DPNEXT-A11Y-001", `${path}.alt`, "image alt must be a string");
+    if (typeof node.alt !== "string") fail("DPNEXT-A11Y-001", `${path}.alt`, "media alt must be a string");
+    const asset = document.assets[node.assetId];
+    const expected = node.type === "video" ? "video" : "image";
+    if (asset.kind !== expected && !(node.type === "image" && asset.kind === "gif")) {
+      fail("DPNEXT-ASSET-008", `${path}.assetId`, "media node and asset kind disagree");
+    }
   }
   if (node.type === "svg" && (!node.svg?.startsWith("<svg") || FORBIDDEN_SVG.test(node.svg))) {
     fail("DPNEXT-SVG-002", `${path}.svg`, "unsafe SVG");
+  }
+  if (node.type === "particles" && (!node.particles || typeof node.particles !== "object")) {
+    fail("DPNEXT-SCHEMA-001", `${path}.particles`, "particles must be an object");
   }
   for (const [index, child] of (node.children ?? []).entries()) {
     validateNode(child, `${path}.children[${index}]`, document, ids, depth + 1);
@@ -75,6 +86,12 @@ export function validateDocument(document: DetailDocumentV2): void {
   if (!document.document_id?.startsWith("dpnd_")) fail("DPNEXT-SCHEMA-010", "$.document_id", "invalid namespace");
   if (!Number.isInteger(document.revision) || document.revision < 0) fail("DPNEXT-SCHEMA-011", "$.revision", "invalid revision");
   if (!Number.isInteger(document.canvas?.width) || document.canvas.width < 1) fail("DPNEXT-LAYOUT-001", "$.canvas.width", "invalid width");
+  if (document.canvas.height !== undefined && (!Number.isInteger(document.canvas.height) || document.canvas.height < 1)) {
+    fail("DPNEXT-LAYOUT-001", "$.canvas.height", "invalid height");
+  }
+  if (document.document_kind !== undefined && !["brand_detail", "seller_archetype", "cardnews"].includes(document.document_kind)) {
+    fail("DPNEXT-SCHEMA-016", "$.document_kind", "unknown document kind");
+  }
   if (!Array.isArray(document.sections) || document.sections.length === 0) fail("DPNEXT-SCHEMA-002", "$.sections", "sections are required");
   if (!document.assets || typeof document.assets !== "object") fail("DPNEXT-SCHEMA-001", "$.assets", "assets are required");
   for (const [assetId, asset] of Object.entries(document.assets)) {

@@ -4,8 +4,10 @@ export type DpnextNodeType =
   | "group"
   | "text"
   | "image"
+  | "video"
   | "svg"
   | "shape"
+  | "particles"
   | "divider";
 
 export type DpnextScalar = null | boolean | number | string | DpnextScalar[] | {
@@ -13,7 +15,7 @@ export type DpnextScalar = null | boolean | number | string | DpnextScalar[] | {
 };
 
 export interface DpnextAsset {
-  kind: "image" | "svg" | "video";
+  kind: "image" | "svg" | "video" | "gif";
   uri: string;
   mimeType: string;
   sha256: string;
@@ -32,6 +34,7 @@ export interface DpnextNode {
   alt?: string;
   svg?: string;
   shape?: Record<string, DpnextScalar>;
+  particles?: Record<string, DpnextScalar>;
   layout?: Record<string, DpnextScalar>;
   style?: Record<string, DpnextScalar>;
   children?: DpnextNode[];
@@ -40,15 +43,17 @@ export interface DpnextNode {
     lastModifiedAt?: string;
     lockPolicy?: string;
     source?: string;
+    sourceData?: Record<string, DpnextScalar>;
   };
 }
 
 export interface DetailDocumentV2 {
   schema_version: "detail-document-v2";
+  document_kind?: "brand_detail" | "seller_archetype" | "cardnews";
   document_id: string;
   revision: number;
   revision_sha256?: string | null;
-  canvas: { width: number; background?: string };
+  canvas: { width: number; height?: number; background?: string };
   theme?: Record<string, DpnextScalar>;
   sections: DpnextNode[];
   assets: Record<string, DpnextAsset>;

@@ -19,6 +19,9 @@ export function DocumentRenderer({
   validateDocument(document);
   const style: CSSProperties = {
     width: document.canvas.width,
+    height: document.document_kind === "cardnews" && document.sections.length === 1
+      ? document.canvas.height
+      : undefined,
     maxWidth: "100%",
     minHeight: 1,
     background: document.canvas.background,

@@ -6,6 +6,9 @@ const STYLE_KEYS = new Set([
   "background", "color", "fontFamily", "fontSize", "fontWeight", "lineHeight",
   "letterSpacing", "textAlign", "border", "borderRadius", "boxShadow", "opacity",
   "objectFit", "objectPosition", "overflow", "transform", "fill", "stroke", "strokeWidth",
+  "fontStyle", "textDecoration", "filter", "mixBlendMode", "whiteSpace",
+  "display", "alignItems", "justifyContent", "boxSizing", "clipPath",
+  "backgroundImage", "backgroundClip", "WebkitBackgroundClip", "textShadow",
 ]);
 
 function size(value: DpnextScalar | undefined): string | number | undefined {
