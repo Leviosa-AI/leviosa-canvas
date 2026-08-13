@@ -13,6 +13,7 @@ import type {
   BrandAssetKind,
 } from "./detail-page-host-context";
 import { insertPersonalImage } from "../../lib/detail-page/insert-image";
+import { useProgressiveReveal } from "../../lib/detail-page/use-progressive-reveal";
 
 const UPLOAD_ACCEPT = "image/png,image/jpeg,image/webp,image/svg+xml";
 const MAX_UPLOAD_BYTES = 20 * 1024 * 1024;
@@ -120,6 +121,8 @@ function BrandAssetGallery({ store }: { store: unknown }) {
     staleTime: 4 * 60_000,
   });
   const items = (assetsQuery.data ?? []).filter(isImageAsset);
+  // 브랜드를 옮기면 다시 처음부터 센다.
+  const reveal = useProgressiveReveal(items.length, { resetKey: activeBrandId });
 
   const uploadMutation = useMutation({
     mutationFn: async (file: File) => {
@@ -207,7 +210,7 @@ function BrandAssetGallery({ store }: { store: unknown }) {
         </div>
       ) : (
         <div className="grid grid-cols-2 gap-2 overflow-y-auto">
-          {items.map((asset) => (
+          {items.slice(0, reveal.visible).map((asset) => (
             <div
               key={asset.id}
               className="group relative overflow-hidden rounded-md border border-neutral-200 hover:border-neutral-500"
@@ -228,6 +231,8 @@ function BrandAssetGallery({ store }: { store: unknown }) {
                 <img
                   src={asset.download_url ?? ""}
                   crossOrigin="anonymous"
+                  loading="lazy"
+                  decoding="async"
                   alt={asset.display_name ?? asset.filename}
                   className="h-24 w-full object-cover transition group-hover:opacity-90"
                 />
@@ -245,6 +250,15 @@ function BrandAssetGallery({ store }: { store: unknown }) {
               </button>
             </div>
           ))}
+          {reveal.hasMore && (
+            <div
+              ref={reveal.sentinelRef}
+              data-testid="brand-assets-sentinel"
+              className="col-span-2 flex h-10 items-center justify-center text-neutral-300"
+            >
+              <Loader2 aria-hidden="true" className="animate-spin" size={16} />
+            </div>
+          )}
         </div>
       )}
     </div>

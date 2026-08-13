@@ -173,6 +173,38 @@ describe("DetailPageMyImagesPanel", () => {
     expect(mockInsert).not.toHaveBeenCalled();
   });
 
+  it("수백 장이 있어도 처음엔 한 화면 분량만 그린다", async () => {
+    // 카드 하나가 곧 요청 하나다. 통째로 그리면 서랍을 여는 순간 그만큼이 한꺼번에
+    // 나가고, 편집기가 정작 필요한 것(문서 이미지·폰트)이 그 뒤에 줄 선다.
+    class FakeObserver {
+      observe() {}
+      disconnect() {}
+    }
+    vi.stubGlobal("IntersectionObserver", FakeObserver);
+    mockList.mockResolvedValue(
+      Array.from({ length: 200 }, (_, index) => ({
+        id: `asset-${index}`,
+        brand_id: "brand-1",
+        asset_type: "image",
+        content_type: "image/jpeg",
+        download_url: `https://s3/brand-1/${index}.jpg`,
+        display_name: `사진 ${index}`,
+        filename: `${index}.jpg`,
+      })),
+    );
+
+    renderPanel();
+
+    const images = await screen.findAllByRole("img");
+    expect(images).toHaveLength(12);
+    // 나머지는 바닥까지 스크롤해야 나온다 — 감시자가 그 자리를 지킨다.
+    expect(screen.getByTestId("brand-assets-sentinel")).toBeInTheDocument();
+    for (const image of images) {
+      expect(image).toHaveAttribute("loading", "lazy");
+    }
+    vi.unstubAllGlobals();
+  });
+
   it("GIF가 섞여 들어와도 사진 패널에는 띄우지 않는다", async () => {
     mockList.mockResolvedValue([
       {
