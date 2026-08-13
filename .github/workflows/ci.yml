@@ -5,6 +5,11 @@ on:
     branches: [main]
   pull_request:
 
+# 이 워크플로는 읽기만 한다. 안 적으면 저장소 설정의 기본값을 그대로 받는데,
+# 그건 쓰기까지 열려 있을 수 있다 — 발행은 `publish.yml` 이 따로 한다.
+permissions:
+  contents: read
+
 jobs:
   check:
     runs-on: ubuntu-latest

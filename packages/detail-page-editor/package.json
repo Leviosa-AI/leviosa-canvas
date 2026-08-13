@@ -1,6 +1,6 @@
 {
   "name": "@leviosa-ai/detail-page-editor",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "Leviosa detail-page editor shell. Source-only: consumers compile it through Next transpilePackages. Every app coupling (sourcing server, brand store, cache keys, toast) arrives through the DetailPageHost interface.",
   "type": "module",
   "license": "UNLICENSED",

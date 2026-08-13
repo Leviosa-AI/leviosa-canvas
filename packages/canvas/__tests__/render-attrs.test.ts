@@ -166,6 +166,20 @@ describe("이미지 주소", () => {
     expect(cssUrl("linear-gradient(#000, #fff)")).toBeNull();
   });
 
+  it("따옴표 안의 괄호를 안 자른다 — SVG data URI 가 그렇다", () => {
+    const uri = "data:image/svg+xml,%3Csvg%3E%3Cg transform='translate(4,2)'/%3E";
+    expect(cssUrl(`url("${uri}")`)).toBe(uri);
+    expect(cssUrl(`url( '/a b.jpg' )`)).toBe("/a b.jpg");
+    expect(cssUrl("url(  /a/b.jpg  )")).toBe("/a/b.jpg");
+  });
+
+  it("닫는 괄호가 없는 긴 값에서 멈추지 않는다", () => {
+    // 되짚기가 길이의 제곱이던 시절에는 이런 값 하나가 렌더를 세웠다.
+    const started = Date.now();
+    expect(cssUrl(`url(${" ".repeat(60_000)}`)).toBeNull();
+    expect(Date.now() - started).toBeLessThan(1_000);
+  });
+
   it("src가 비면 디컴포저의 목업 사진을 쓴다", () => {
     expect(
       imageSrc({ src: "", custom: { placeholderBgImage: 'url("/mock.jpg")' } }),

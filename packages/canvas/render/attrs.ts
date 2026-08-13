@@ -165,11 +165,25 @@ export function clipBox(el: Attrs): ClipBox | null {
   };
 }
 
-/** `url("…")`에서 주소만. 그라디언트 같은 비-URL 값은 null. */
+/**
+ * `url("…")`에서 주소만. 그라디언트 같은 비-URL 값은 null.
+ *
+ * 따옴표 있는 쪽과 없는 쪽을 갈라서 읽는다. 한 식으로 합치면(`\s*(['"]?)(.*?)\1\s*\)`)
+ * 따옴표가 없을 때 `url(` 뒤의 공백을 두 조각이 서로 가져갈 수 있어, 닫는 괄호가 없는
+ * 긴 값에서 되짚기가 길이의 제곱으로 늘어난다. 값은 문서에서 그대로 들어온다.
+ */
 export function cssUrl(value: unknown): string | null {
   if (typeof value !== "string") return null;
-  const match = value.match(/url\(\s*(['"]?)(.*?)\1\s*\)/);
-  return match && match[2] ? match[2] : null;
+  // 따옴표 안은 괄호도 반대쪽 따옴표도 품을 수 있다 — SVG data URI 가 그렇다.
+  // 그래서 따옴표 종류마다 따로 본다. 하나로 묶어 되짚음(`(['"])…\1`)을 쓰면 그 안에
+  // 반대쪽 따옴표를 못 넣는다.
+  const doubled = value.match(/url\(\s*"([^"]*)"\s*\)/);
+  if (doubled) return doubled[1] || null;
+  const singled = value.match(/url\(\s*'([^']*)'\s*\)/);
+  if (singled) return singled[1] || null;
+  const bare = value.match(/url\(([^'")]*)\)/);
+  const inner = bare?.[1].trim();
+  return inner || null;
 }
 
 /**
