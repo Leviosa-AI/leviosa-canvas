@@ -1,0 +1,36 @@
+:root {
+  font-family: Inter, Pretendard, system-ui, sans-serif;
+  color: #151a18;
+  background: #dcded9;
+}
+
+* { box-sizing: border-box; }
+body { margin: 0; }
+header {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  display: flex;
+  justify-content: space-between;
+  padding: 16px 24px;
+  color: white;
+  background: #17251f;
+}
+.lab-shell {
+  width: fit-content;
+  margin: 40px auto;
+  border-radius: 4px;
+  box-shadow: 0 24px 80px rgb(23 37 31 / 24%);
+  overflow: hidden;
+}
+[data-dpnext-node-id="txt_title"] { white-space: pre-line; }
+[data-dpnext-editor-surface] { position: relative; }
+[aria-label="선택된 레이어"] {
+  position: fixed;
+  right: 20px;
+  bottom: 20px;
+  padding: 8px 12px;
+  border-radius: 999px;
+  color: white;
+  background: #17251f;
+}
