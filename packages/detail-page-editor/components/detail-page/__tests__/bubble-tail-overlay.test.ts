@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 
 import { applyBubble, syncBubbleToBox } from "../bubble-tail-overlay";
-import { readBubbleParams, type BubbleParams } from "../../../lib/detail-page-canvas/bubble-path";
+import { readBubbleParams, type BubbleParams } from "@leviosa-ai/canvas/paint/bubble-path";
 
 const PARAMS: BubbleParams = {
   w: 200,

@@ -7,7 +7,7 @@ import {
   parseCssGradientLayers,
   parseCssShadow,
   radialGradientKonvaProps,
-} from "../konva-fallback";
+} from "../paint/konva-fallback";
 
 describe("text background gradient (custom.backgroundGradient)", () => {
   it("parses a highlight band onto the text element's backgroundGradient", () => {

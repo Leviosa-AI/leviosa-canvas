@@ -2,7 +2,7 @@ import {
   linearGradientKonvaProps,
   parseCssGradient,
   radialGradientKonvaProps,
-} from "../konva-fallback";
+} from "@leviosa-ai/canvas/paint/konva-fallback";
 import type { ExportElement } from "./document-model";
 import { cssFont, layoutText, normalizeFontWeight, transformText } from "./text-layout";
 

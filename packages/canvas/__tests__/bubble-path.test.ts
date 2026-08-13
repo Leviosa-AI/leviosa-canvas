@@ -7,7 +7,7 @@ import {
   readBubbleParams,
   type BubbleParams,
   type Pt,
-} from "../bubble-path";
+} from "../paint/bubble-path";
 
 const BODY: BubbleParams = {
   w: 200,

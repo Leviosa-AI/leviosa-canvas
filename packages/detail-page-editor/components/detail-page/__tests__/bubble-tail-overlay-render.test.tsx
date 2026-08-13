@@ -3,7 +3,7 @@ import { describe, expect, it, vi } from "vitest";
 import { render } from "@testing-library/react";
 
 import { BubbleTailOverlay } from "../bubble-tail-overlay";
-import type { BubbleParams } from "../../../lib/detail-page-canvas/bubble-path";
+import type { BubbleParams } from "@leviosa-ai/canvas/paint/bubble-path";
 
 /**
  * ``selectedElementsDeep`` builds a NEW array on every render. Putting that array

@@ -1,11 +1,13 @@
 import Konva from "konva";
 
 /**
- * 원본은 ``text-background-plan``에서 이 함수를 끌어왔다. 패키지 경계 안에서는
- * 앱 모듈을 못 부르므로 **열 줄짜리 순수 함수만** 여기로 데려왔다(모듈 전체가 아니라).
- * 원본과 함께 지워질 코드다 — G9에서 기존 경로가 이 패키지를 재수출하게 되면 한 벌만 남는다.
+ * ``"transparent"``이거나 알파가 0인 색이면 참.
+ *
+ * 편집기 패키지의 ``text-background-plan``도 이걸 쓴다. 한때는 양쪽에 한 벌씩
+ * 있었고 — 이 파일 전체가 그랬다 — 고칠 때 한쪽만 고치면 화면과 export 가 조용히
+ * 갈라졌다. 이제 여기가 한 벌이다.
  */
-function isTransparentColor(value: unknown): boolean {
+export function isTransparentColor(value: unknown): boolean {
   if (typeof value !== "string") return true;
   const color = value.trim().toLowerCase();
   if (!color || color === "transparent" || color === "none") return true;

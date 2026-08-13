@@ -1,4 +1,4 @@
-import { parseCssGradient, linearGradientKonvaProps, radialGradientKonvaProps } from "../konva-fallback";
+import { parseCssGradient, linearGradientKonvaProps, radialGradientKonvaProps } from "@leviosa-ai/canvas/paint/konva-fallback";
 import {
   documentWidth,
   pageHeight,

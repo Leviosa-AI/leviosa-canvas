@@ -1,9 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import {
-  isTransparentColor,
-  planTextBackground,
-} from "../text-background-plan";
+import { planTextBackground } from "../text-background-plan";
 
 /** A Canvas text model as the SDK shape component receives it (``a`` mirrors x/y/size). */
 function textModel(overrides: Record<string, unknown>) {
@@ -32,22 +29,6 @@ function textModel(overrides: Record<string, unknown>) {
     },
   };
 }
-
-describe("isTransparentColor", () => {
-  it("treats transparent keywords and zero-alpha rgba as transparent", () => {
-    expect(isTransparentColor("transparent")).toBe(true);
-    expect(isTransparentColor("rgba(0,0,0,0)")).toBe(true);
-    expect(isTransparentColor("rgba(123, 214, 255, 0)")).toBe(true);
-    expect(isTransparentColor("")).toBe(true);
-    expect(isTransparentColor(undefined)).toBe(true);
-  });
-
-  it("treats opaque colours as not transparent", () => {
-    expect(isTransparentColor("rgb(123, 214, 255)")).toBe(false);
-    expect(isTransparentColor("rgba(0,0,0,0.5)")).toBe(false);
-    expect(isTransparentColor("#7bd6ff")).toBe(false);
-  });
-});
 
 describe("planTextBackground", () => {
   it("plans a gradient rect for a highlight band (custom.backgroundGradient)", () => {
