@@ -116,7 +116,7 @@ export function DetailPagePhotosPanel({
         type="button"
         disabled={!uploadFile || busy}
         onClick={() => inputRef.current?.click()}
-        className="flex items-center justify-center gap-2 rounded-lg border border-dashed border-neutral-300 px-3 py-4 text-sm font-medium text-neutral-600 hover:border-neutral-400 disabled:cursor-not-allowed disabled:opacity-50"
+        className="flex items-center justify-center gap-2 rounded-dpe-lg border border-dashed border-dpe-ink-300 px-3 py-4 text-sm font-dpe-medium text-dpe-ink-600 hover:border-dpe-ink-400 disabled:cursor-not-allowed disabled:opacity-50"
       >
         {busy ? (
           <Loader2 aria-hidden="true" className="animate-spin" size={16} />
@@ -137,7 +137,7 @@ export function DetailPagePhotosPanel({
         }}
       />
 
-      {error ? <p className="text-xs text-red-600">{error}</p> : null}
+      {error ? <p className="text-xs text-dpe-danger-600">{error}</p> : null}
 
       {recent.length ? (
         <div className="grid grid-cols-3 gap-2">
@@ -146,7 +146,7 @@ export function DetailPagePhotosPanel({
               key={url}
               type="button"
               onClick={() => insertPersonalImage(store, url)}
-              className="aspect-square overflow-hidden rounded-lg border border-neutral-200 hover:border-neutral-400"
+              className="aspect-square overflow-hidden rounded-dpe-lg border border-dpe-ink-200 hover:border-dpe-ink-400"
               title={t("detailPage.shapes.insertHint")}
             >
               {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -164,19 +164,19 @@ export function DetailPagePhotosPanel({
       />
 
       {!configured ? (
-        <p className="px-1 text-xs leading-relaxed text-neutral-500">
+        <p className="px-1 text-xs leading-relaxed text-dpe-ink-500">
           {t("detailPage.photos.stockUnavailable")}
         </p>
       ) : stock.isLoading ? (
-        <div className="flex justify-center py-6 text-neutral-400">
+        <div className="flex justify-center py-6 text-dpe-ink-400">
           <Loader2 aria-hidden="true" className="animate-spin" size={20} />
         </div>
       ) : stock.error ? (
-        <p className="text-xs text-red-600">
+        <p className="text-xs text-dpe-danger-600">
           {t("detailPage.photos.stockFailed")}
         </p>
       ) : photos.length === 0 ? (
-        <div className="flex flex-col items-center gap-2 py-6 text-center text-neutral-400">
+        <div className="flex flex-col items-center gap-2 py-6 text-center text-dpe-ink-400">
           <ImageOff aria-hidden="true" size={20} />
           <p className="text-xs">{t("detailPage.photos.stockEmpty")}</p>
         </div>
@@ -186,7 +186,7 @@ export function DetailPagePhotosPanel({
             {photos.map((photo) => (
               <div
                 key={photo.id}
-                className="group relative overflow-hidden rounded-lg border border-neutral-200 hover:border-neutral-400"
+                className="group relative overflow-hidden rounded-dpe-lg border border-dpe-ink-200 hover:border-dpe-ink-400"
               >
                 <button
                   type="button"
@@ -203,10 +203,10 @@ export function DetailPagePhotosPanel({
                     className="h-24 w-full object-cover transition group-hover:opacity-90"
                   />
                   {inserting === photo.id ? (
-                    <span className="absolute inset-0 flex items-center justify-center bg-white/70">
+                    <span className="absolute inset-0 flex items-center justify-center bg-dpe-surface/70">
                       <Loader2
                         aria-hidden="true"
-                        className="animate-spin text-neutral-500"
+                        className="animate-spin text-dpe-ink-500"
                         size={18}
                       />
                     </span>
@@ -217,7 +217,7 @@ export function DetailPagePhotosPanel({
                   href={photo.pageUrl}
                   target="_blank"
                   rel="noreferrer noopener"
-                  className="absolute bottom-0 left-0 right-0 hidden truncate bg-black/60 px-1.5 py-1 text-[10px] text-white group-hover:block hover:underline"
+                  className="absolute bottom-0 left-0 right-0 hidden truncate bg-dpe-scrim/60 px-1.5 py-1 text-[10px] text-dpe-on-accent group-hover:block hover:underline"
                 >
                   {photo.photographer}
                 </a>
@@ -230,7 +230,7 @@ export function DetailPagePhotosPanel({
               type="button"
               disabled={stock.isFetchingNextPage}
               onClick={() => void stock.fetchNextPage()}
-              className="mx-auto flex items-center gap-1.5 rounded-md border border-neutral-200 px-3 py-1.5 text-xs font-medium text-neutral-600 hover:border-neutral-400 disabled:opacity-50"
+              className="mx-auto flex items-center gap-1.5 rounded-dpe-md border border-dpe-ink-200 px-3 py-1.5 text-xs font-dpe-medium text-dpe-ink-600 hover:border-dpe-ink-400 disabled:opacity-50"
             >
               {stock.isFetchingNextPage ? (
                 <Loader2 aria-hidden="true" className="animate-spin" size={12} />
@@ -241,7 +241,7 @@ export function DetailPagePhotosPanel({
         </>
       )}
 
-      <p className="mt-auto px-1 pt-1 text-xs leading-relaxed text-neutral-500">
+      <p className="mt-auto px-1 pt-1 text-xs leading-relaxed text-dpe-ink-500">
         {t("detailPage.photos.hint")}{" "}
         <a
           href="https://www.pexels.com"

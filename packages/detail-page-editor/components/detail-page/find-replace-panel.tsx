@@ -119,21 +119,21 @@ export const FindReplacePanel = observer(function FindReplacePanel({
   if (!open) return null;
 
   const field =
-    "h-8 w-full rounded-md border border-neutral-200 px-2 text-[13px] text-neutral-800 outline-none focus:border-neutral-400";
+    "h-8 w-full rounded-dpe-md border border-dpe-ink-200 px-2 text-[13px] text-dpe-ink-800 outline-none focus:border-dpe-ink-400";
   const button =
-    "flex h-8 items-center justify-center rounded-md border border-neutral-200 px-2.5 text-[12px] text-neutral-700 transition-colors hover:bg-neutral-50 disabled:cursor-not-allowed disabled:opacity-40";
+    "flex h-8 items-center justify-center rounded-dpe-md border border-dpe-ink-200 px-2.5 text-[12px] text-dpe-ink-700 transition-colors hover:bg-dpe-ink-50 disabled:cursor-not-allowed disabled:opacity-40";
 
   return (
     <div
       data-dp-find-replace
-      className="absolute right-4 top-4 z-40 w-[292px] rounded-lg border border-neutral-200 bg-white p-3 shadow-lg"
+      className="absolute right-4 top-4 z-40 w-[292px] rounded-dpe-lg border border-dpe-ink-200 bg-dpe-surface p-3 shadow-lg"
       onKeyDown={(e) => {
         if (e.key === "Escape") setOpen(false);
         if (e.key === "Enter") step(e.shiftKey ? -1 : 1);
       }}
     >
       <div className="mb-2 flex items-center justify-between">
-        <span className="text-[12px] font-medium text-neutral-500">
+        <span className="text-[12px] font-dpe-medium text-dpe-ink-500">
           {t("detailPage.findReplace.title")}
         </span>
         <button
@@ -141,7 +141,7 @@ export const FindReplacePanel = observer(function FindReplacePanel({
           aria-label={t("detailPage.findReplace.close")}
           data-dp-find-close
           onClick={() => setOpen(false)}
-          className="rounded p-0.5 text-neutral-400 hover:bg-neutral-100 hover:text-neutral-700"
+          className="rounded p-0.5 text-dpe-ink-400 hover:bg-dpe-ink-100 hover:text-dpe-ink-700"
         >
           <X size={14} />
         </button>
@@ -167,7 +167,7 @@ export const FindReplacePanel = observer(function FindReplacePanel({
           aria-pressed={caseSensitive}
           data-dp-find-case
           onClick={() => setCaseSensitive((v) => !v)}
-          className={`${button} shrink-0 ${caseSensitive ? "bg-neutral-900 text-white hover:bg-neutral-900" : ""}`}
+          className={`${button} shrink-0 ${caseSensitive ? "bg-dpe-ink-900 text-dpe-on-accent hover:bg-dpe-ink-900" : ""}`}
         >
           <CaseSensitive size={15} />
         </button>
@@ -189,7 +189,7 @@ export const FindReplacePanel = observer(function FindReplacePanel({
           data-dp-find-current={matches.length ? at + 1 : 0}
           data-dp-find-blocks={matches.length}
           data-dp-find-total={total}
-          className="text-[12px] tabular-nums text-neutral-500"
+          className="text-[12px] tabular-nums text-dpe-ink-500"
         >
           {matches.length
             ? t("detailPage.findReplace.count", {
@@ -244,7 +244,7 @@ export const FindReplacePanel = observer(function FindReplacePanel({
         </button>
       </div>
 
-      <p className="mt-2 text-[11px] leading-relaxed text-neutral-400">
+      <p className="mt-2 text-[11px] leading-relaxed text-dpe-ink-400">
         {t("detailPage.findReplace.chartHint")}
       </p>
     </div>

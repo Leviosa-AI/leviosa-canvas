@@ -426,10 +426,10 @@ function AlignButton({
       aria-pressed={active}
       disabled={disabled}
       onClick={onClick}
-      className={`flex h-8 flex-1 items-center justify-center rounded-md border transition-colors disabled:cursor-not-allowed disabled:opacity-30 ${
+      className={`flex h-8 flex-1 items-center justify-center rounded-dpe-md border transition-colors disabled:cursor-not-allowed disabled:opacity-30 ${
         active
-          ? "border-neutral-300 bg-neutral-100 text-neutral-900"
-          : "border-neutral-200 bg-white text-neutral-600 hover:bg-neutral-50 hover:text-neutral-900"
+          ? "border-dpe-ink-300 bg-dpe-ink-100 text-dpe-ink-900"
+          : "border-dpe-ink-200 bg-dpe-surface text-dpe-ink-600 hover:bg-dpe-ink-50 hover:text-dpe-ink-900"
       }`}
     >
       {children}
@@ -555,7 +555,7 @@ const OrderSection = observer(function OrderSection({ els }: { els: ElementLike[
       aria-label={title}
       disabled={disabled}
       onClick={onClick}
-      className="flex h-8 flex-1 items-center justify-center rounded-md border border-neutral-200 bg-white text-neutral-600 transition-colors hover:bg-neutral-50 hover:text-neutral-900 disabled:cursor-not-allowed disabled:opacity-30"
+      className="flex h-8 flex-1 items-center justify-center rounded-dpe-md border border-dpe-ink-200 bg-dpe-surface text-dpe-ink-600 transition-colors hover:bg-dpe-ink-50 hover:text-dpe-ink-900 disabled:cursor-not-allowed disabled:opacity-30"
     >
       {children}
     </button>
@@ -576,7 +576,7 @@ const OrderSection = observer(function OrderSection({ els }: { els: ElementLike[
         <Btn title={t("detailPage.properties.sendToBack")} disabled={atBack} onClick={() => setZ(0)}>
           <ChevronsDown size={15} />
         </Btn>
-        <span className="ml-1 shrink-0 rounded-md bg-neutral-100 px-1.5 py-0.5 text-[11px] font-medium tabular-nums text-neutral-500">
+        <span className="ml-1 shrink-0 rounded-dpe-md bg-dpe-ink-100 px-1.5 py-0.5 text-[11px] font-dpe-medium tabular-nums text-dpe-ink-500">
           {z + 1}/{count}
         </span>
       </div>
@@ -601,9 +601,9 @@ const OpacityRow = observer(function OpacityRow({ els }: { els: ElementLike[] })
           max={100}
           value={Math.round(opacity * 100)}
           onChange={(e) => setAll(els, { opacity: Number(e.target.value) / 100 })}
-          className="min-w-0 flex-1 accent-neutral-900"
+          className="min-w-0 flex-1 accent-dpe-ink-900"
         />
-        <span className="w-10 text-right text-sm tabular-nums text-neutral-700">
+        <span className="w-10 text-right text-sm tabular-nums text-dpe-ink-700">
           {Math.round(opacity * 100)}%
         </span>
       </div>
@@ -651,7 +651,7 @@ function DeleteRow({ store, els }: { store: StoreLike; els: ElementLike[] }) {
           <button
             type="button"
             onClick={() => store.ungroupElements?.([els[0].id])}
-            className="inline-flex h-9 w-full items-center justify-center gap-2 rounded-md border border-neutral-200 bg-white text-sm font-semibold text-neutral-700 hover:bg-neutral-50"
+            className="inline-flex h-9 w-full items-center justify-center gap-2 rounded-dpe-md border border-dpe-ink-200 bg-dpe-surface text-sm font-dpe-semibold text-dpe-ink-700 hover:bg-dpe-ink-50"
           >
             <Ungroup aria-hidden="true" size={15} />
             {t("detailPage.properties.ungroup")}
@@ -660,7 +660,7 @@ function DeleteRow({ store, els }: { store: StoreLike; els: ElementLike[] }) {
         <button
           type="button"
           onClick={() => store.deleteElements?.(els.map((e) => e.id))}
-          className="inline-flex h-9 w-full items-center justify-center gap-2 rounded-md border border-red-200 bg-red-50 text-sm font-semibold text-red-600 hover:bg-red-100"
+          className="inline-flex h-9 w-full items-center justify-center gap-2 rounded-dpe-md border border-dpe-danger-200 bg-dpe-danger-50 text-sm font-dpe-semibold text-dpe-danger-600 hover:bg-dpe-danger-100"
         >
           <Trash2 aria-hidden="true" size={15} />
           {t("detailPage.properties.delete")}
@@ -789,7 +789,7 @@ const TextInspector = observer(function TextInspector({
             value={str(single.text)}
             onChange={(e) => single.set({ text: e.target.value })}
             rows={3}
-            className="w-full resize-y rounded-md border border-neutral-200 bg-white px-2 py-2 text-sm text-neutral-900 outline-none focus:border-neutral-400"
+            className="w-full resize-y rounded-dpe-md border border-dpe-ink-200 bg-dpe-surface px-2 py-2 text-sm text-dpe-ink-900 outline-none focus:border-dpe-ink-400"
           />
           {/* 실서비스(생성 ID 존재)면 모든 텍스트에 프롬프트 편집을 노출한다. 예전에는
               custom.leviosaSlot(카피 슬롯)이 있어야만 떴는데, 헤드라인처럼 슬롯 배정을
@@ -837,7 +837,7 @@ const TextInspector = observer(function TextInspector({
             value={displayedWeight}
             disabled={fontBusy}
             onChange={(event) => void applyFontWeight(Number(event.target.value))}
-            className="h-8 min-w-0 flex-1 rounded-md border border-neutral-200 bg-white px-2 text-xs text-neutral-700 outline-none focus:border-neutral-400 disabled:opacity-50"
+            className="h-8 min-w-0 flex-1 rounded-dpe-md border border-dpe-ink-200 bg-dpe-surface px-2 text-xs text-dpe-ink-700 outline-none focus:border-dpe-ink-400 disabled:opacity-50"
           >
             {fontWeights.map((weight) => (
               <option key={weight} value={weight}>
@@ -916,7 +916,7 @@ const TextInspector = observer(function TextInspector({
               onChange={(c) => setHighlight(els, c)}
             />
           ) : (
-            <span className="text-[11px] text-neutral-400">
+            <span className="text-[11px] text-dpe-ink-400">
               {t("detailPage.properties.highlightHint")}
             </span>
           )}
@@ -926,7 +926,7 @@ const TextInspector = observer(function TextInspector({
       <Section title={t("detailPage.properties.spacing")}>
         <div className="grid grid-cols-2 gap-2">
           <label className="flex items-center gap-2">
-            <span className="w-10 text-xs text-neutral-500">{t("detailPage.properties.lineHeight")}</span>
+            <span className="w-10 text-xs text-dpe-ink-500">{t("detailPage.properties.lineHeight")}</span>
             <NumberField
               value={lineHeight}
               step={0.1}
@@ -935,7 +935,7 @@ const TextInspector = observer(function TextInspector({
             />
           </label>
           <label className="flex items-center gap-2">
-            <span className="w-10 text-xs text-neutral-500">{t("detailPage.properties.letterSpacing")}</span>
+            <span className="w-10 text-xs text-dpe-ink-500">{t("detailPage.properties.letterSpacing")}</span>
             <NumberField
               value={letterSpacing}
               step={0.5}
@@ -1153,7 +1153,7 @@ const BgRemoveSection = observer(function BgRemoveSection({
         type="button"
         onClick={run}
         disabled={busy}
-        className="inline-flex w-full items-center justify-center gap-1.5 rounded-md bg-neutral-900 px-3 py-1.5 text-sm font-medium text-white transition hover:bg-neutral-700 disabled:cursor-not-allowed disabled:opacity-50"
+        className="inline-flex w-full items-center justify-center gap-1.5 rounded-dpe-md bg-dpe-ink-900 px-3 py-1.5 text-sm font-dpe-medium text-dpe-on-accent transition hover:bg-dpe-ink-700 disabled:cursor-not-allowed disabled:opacity-50"
       >
         <Eraser size={14} />
         {busy
@@ -1166,9 +1166,9 @@ const BgRemoveSection = observer(function BgRemoveSection({
         {!busy && creditCost ? ` · ${creditCost}` : ""}
       </button>
       {error ? (
-        <p className="mt-1.5 text-[11px] text-red-500">{error}</p>
+        <p className="mt-1.5 text-[11px] text-dpe-danger-500">{error}</p>
       ) : (
-        <p className="mt-1.5 text-[11px] text-neutral-400">
+        <p className="mt-1.5 text-[11px] text-dpe-ink-400">
           {t("detailPage.properties.bgRemoveHint", {
             defaultValue:
               "피사체만 남기고 배경을 투명하게 만들어요. 자리와 크기는 그대로예요.",
@@ -1309,7 +1309,7 @@ const ImageGifSection = observer(function ImageGifSection({
           type="button"
           onClick={run}
           disabled={busy}
-          className="inline-flex items-center gap-1.5 rounded-md bg-neutral-900 px-3 py-1.5 text-sm font-medium text-white transition hover:bg-neutral-700 disabled:cursor-not-allowed disabled:opacity-50"
+          className="inline-flex items-center gap-1.5 rounded-dpe-md bg-dpe-ink-900 px-3 py-1.5 text-sm font-dpe-medium text-dpe-on-accent transition hover:bg-dpe-ink-700 disabled:cursor-not-allowed disabled:opacity-50"
         >
           <Film size={14} />
           {busy
@@ -1324,18 +1324,18 @@ const ImageGifSection = observer(function ImageGifSection({
         <button
           type="button"
           onClick={() => abortRef.current?.abort()}
-          className="mt-1.5 text-[11px] text-neutral-400 underline hover:text-neutral-600"
+          className="mt-1.5 text-[11px] text-dpe-ink-400 underline hover:text-dpe-ink-600"
         >
           {t("detailPage.properties.imageGifCancel", {
             defaultValue: "취소 (만들던 GIF는 '내 이미지'에 저장돼요)",
           })}
         </button>
       ) : error ? (
-        <p className="mt-1.5 text-[11px] text-red-500">{error}</p>
+        <p className="mt-1.5 text-[11px] text-dpe-danger-500">{error}</p>
       ) : notice ? (
-        <p className="mt-1.5 text-[11px] text-amber-600">{notice}</p>
+        <p className="mt-1.5 text-[11px] text-dpe-warn-600">{notice}</p>
       ) : (
-        <p className="mt-1.5 text-[11px] text-neutral-400">
+        <p className="mt-1.5 text-[11px] text-dpe-ink-400">
           {selected?.hint ?? hint ?? ""}
         </p>
       )}
@@ -1506,7 +1506,7 @@ const TextGifSection = observer(function TextGifSection({
           type="button"
           onClick={run}
           disabled={busy || !first}
-          className="inline-flex items-center gap-1.5 rounded-md bg-neutral-900 px-3 py-1.5 text-sm font-medium text-white transition hover:bg-neutral-700 disabled:cursor-not-allowed disabled:opacity-50"
+          className="inline-flex items-center gap-1.5 rounded-dpe-md bg-dpe-ink-900 px-3 py-1.5 text-sm font-dpe-medium text-dpe-on-accent transition hover:bg-dpe-ink-700 disabled:cursor-not-allowed disabled:opacity-50"
         >
           <Film size={14} />
           {busy
@@ -1516,9 +1516,9 @@ const TextGifSection = observer(function TextGifSection({
         </button>
       </div>
       {error ? (
-        <p className="mt-1.5 text-[11px] text-red-500">{error}</p>
+        <p className="mt-1.5 text-[11px] text-dpe-danger-500">{error}</p>
       ) : (
-        <p className="mt-1.5 text-[11px] text-neutral-400">
+        <p className="mt-1.5 text-[11px] text-dpe-ink-400">
           {lines.length > 1
             ? t("detailPage.properties.textGifGroupHint", {
                 defaultValue:
@@ -1646,7 +1646,7 @@ const CountUpGifSection = observer(function CountUpGifSection({
         type="button"
         onClick={run}
         disabled={busy}
-        className="inline-flex w-full items-center justify-center gap-1.5 rounded-md bg-neutral-900 px-3 py-1.5 text-sm font-medium text-white transition hover:bg-neutral-700 disabled:cursor-not-allowed disabled:opacity-50"
+        className="inline-flex w-full items-center justify-center gap-1.5 rounded-dpe-md bg-dpe-ink-900 px-3 py-1.5 text-sm font-dpe-medium text-dpe-on-accent transition hover:bg-dpe-ink-700 disabled:cursor-not-allowed disabled:opacity-50"
       >
         <Film size={14} />
         {busy
@@ -1657,9 +1657,9 @@ const CountUpGifSection = observer(function CountUpGifSection({
         {creditCost ? ` · ${creditCost}` : ""}
       </button>
       {error ? (
-        <p className="mt-1.5 text-[11px] text-red-500">{error}</p>
+        <p className="mt-1.5 text-[11px] text-dpe-danger-500">{error}</p>
       ) : (
-        <p className="mt-1.5 text-[11px] text-neutral-400">
+        <p className="mt-1.5 text-[11px] text-dpe-ink-400">
           {t("detailPage.properties.countUpGifHint", {
             defaultValue:
               "0에서 {{target}}까지 오른 뒤 2초 멈췄다 반복해요. 이 자리에 그대로 들어갑니다.",
@@ -1744,7 +1744,7 @@ const CellGridGifSection = observer(function CellGridGifSection({
     >
       <div className="grid grid-cols-2 gap-2">
         <label className="flex flex-col gap-1">
-          <span className="text-[11px] text-neutral-500">
+          <span className="text-[11px] text-dpe-ink-500">
             {t("detailPage.properties.cellGridRows", {
               defaultValue: "행별 채울 칸",
             })}
@@ -1753,11 +1753,11 @@ const CellGridGifSection = observer(function CellGridGifSection({
             value={rows}
             onChange={(e) => setRows(e.target.value)}
             placeholder="6,4,2"
-            className="h-8 rounded-md border border-neutral-200 px-2 text-sm"
+            className="h-8 rounded-dpe-md border border-dpe-ink-200 px-2 text-sm"
           />
         </label>
         <label className="flex flex-col gap-1">
-          <span className="text-[11px] text-neutral-500">
+          <span className="text-[11px] text-dpe-ink-500">
             {t("detailPage.properties.cellGridCols", { defaultValue: "열 수" })}
           </span>
           <input
@@ -1766,19 +1766,19 @@ const CellGridGifSection = observer(function CellGridGifSection({
             max={40}
             value={cols}
             onChange={(e) => setCols(Math.max(1, Number(e.target.value) || 1))}
-            className="h-8 rounded-md border border-neutral-200 px-2 text-sm"
+            className="h-8 rounded-dpe-md border border-dpe-ink-200 px-2 text-sm"
           />
         </label>
       </div>
       <div className="mt-2 grid grid-cols-[1fr_auto_auto] items-end gap-2">
         <label className="flex flex-col gap-1">
-          <span className="text-[11px] text-neutral-500">
+          <span className="text-[11px] text-dpe-ink-500">
             {t("detailPage.properties.cellGridShape", { defaultValue: "모양" })}
           </span>
           <select
             value={shape}
             onChange={(e) => setShape(e.target.value)}
-            className="h-8 rounded-md border border-neutral-200 px-2 text-sm"
+            className="h-8 rounded-dpe-md border border-dpe-ink-200 px-2 text-sm"
           >
             {CELL_SHAPES.map((option) => (
               <option key={option.id} value={option.id}>
@@ -1794,7 +1794,7 @@ const CellGridGifSection = observer(function CellGridGifSection({
         type="button"
         onClick={run}
         disabled={busy || invalid}
-        className="mt-2 inline-flex w-full items-center justify-center gap-1.5 rounded-md bg-neutral-900 px-3 py-1.5 text-sm font-medium text-white transition hover:bg-neutral-700 disabled:cursor-not-allowed disabled:opacity-50"
+        className="mt-2 inline-flex w-full items-center justify-center gap-1.5 rounded-dpe-md bg-dpe-ink-900 px-3 py-1.5 text-sm font-dpe-medium text-dpe-on-accent transition hover:bg-dpe-ink-700 disabled:cursor-not-allowed disabled:opacity-50"
       >
         <Film size={14} />
         {busy
@@ -1804,7 +1804,7 @@ const CellGridGifSection = observer(function CellGridGifSection({
             })}
         {creditCost ? ` · ${creditCost}` : ""}
       </button>
-      <p className="mt-1.5 text-[11px] text-neutral-400">
+      <p className="mt-1.5 text-[11px] text-dpe-ink-400">
         {error ??
           (invalid
             ? t("detailPage.properties.cellGridInvalid", {
@@ -1929,9 +1929,9 @@ const ImageInspector = observer(function ImageInspector({
             max={200}
             value={radius}
             onChange={(e) => setAll(els, { cornerRadius: Number(e.target.value) })}
-            className="min-w-0 flex-1 accent-neutral-900"
+            className="min-w-0 flex-1 accent-dpe-ink-900"
           />
-          <span className="w-12 text-right text-sm tabular-nums text-neutral-700">
+          <span className="w-12 text-right text-sm tabular-nums text-dpe-ink-700">
             {radius}px
           </span>
         </div>
@@ -1959,9 +1959,9 @@ const ImageInspector = observer(function ImageInspector({
       {/* AI 이미지 편집 — 선택된 이미지를 프롬프트로 실시간 재생성해 src를 교체한다.
           비싸므로 크레딧을 과금하며, 생성 ID가 있을 때만 노출(픽스처는 자동 생략). */}
       {single && generatedId ? (
-        <section className="border-t border-neutral-200">
-          <h4 className="flex items-center gap-1.5 px-4 pt-3 text-[11px] font-semibold uppercase tracking-[0.06em] text-neutral-400">
-            <Sparkles size={13} className="text-fuchsia-500" />
+        <section className="border-t border-dpe-ink-200">
+          <h4 className="flex items-center gap-1.5 px-4 pt-3 text-[11px] font-dpe-semibold uppercase tracking-[0.06em] text-dpe-ink-400">
+            <Sparkles size={13} className="text-dpe-ai" />
             {isGif
               ? t("detailPage.properties.aiGifEdit")
               : t("detailPage.properties.aiImageEdit")}
@@ -2087,7 +2087,7 @@ const SvgColorSection = observer(function SvgColorSection({
         <button
           type="button"
           onClick={() => el.set({ colorsReplace: {} })}
-          className="mt-2 w-full rounded-md border border-neutral-200 py-1.5 text-[11px] font-medium text-neutral-500 hover:border-neutral-400 hover:bg-neutral-50"
+          className="mt-2 w-full rounded-dpe-md border border-dpe-ink-200 py-1.5 text-[11px] font-dpe-medium text-dpe-ink-500 hover:border-dpe-ink-400 hover:bg-dpe-ink-50"
         >
           {t("detailPage.properties.shapeColorsReset")}
         </button>
@@ -2137,11 +2137,11 @@ const SvgInspector = observer(function SvgInspector({
         />
       ) : null}
       {single && currentSvg ? (
-        <div className="border-t border-neutral-200 px-4 py-2">
+        <div className="border-t border-dpe-ink-200 px-4 py-2">
           <button
             type="button"
             onClick={() => void saveShapeToMyShapes(host, currentSvg, "manual_save", t)}
-            className="flex w-full items-center justify-center gap-1.5 rounded-lg border border-neutral-200 py-2 text-xs font-medium text-neutral-600 hover:border-neutral-400 hover:bg-neutral-50"
+            className="flex w-full items-center justify-center gap-1.5 rounded-dpe-lg border border-dpe-ink-200 py-2 text-xs font-dpe-medium text-dpe-ink-600 hover:border-dpe-ink-400 hover:bg-dpe-ink-50"
           >
             <Shapes size={13} />
             {t("detailPage.properties.saveToMyShapes")}
@@ -2149,8 +2149,8 @@ const SvgInspector = observer(function SvgInspector({
         </div>
       ) : null}
       {single && generatedId && currentSvg ? (
-        <section className="border-t border-neutral-200 px-4 py-3">
-          <h4 className="mb-2 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.06em] text-neutral-400">
+        <section className="border-t border-dpe-ink-200 px-4 py-3">
+          <h4 className="mb-2 flex items-center gap-1.5 text-[11px] font-dpe-semibold uppercase tracking-[0.06em] text-dpe-ink-400">
             <Sparkles size={13} className="text-primary" />
             {t("detailPage.properties.aiShapeEdit")}
           </h4>
@@ -2273,12 +2273,12 @@ const GroupInspector = observer(function GroupInspector({
         />
       ) : null}
       {generatedId && items.length > 0 ? (
-        <section className="border-t border-neutral-200 px-4 py-3">
-          <h4 className="mb-1 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.06em] text-neutral-400">
+        <section className="border-t border-dpe-ink-200 px-4 py-3">
+          <h4 className="mb-1 flex items-center gap-1.5 text-[11px] font-dpe-semibold uppercase tracking-[0.06em] text-dpe-ink-400">
             <Sparkles size={13} className="text-primary" />
             그룹 편집
           </h4>
-          <p className="mb-2 text-xs text-neutral-400">{desc}</p>
+          <p className="mb-2 text-xs text-dpe-ink-400">{desc}</p>
           <GroupPromptEditPanel
             generatedId={generatedId}
             items={items}
@@ -2329,9 +2329,9 @@ const FigureInspector = observer(function FigureInspector({
             max={200}
             value={radius}
             onChange={(e) => setAll(els, { cornerRadius: Number(e.target.value) })}
-            className="min-w-0 flex-1 accent-neutral-900"
+            className="min-w-0 flex-1 accent-dpe-ink-900"
           />
-          <span className="w-12 text-right text-sm tabular-nums text-neutral-700">
+          <span className="w-12 text-right text-sm tabular-nums text-dpe-ink-700">
             {radius}px
           </span>
         </div>
@@ -2385,12 +2385,12 @@ const PageHeightSection = observer(function PageHeightSection({
           type="button"
           disabled={contentBottom <= 0 || contentBottom === height}
           onClick={() => applySectionHeight(page, contentBottom)}
-          className="h-9 shrink-0 rounded-md border border-neutral-200 bg-white px-2.5 text-xs font-semibold text-neutral-700 hover:bg-neutral-50 disabled:cursor-not-allowed disabled:text-neutral-300"
+          className="h-9 shrink-0 rounded-dpe-md border border-dpe-ink-200 bg-dpe-surface px-2.5 text-xs font-dpe-semibold text-dpe-ink-700 hover:bg-dpe-ink-50 disabled:cursor-not-allowed disabled:text-dpe-ink-300"
         >
           {t("detailPage.properties.pageHeightFit")}
         </button>
       </div>
-      <p className="mt-2 text-xs text-neutral-400">
+      <p className="mt-2 text-xs text-dpe-ink-400">
         {overflow
           ? t("detailPage.properties.pageHeightOverflow", { px: contentBottom })
           : t("detailPage.properties.pageHeightHint")}
@@ -2418,7 +2418,7 @@ const PageInspector = observer(function PageInspector({
       <PageHeightSection page={page} />
       <Section title={t("detailPage.properties.pageBackground")}>
         <FillControl value={bg} onChange={(c) => page?.set?.({ background: c })} />
-        <p className="mt-2 text-xs text-neutral-400">
+        <p className="mt-2 text-xs text-dpe-ink-400">
           {t("detailPage.properties.pageBackgroundHint")}
         </p>
       </Section>
@@ -2466,7 +2466,7 @@ function InspectorHeader({ els }: { els: ElementLike[] }) {
     label = t("detailPage.properties.selectionCount", { count: els.length });
   }
   return (
-    <div className="flex items-center gap-2 border-b border-neutral-200 px-4 py-3 text-sm font-semibold text-neutral-950">
+    <div className="flex items-center gap-2 border-b border-dpe-ink-200 px-4 py-3 text-sm font-dpe-semibold text-dpe-ink-950">
       {icon}
       {label}
     </div>

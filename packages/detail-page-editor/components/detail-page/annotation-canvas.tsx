@@ -677,7 +677,7 @@ export const AnnotationCanvas = forwardRef<
   return (
     <div
       ref={wrapRef}
-      className="relative h-full w-full overflow-hidden bg-neutral-100"
+      className="relative h-full w-full overflow-hidden bg-dpe-ink-100"
     >
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
@@ -792,7 +792,7 @@ export const AnnotationCanvas = forwardRef<
       ) : null}
 
       <div className="pointer-events-none absolute inset-x-0 bottom-3 flex justify-center">
-        <div className="pointer-events-auto flex items-center gap-0.5 rounded-xl border border-neutral-200 bg-white/95 px-1.5 py-1 shadow-lg backdrop-blur-sm">
+        <div className="pointer-events-auto flex items-center gap-0.5 rounded-dpe-xl border border-dpe-ink-200 bg-dpe-surface/95 px-1.5 py-1 shadow-lg backdrop-blur-sm">
           {TOOLS.map(([id, label, icon]) => (
             <button
               key={id}
@@ -802,16 +802,16 @@ export const AnnotationCanvas = forwardRef<
               aria-pressed={tool === id}
               onClick={() => setTool(id)}
               className={[
-                "flex h-8 w-8 items-center justify-center rounded-lg transition-colors",
+                "flex h-8 w-8 items-center justify-center rounded-dpe-lg transition-colors",
                 tool === id
-                  ? "bg-neutral-900 text-white"
-                  : "text-neutral-500 hover:bg-neutral-100 hover:text-neutral-900",
+                  ? "bg-dpe-ink-900 text-dpe-on-accent"
+                  : "text-dpe-ink-500 hover:bg-dpe-ink-100 hover:text-dpe-ink-900",
               ].join(" ")}
             >
               {icon}
             </button>
           ))}
-          <span className="mx-1 h-5 w-px bg-neutral-200" />
+          <span className="mx-1 h-5 w-px bg-dpe-ink-200" />
           {COLORS.map((c) => (
             <button
               key={c}
@@ -831,14 +831,14 @@ export const AnnotationCanvas = forwardRef<
               />
             </button>
           ))}
-          <span className="mx-1 h-5 w-px bg-neutral-200" />
+          <span className="mx-1 h-5 w-px bg-dpe-ink-200" />
           <button
             type="button"
             title={labels?.undo ?? "실행 취소"}
             aria-label={labels?.undo ?? "실행 취소"}
             disabled={!history.past.length}
             onClick={undo}
-            className="flex h-8 w-8 items-center justify-center rounded-lg text-neutral-500 transition-colors hover:bg-neutral-100 hover:text-neutral-900 disabled:cursor-not-allowed disabled:opacity-30"
+            className="flex h-8 w-8 items-center justify-center rounded-dpe-lg text-dpe-ink-500 transition-colors hover:bg-dpe-ink-100 hover:text-dpe-ink-900 disabled:cursor-not-allowed disabled:opacity-30"
           >
             <Undo2 size={16} />
           </button>
@@ -848,7 +848,7 @@ export const AnnotationCanvas = forwardRef<
             aria-label={labels?.redo ?? "다시 실행"}
             disabled={!history.future.length}
             onClick={redo}
-            className="flex h-8 w-8 items-center justify-center rounded-lg text-neutral-500 transition-colors hover:bg-neutral-100 hover:text-neutral-900 disabled:cursor-not-allowed disabled:opacity-30"
+            className="flex h-8 w-8 items-center justify-center rounded-dpe-lg text-dpe-ink-500 transition-colors hover:bg-dpe-ink-100 hover:text-dpe-ink-900 disabled:cursor-not-allowed disabled:opacity-30"
           >
             <Redo2 size={16} />
           </button>

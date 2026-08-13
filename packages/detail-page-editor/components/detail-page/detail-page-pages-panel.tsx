@@ -138,12 +138,12 @@ const PageRow = observer(function PageRow({
         if (!isDragging) store.selectPage(page.id);
       }}
       className={[
-        "select-none rounded-xl border bg-white p-2 transition-shadow",
+        "select-none rounded-dpe-xl border bg-dpe-surface p-2 transition-shadow",
         isDragging
-          ? "border-neutral-800 shadow-lg"
+          ? "border-dpe-ink-800 shadow-lg"
           : active
-            ? "cursor-pointer border-neutral-800 shadow-sm"
-            : "cursor-pointer border-neutral-200 hover:border-neutral-300",
+            ? "cursor-pointer border-dpe-ink-800 shadow-sm"
+            : "cursor-pointer border-dpe-ink-200 hover:border-dpe-ink-300",
       ].join(" ")}
     >
       <div className="flex items-center gap-2">
@@ -151,14 +151,14 @@ const PageRow = observer(function PageRow({
         {...listeners}
         aria-label={t("detailPage.pages.reorderHandle")}
         className={[
-          "shrink-0 touch-none rounded text-neutral-300 hover:text-neutral-500",
+          "shrink-0 touch-none rounded text-dpe-ink-300 hover:text-dpe-ink-500",
           isDragging ? "cursor-grabbing" : "cursor-grab",
         ].join(" ")}
       >
         <GripVertical aria-hidden="true" size={16} />
       </span>
       <div
-        className="relative shrink-0 overflow-hidden rounded-md border border-neutral-100 bg-neutral-50"
+        className="relative shrink-0 overflow-hidden rounded-dpe-md border border-dpe-ink-100 bg-dpe-ink-50"
         style={{ width: 64, height: Math.min(80, Math.max(40, 64 * ratio)) }}
       >
         {thumb ? (
@@ -173,11 +173,11 @@ const PageRow = observer(function PageRow({
       </div>
       <div className="min-w-0 flex-1">
         <p className="truncate text-sm">
-          <span className="text-neutral-400">{role}</span>
+          <span className="text-dpe-ink-400">{role}</span>
           {title ? (
             <>
-              <span className="mx-1 text-neutral-300">|</span>
-              <span className="font-bold text-neutral-900">{title}</span>
+              <span className="mx-1 text-dpe-ink-300">|</span>
+              <span className="font-dpe-bold text-dpe-ink-900">{title}</span>
             </>
           ) : null}
         </p>
@@ -196,13 +196,13 @@ const PageRow = observer(function PageRow({
         aria-label={t("detailPage.pages.background")}
         aria-expanded={editingBackground}
         title={t("detailPage.pages.background")}
-        className="h-6 w-6 shrink-0 rounded-md border border-neutral-200 hover:border-neutral-400"
+        className="h-6 w-6 shrink-0 rounded-dpe-md border border-dpe-ink-200 hover:border-dpe-ink-400"
         style={{ background }}
       />
       </div>
       {editingBackground ? (
         <div
-          className="mt-2 border-t border-neutral-100 pt-2"
+          className="mt-2 border-t border-dpe-ink-100 pt-2"
           onClick={(event) => event.stopPropagation()}
         >
           <FillControl
@@ -260,10 +260,10 @@ export const DetailPagePagesPanel = observer(function DetailPagePagesPanel({
   return (
     <div className="flex h-full flex-col">
       <div className="flex items-baseline justify-between px-4 py-3">
-        <p className="text-base font-bold text-neutral-900">
+        <p className="text-base font-dpe-bold text-dpe-ink-900">
           {t("detailPage.pages.totalPages", { count: s.pages.length })}
         </p>
-        <p className="text-xs text-neutral-400">
+        <p className="text-xs text-dpe-ink-400">
           {width} × {totalHeight} px
         </p>
       </div>

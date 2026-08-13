@@ -61,8 +61,8 @@ export function ElementRecentsStrip({ store }: { store: unknown }) {
   if (!items.length) return null;
 
   return (
-    <div className="shrink-0 border-b border-neutral-200 px-2 py-2">
-      <p className="mb-1.5 px-0.5 text-[11px] font-medium text-neutral-500">
+    <div className="shrink-0 border-b border-dpe-ink-200 px-2 py-2">
+      <p className="mb-1.5 px-0.5 text-[11px] font-dpe-medium text-dpe-ink-500">
         {t("detailPage.recents.title")}
       </p>
       <div className="flex gap-1.5 overflow-x-auto pb-0.5">
@@ -73,7 +73,7 @@ export function ElementRecentsStrip({ store }: { store: unknown }) {
               onClick={() => insert(entry)}
               title={entry.label ?? entry.key}
               aria-label={entry.label ?? entry.key}
-              className="flex h-11 w-11 items-center justify-center rounded-lg border border-neutral-200 bg-white p-1.5 hover:border-neutral-400"
+              className="flex h-11 w-11 items-center justify-center rounded-dpe-lg border border-dpe-ink-200 bg-dpe-surface p-1.5 hover:border-dpe-ink-400"
             >
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
@@ -89,10 +89,10 @@ export function ElementRecentsStrip({ store }: { store: unknown }) {
                 isPinned ? "detailPage.recents.unpin" : "detailPage.recents.pin",
               )}
               aria-pressed={isPinned}
-              className={`absolute -right-1 -top-1 rounded-full border border-neutral-200 bg-white p-0.5 transition-opacity ${
+              className={`absolute -right-1 -top-1 rounded-full border border-dpe-ink-200 bg-dpe-surface p-0.5 transition-opacity ${
                 isPinned
-                  ? "text-amber-500 opacity-100"
-                  : "text-neutral-300 opacity-0 group-hover:opacity-100"
+                  ? "text-dpe-warn-500 opacity-100"
+                  : "text-dpe-ink-300 opacity-0 group-hover:opacity-100"
               }`}
             >
               <Star aria-hidden="true" size={10} fill={isPinned ? "currentColor" : "none"} />

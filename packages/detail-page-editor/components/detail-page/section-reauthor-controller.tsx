@@ -190,12 +190,12 @@ export function SectionReauthorController({
         onClose={close}
       />
       {notice ? (
-        <div className="fixed bottom-4 left-1/2 z-[110] -translate-x-1/2 rounded-lg border border-amber-200 bg-amber-50 px-4 py-2 text-xs text-amber-800 shadow-lg">
+        <div className="fixed bottom-4 left-1/2 z-[110] -translate-x-1/2 rounded-dpe-lg border border-dpe-warn-200 bg-dpe-warn-50 px-4 py-2 text-xs text-dpe-warn-800 shadow-lg">
           <span>{notice}</span>
           <button
             type="button"
             onClick={() => setNotice(null)}
-            className="ml-3 font-semibold underline"
+            className="ml-3 font-dpe-semibold underline"
           >
             {t("detailPage.annotate.close", { defaultValue: "닫기" })}
           </button>

@@ -33,7 +33,7 @@ export function DetailPageBrandKitPanel({ store }: { store: unknown }) {
 
   if (brandsLoading || assetsQuery.isLoading || moodboardQuery.isLoading) {
     return (
-      <div className="flex h-full items-center justify-center text-neutral-400">
+      <div className="flex h-full items-center justify-center text-dpe-ink-400">
         <Loader2 className="animate-spin" size={20} />
       </div>
     );
@@ -42,7 +42,7 @@ export function DetailPageBrandKitPanel({ store }: { store: unknown }) {
   const KitPanel = slots?.BrandKitPanel;
   if (!activeBrand || !moodboardQuery.data || !KitPanel) {
     return (
-      <div className="flex h-full flex-col items-center justify-center gap-2 p-5 text-center text-neutral-400">
+      <div className="flex h-full flex-col items-center justify-center gap-2 p-5 text-center text-dpe-ink-400">
         <Palette size={22} />
         <p className="text-xs">{t("detailPage.brandAssets.kitEmpty")}</p>
       </div>
@@ -51,13 +51,13 @@ export function DetailPageBrandKitPanel({ store }: { store: unknown }) {
 
   return (
     <div className="flex h-full flex-col overflow-y-auto">
-      <div className="border-b border-neutral-200 p-3">
-        <label className="grid gap-1 text-[11px] font-medium text-neutral-500">
+      <div className="border-b border-dpe-ink-200 p-3">
+        <label className="grid gap-1 text-[11px] font-dpe-medium text-dpe-ink-500">
           {t("detailPage.brandAssets.activeBrand")}
           <select
             value={activeBrand.id}
             onChange={(event) => setActiveBrandId(event.target.value)}
-            className="h-8 rounded-md border border-neutral-200 bg-white px-2 text-xs text-neutral-800"
+            className="h-8 rounded-dpe-md border border-dpe-ink-200 bg-dpe-surface px-2 text-xs text-dpe-ink-800"
           >
             {brands.map((brand) => (
               <option key={brand.id} value={brand.id}>

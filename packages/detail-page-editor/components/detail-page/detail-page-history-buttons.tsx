@@ -46,10 +46,10 @@ function HistoryButton({
       disabled={disabled}
       onClick={onClick}
       className={[
-        "flex h-9 w-9 items-center justify-center rounded-md transition-colors",
+        "flex h-9 w-9 items-center justify-center rounded-dpe-md transition-colors",
         disabled
-          ? "cursor-not-allowed text-neutral-300"
-          : "text-neutral-600 hover:bg-neutral-100 hover:text-neutral-900",
+          ? "cursor-not-allowed text-dpe-ink-300"
+          : "text-dpe-ink-600 hover:bg-dpe-ink-100 hover:text-dpe-ink-900",
       ].join(" ")}
     >
       {children}

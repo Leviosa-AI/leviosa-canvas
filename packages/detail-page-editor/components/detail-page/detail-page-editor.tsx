@@ -444,6 +444,10 @@ export function DetailPageEditor({
   const { t } = useTranslation("branding");
   // 요금제 모달은 호스트가 꽂는다 — 편집기가 열지만 무엇을 얼마에 파는지는 앱이 안다.
   const { slots } = useDetailPageHost();
+  // 영역 슬롯. 색·모서리는 토큰으로 바꾸지만, 무엇이 어디에 놓이는가는 앱이 정한다.
+  const SidebarSlot = slots?.EditorSidebar;
+  const HeaderSlot = slots?.EditorHeader;
+  const InspectorSlot = slots?.EditorInspector;
   const [saveError, setSaveError] = useState<string | null>(null);
   const [saveOk, setSaveOk] = useState(false);
   // 편집 한도 소진 시 "편집 크레딧 추가하기" → pricing 모달을 인플레이스로 연다.
@@ -682,61 +686,72 @@ export function DetailPageEditor({
     return (
       <div className="absolute inset-0 flex">
         {hotkeys}
-        <LeviosaSidePanel
-          store={store}
-          sections={sidebarSections as never}
-          defaultSection="pages"
-        />
+        {SidebarSlot ? (
+          <SidebarSlot
+            store={store}
+            sections={sidebarSections as never}
+            defaultSection="pages"
+          />
+        ) : (
+          <LeviosaSidePanel
+            store={store}
+            sections={sidebarSections as never}
+            defaultSection="pages"
+          />
+        )}
         <div className="relative min-w-0 flex-1">
           <LeviosaCanvasWorkspace store={store} gap={4}>
             {findReplace}
             <DetailPagePagesTimeline store={store} />
           </LeviosaCanvasWorkspace>
-          <div className="absolute bottom-16 left-1/2 z-20 -translate-x-1/2 rounded-lg border border-neutral-200 bg-white/95 px-2 py-1 shadow-sm backdrop-blur-sm">
+          <div className="absolute bottom-16 left-1/2 z-20 -translate-x-1/2 rounded-dpe-lg border border-dpe-ink-200 bg-dpe-surface/95 px-2 py-1 shadow-sm backdrop-blur-sm">
             <LeviosaZoomButtons store={store} />
           </div>
         </div>
       </div>
     );
-  }, [store, sidebarSections]);
+  }, [store, sidebarSections, SidebarSlot]);
 
-  return (
-    // 꽂혀 있으면 `observer`로 싼 패널·오버레이가 이 스토어의 변경 신호를 받는다
-    // (canvas-observer.tsx).
-    <CanvasStoreContext.Provider value={store}>
-    <div className="flex h-screen min-h-[640px] flex-col bg-neutral-100">
-      {/* hookable식 상단 헤더: 뒤로가기 · 상품명 · (되돌리기/다시실행) · 저장 ·
-          다운로드 · 앱 공용 크롬(크레딧/알림/언어, 호스트 주입). 높이를 고정하고
-          본문은 flex-1 min-h-0으로 두어, 헤더 높이가 바뀌어도 캔버스가 남는 높이를
-          정확히 채워 페이지 하단이 잘리지 않는다. */}
-      <header className="sticky top-0 z-20 flex h-14 shrink-0 items-center gap-1.5 border-b border-neutral-200 bg-white px-3">
+  const historyPart = <DetailPageHistoryButtons store={store} />;
+  const downloadPart = (
+    <DetailPageDownloadDialog
+      store={store}
+      fileName={initialDocument.template_id ?? "detail-page"}
+      slotBindings={initialDocument.slot_bindings}
+    />
+  );
+  const defaultHeader = (
+      <header
+        data-dpe-part="header"
+        className="sticky top-0 z-20 flex h-14 shrink-0 items-center gap-1.5 border-b border-dpe-ink-200 bg-dpe-surface px-3"
+      >
         {onBack ? (
           <button
             type="button"
             onClick={onBack}
             aria-label={t("editor.back")}
             title={t("editor.back")}
-            className="flex h-9 w-9 items-center justify-center rounded-md text-neutral-600 hover:bg-neutral-100 hover:text-neutral-900"
+            className="flex h-9 w-9 items-center justify-center rounded-dpe-md text-dpe-ink-600 hover:bg-dpe-ink-100 hover:text-dpe-ink-900"
           >
             <ChevronLeft aria-hidden="true" size={20} />
           </button>
         ) : null}
-        <p className="ml-1 max-w-[280px] truncate text-sm font-semibold text-neutral-900">
+        <p className="ml-1 max-w-[280px] truncate text-sm font-dpe-semibold text-dpe-ink-900">
           {productName?.trim() || t("editor.untitled")}
         </p>
 
         <div className="mx-auto" />
 
-        <DetailPageHistoryButtons store={store} />
-        <span className="mx-1 h-5 w-px bg-neutral-200" aria-hidden="true" />
+        {historyPart}
+        <span className="mx-1 h-5 w-px bg-dpe-ink-200" aria-hidden="true" />
 
         {saveOk ? (
-          <span className="hidden text-xs font-medium text-emerald-600 sm:inline">
+          <span className="hidden text-xs font-dpe-medium text-dpe-ok-600 sm:inline">
             {t("editor.saved")}
           </span>
         ) : null}
         {saveError ? (
-          <span className="hidden max-w-[180px] truncate text-xs font-medium text-red-600 sm:inline">
+          <span className="hidden max-w-[180px] truncate text-xs font-dpe-medium text-dpe-danger-600 sm:inline">
             {saveError}
           </span>
         ) : null}
@@ -744,30 +759,26 @@ export function DetailPageEditor({
           type="button"
           onClick={handleSave}
           disabled={saving}
-          className="inline-flex h-9 items-center gap-2 rounded-md border border-neutral-200 bg-white px-3 text-sm font-semibold text-neutral-900 hover:bg-neutral-50 disabled:cursor-not-allowed disabled:opacity-50"
+          className="inline-flex h-9 items-center gap-2 rounded-dpe-md border border-dpe-ink-200 bg-dpe-surface px-3 text-sm font-dpe-semibold text-dpe-ink-900 hover:bg-dpe-ink-50 disabled:cursor-not-allowed disabled:opacity-50"
         >
           <Save aria-hidden="true" size={16} />
           {saving ? t("editor.saving") : t("editor.save")}
         </button>
-        <DetailPageDownloadDialog
-          store={store}
-          fileName={initialDocument.template_id ?? "detail-page"}
-          slotBindings={initialDocument.slot_bindings}
-        />
+        {downloadPart}
 
         {headerActions ? (
           <>
-            <span className="mx-1 h-5 w-px bg-neutral-200" aria-hidden="true" />
+            <span className="mx-1 h-5 w-px bg-dpe-ink-200" aria-hidden="true" />
             {headerActions}
           </>
         ) : null}
       </header>
-      <div className="grid min-h-0 flex-1 grid-cols-[1fr_360px]">
-        {/* 캔버스 칸의 높이를 못 박는다. 안 그러면 그리드 행이 내용만큼 늘어나(높이
-            100%가 auto로 풀린다) 작업 영역이 화면 아래로 자라고, 아래 붙는 배율·화면
-            띠가 화면 밖으로 밀린다. */}
-        <div className="relative min-w-0 overflow-hidden">{canvas}</div>
-        <aside className="flex min-h-0 flex-col border-l border-neutral-200 bg-white">
+  );
+  const defaultInspector = (
+        <aside
+          data-dpe-part="inspector"
+          className="flex min-h-0 flex-col border-l border-dpe-ink-200 bg-dpe-surface"
+        >
           {/* Figma-style properties inspector — 상단 툴바 대신 오른쪽에 둔다. */}
           <div className="min-h-0 flex-1">
             <DetailPageProperties
@@ -791,19 +802,19 @@ export function DetailPageEditor({
           </div>
 
           {/* Template QA / slot inspector / lint — authoring tools, not seller-facing. */}
-          <details className="border-t border-neutral-200">
-            <summary className="cursor-pointer p-4 text-xs font-semibold uppercase tracking-[0.06em] text-neutral-400 hover:text-neutral-600">
+          <details className="border-t border-dpe-ink-200">
+            <summary className="cursor-pointer p-4 text-xs font-dpe-semibold uppercase tracking-[0.06em] text-dpe-ink-400 hover:text-dpe-ink-600">
               개발자 도구 · 템플릿 QA
             </summary>
             <div className="flex max-h-[55vh] min-h-0 flex-col overflow-y-auto">
-          <div className="border-b border-neutral-200 p-4">
+          <div className="border-b border-dpe-ink-200 p-4">
             <div className="flex items-center justify-between gap-3">
               <div>
-                <h2 className="flex items-center gap-2 text-sm font-semibold text-neutral-950">
+                <h2 className="flex items-center gap-2 text-sm font-dpe-semibold text-dpe-ink-950">
                   <ListChecks aria-hidden="true" size={16} />
                   {t("editor.qaTitle")}
                 </h2>
-                <p className="mt-1 text-xs text-neutral-500">
+                <p className="mt-1 text-xs text-dpe-ink-500">
                   {qaSnapshot.counts.pages} pages / {qaSnapshot.counts.elements} elements /{" "}
                   {qaSnapshot.counts.slots} slots
                 </p>
@@ -811,31 +822,31 @@ export function DetailPageEditor({
               <button
                 type="button"
                 onClick={handleRefreshQa}
-                className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-neutral-200 text-neutral-600 hover:bg-neutral-50"
+                className="inline-flex h-8 w-8 items-center justify-center rounded-dpe-md border border-dpe-ink-200 text-dpe-ink-600 hover:bg-dpe-ink-50"
                 title={t("editor.refreshQa")}
               >
                 <RefreshCw aria-hidden="true" size={15} />
               </button>
             </div>
             <div className="mt-4 grid grid-cols-3 gap-2 text-center text-xs">
-              <div className="rounded-md border border-neutral-200 p-2">
-                <div className="text-base font-semibold text-neutral-950">{qaSnapshot.counts.slots}</div>
-                <div className="text-neutral-500">slots</div>
+              <div className="rounded-dpe-md border border-dpe-ink-200 p-2">
+                <div className="text-base font-dpe-semibold text-dpe-ink-950">{qaSnapshot.counts.slots}</div>
+                <div className="text-dpe-ink-500">slots</div>
               </div>
-              <div className="rounded-md border border-red-100 bg-red-50 p-2">
-                <div className="text-base font-semibold text-red-700">{qaSnapshot.counts.errors}</div>
-                <div className="text-red-600">errors</div>
+              <div className="rounded-dpe-md border border-dpe-danger-100 bg-dpe-danger-50 p-2">
+                <div className="text-base font-dpe-semibold text-dpe-danger-700">{qaSnapshot.counts.errors}</div>
+                <div className="text-dpe-danger-600">errors</div>
               </div>
-              <div className="rounded-md border border-amber-100 bg-amber-50 p-2">
-                <div className="text-base font-semibold text-amber-700">{qaSnapshot.counts.warnings}</div>
-                <div className="text-amber-600">warnings</div>
+              <div className="rounded-dpe-md border border-dpe-warn-100 bg-dpe-warn-50 p-2">
+                <div className="text-base font-dpe-semibold text-dpe-warn-700">{qaSnapshot.counts.warnings}</div>
+                <div className="text-dpe-warn-600">warnings</div>
               </div>
             </div>
             <div className="mt-4 flex gap-2">
               <button
                 type="button"
                 onClick={() => setOverlayEnabled((value) => !value)}
-                className="inline-flex h-9 flex-1 items-center justify-center gap-2 rounded-md border border-neutral-200 text-xs font-semibold text-neutral-700 hover:bg-neutral-50"
+                className="inline-flex h-9 flex-1 items-center justify-center gap-2 rounded-dpe-md border border-dpe-ink-200 text-xs font-dpe-semibold text-dpe-ink-700 hover:bg-dpe-ink-50"
               >
                 {overlayEnabled ? <EyeOff aria-hidden="true" size={15} /> : <Eye aria-hidden="true" size={15} />}
                 {overlayEnabled ? t("editor.overlayOff") : t("editor.overlayOn")}
@@ -843,7 +854,7 @@ export function DetailPageEditor({
               <button
                 type="button"
                 onClick={handleCopySummary}
-                className="inline-flex h-9 w-9 items-center justify-center rounded-md border border-neutral-200 text-neutral-700 hover:bg-neutral-50"
+                className="inline-flex h-9 w-9 items-center justify-center rounded-dpe-md border border-dpe-ink-200 text-dpe-ink-700 hover:bg-dpe-ink-50"
                 title={t("editor.copySummary")}
               >
                 <Copy aria-hidden="true" size={15} />
@@ -851,20 +862,20 @@ export function DetailPageEditor({
               <button
                 type="button"
                 onClick={handleDownloadSummary}
-                className="inline-flex h-9 w-9 items-center justify-center rounded-md border border-neutral-200 text-neutral-700 hover:bg-neutral-50"
+                className="inline-flex h-9 w-9 items-center justify-center rounded-dpe-md border border-dpe-ink-200 text-dpe-ink-700 hover:bg-dpe-ink-50"
                 title={t("editor.downloadSummary")}
               >
                 <Download aria-hidden="true" size={15} />
               </button>
             </div>
             {summaryCopied ? (
-              <p className="mt-2 text-xs font-medium text-emerald-600">{t("editor.summaryCopied")}</p>
+              <p className="mt-2 text-xs font-dpe-medium text-dpe-ok-600">{t("editor.summaryCopied")}</p>
             ) : null}
           </div>
 
           <div className="min-h-0 flex-1 overflow-y-auto p-4">
             <section>
-              <h3 className="text-xs font-semibold uppercase tracking-[0.08em] text-neutral-500">
+              <h3 className="text-xs font-dpe-semibold uppercase tracking-[0.08em] text-dpe-ink-500">
                 {t("editor.slotInspector")}
               </h3>
               <div className="mt-3 space-y-2">
@@ -874,31 +885,31 @@ export function DetailPageEditor({
                       key={slot.slot}
                       type="button"
                       onClick={() => handleSelectSlot(slot)}
-                      className="w-full rounded-md border border-neutral-200 p-3 text-left hover:border-neutral-300 hover:bg-neutral-50"
+                      className="w-full rounded-dpe-md border border-dpe-ink-200 p-3 text-left hover:border-dpe-ink-300 hover:bg-dpe-ink-50"
                     >
                       <div className="flex items-center justify-between gap-2">
-                        <span className="truncate text-sm font-semibold text-neutral-950">{slot.slot}</span>
+                        <span className="truncate text-sm font-dpe-semibold text-dpe-ink-950">{slot.slot}</span>
                         <span
                           className={
                             slot.state === "error"
-                              ? "text-xs font-semibold text-red-600"
+                              ? "text-xs font-dpe-semibold text-dpe-danger-600"
                               : slot.state === "warning"
-                                ? "text-xs font-semibold text-amber-600"
-                                : "text-xs font-semibold text-emerald-600"
+                                ? "text-xs font-dpe-semibold text-dpe-warn-600"
+                                : "text-xs font-dpe-semibold text-dpe-ok-600"
                           }
                         >
                           {slot.state}
                         </span>
                       </div>
-                      <p className="mt-1 truncate text-xs text-neutral-500">
+                      <p className="mt-1 truncate text-xs text-dpe-ink-500">
                         {slot.binding?.kind ?? "-"} / {slot.binding?.element_id ?? "-"}
                       </p>
-                      <p className="mt-1 text-xs text-neutral-600">{formatRect(slot.element)}</p>
-                      <p className="mt-2 text-xs text-neutral-500">{slot.message}</p>
+                      <p className="mt-1 text-xs text-dpe-ink-600">{formatRect(slot.element)}</p>
+                      <p className="mt-2 text-xs text-dpe-ink-500">{slot.message}</p>
                     </button>
                   ))
                 ) : (
-                  <p className="rounded-md border border-neutral-200 p-3 text-sm text-neutral-500">
+                  <p className="rounded-dpe-md border border-dpe-ink-200 p-3 text-sm text-dpe-ink-500">
                     {t("editor.noSlots")}
                   </p>
                 )}
@@ -906,7 +917,7 @@ export function DetailPageEditor({
             </section>
 
             <section className="mt-6">
-              <h3 className="text-xs font-semibold uppercase tracking-[0.08em] text-neutral-500">
+              <h3 className="text-xs font-dpe-semibold uppercase tracking-[0.08em] text-dpe-ink-500">
                 {t("editor.templateLint")}
               </h3>
               <div className="mt-3 space-y-2">
@@ -914,32 +925,32 @@ export function DetailPageEditor({
                   qaSnapshot.lint.map((issue, index) => (
                     <div
                       key={`${issue.title}-${issue.slot ?? issue.elementId ?? index}`}
-                      className="rounded-md border border-neutral-200 p-3"
+                      className="rounded-dpe-md border border-dpe-ink-200 p-3"
                     >
                       <div className="flex items-center justify-between gap-2">
-                        <p className="text-sm font-semibold text-neutral-950">{issue.title}</p>
+                        <p className="text-sm font-dpe-semibold text-dpe-ink-950">{issue.title}</p>
                         <span
                           className={
                             issue.level === "error"
-                              ? "text-xs font-semibold text-red-600"
+                              ? "text-xs font-dpe-semibold text-dpe-danger-600"
                               : issue.level === "warning"
-                                ? "text-xs font-semibold text-amber-600"
-                                : "text-xs font-semibold text-blue-600"
+                                ? "text-xs font-dpe-semibold text-dpe-warn-600"
+                                : "text-xs font-dpe-semibold text-dpe-active-600"
                           }
                         >
                           {issue.level}
                         </span>
                       </div>
-                      <p className="mt-1 text-xs leading-5 text-neutral-600">{issue.detail}</p>
+                      <p className="mt-1 text-xs leading-5 text-dpe-ink-600">{issue.detail}</p>
                       {issue.slot || issue.elementId ? (
-                        <p className="mt-2 truncate text-xs text-neutral-400">
+                        <p className="mt-2 truncate text-xs text-dpe-ink-400">
                           {[issue.slot, issue.elementId].filter(Boolean).join(" / ")}
                         </p>
                       ) : null}
                     </div>
                   ))
                 ) : (
-                  <div className="rounded-md border border-emerald-100 bg-emerald-50 p-3 text-sm font-medium text-emerald-700">
+                  <div className="rounded-dpe-md border border-dpe-ok-100 bg-dpe-ok-50 p-3 text-sm font-dpe-medium text-dpe-ok-700">
                     {t("editor.lintPassed")}
                   </div>
                 )}
@@ -947,10 +958,10 @@ export function DetailPageEditor({
             </section>
 
             <section className="mt-6">
-              <h3 className="text-xs font-semibold uppercase tracking-[0.08em] text-neutral-500">
+              <h3 className="text-xs font-dpe-semibold uppercase tracking-[0.08em] text-dpe-ink-500">
                 {t("editor.designerSummary")}
               </h3>
-              <pre className="mt-3 max-h-72 overflow-auto rounded-md border border-neutral-200 bg-neutral-50 p-3 text-xs leading-5 text-neutral-700">
+              <pre className="mt-3 max-h-72 overflow-auto rounded-dpe-md border border-dpe-ink-200 bg-dpe-ink-50 p-3 text-xs leading-5 text-dpe-ink-700">
                 {qaSnapshot.summary}
               </pre>
             </section>
@@ -958,6 +969,50 @@ export function DetailPageEditor({
             </div>
           </details>
         </aside>
+  );
+  // 인스펙터는 감싸 쓰는 경우가 더 많다 — 자기 크롬만 두르고 속은 그대로 둔다.
+  const inspector = InspectorSlot ? (
+    <InspectorSlot store={store} defaultInspector={defaultInspector} />
+  ) : (
+    defaultInspector
+  );
+
+  const header = HeaderSlot ? (
+    <HeaderSlot
+      productName={productName?.trim() || t("editor.untitled")}
+      onBack={onBack}
+      save={{ run: handleSave, saving, ok: saveOk, error: saveError }}
+      parts={{
+        history: historyPart,
+        download: downloadPart,
+        actions: headerActions ?? null,
+      }}
+    />
+  ) : (
+    defaultHeader
+  );
+
+  return (
+    // 꽂혀 있으면 `observer`로 싼 패널·오버레이가 이 스토어의 변경 신호를 받는다
+    // (canvas-observer.tsx).
+    <CanvasStoreContext.Provider value={store}>
+    <div
+      data-dpe-root=""
+      className="flex h-screen min-h-[640px] flex-col bg-dpe-ink-100"
+    >
+      {/* hookable식 상단 헤더: 뒤로가기 · 상품명 · (되돌리기/다시실행) · 저장 ·
+          다운로드 · 앱 공용 크롬(크레딧/알림/언어, 호스트 주입). 높이를 고정하고
+          본문은 flex-1 min-h-0으로 두어, 헤더 높이가 바뀌어도 캔버스가 남는 높이를
+          정확히 채워 페이지 하단이 잘리지 않는다. */}
+      {header}
+      <div className="grid min-h-0 flex-1 grid-cols-[1fr_360px]">
+        {/* 캔버스 칸의 높이를 못 박는다. 안 그러면 그리드 행이 내용만큼 늘어나(높이
+            100%가 auto로 풀린다) 작업 영역이 화면 아래로 자라고, 아래 붙는 배율·화면
+            띠가 화면 밖으로 밀린다. */}
+        <div data-dpe-part="workspace" className="relative min-w-0 overflow-hidden">
+          {canvas}
+        </div>
+        {inspector}
       </div>
       {/* 화면 하나만 마크업째 다시 저작 — 요청은 캔버스 옆 페이지 툴바에서 온다. */}
       <SectionReauthorController

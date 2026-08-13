@@ -106,10 +106,10 @@ export function GroupPromptEditPanel({
   const badgeLimit = hasText ? textLimit : svgLimit;
 
   return (
-    <div className="flex flex-col overflow-hidden rounded-xl border border-border bg-card">
+    <div className="flex flex-col overflow-hidden rounded-dpe-xl border border-border bg-card">
       <div className="flex items-center gap-1.5 border-b border-border px-3 py-2">
         <Sparkles size={13} className="text-primary" />
-        <span className="text-xs font-medium text-foreground">프롬프트로 편집</span>
+        <span className="text-xs font-dpe-medium text-foreground">프롬프트로 편집</span>
         {unlimited || badgeLimit > 0 ? (
           <EditUsageBadge used={badgeUsed} limit={badgeLimit} unlimited={unlimited} />
         ) : null}
@@ -138,7 +138,7 @@ export function GroupPromptEditPanel({
             type="button"
             onClick={send}
             disabled={busy || !input.trim()}
-            className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-primary text-primary-foreground disabled:opacity-40"
+            className="grid h-8 w-8 shrink-0 place-items-center rounded-dpe-lg bg-primary text-primary-foreground disabled:opacity-40"
             aria-label="프롬프트로 수정"
           >
             {busy ? (

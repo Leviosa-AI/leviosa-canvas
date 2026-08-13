@@ -21,10 +21,10 @@ const buttonStyle: CSSProperties = {
   display: "flex",
   alignItems: "center",
   justifyContent: "center",
-  border: "1px solid #e5e5e5",
-  borderRadius: 6,
-  background: "#ffffff",
-  color: "#404040",
+  border: "1px solid var(--lc-border, #e5e5e5)",
+  borderRadius: "var(--lc-radius, 6px)",
+  background: "var(--lc-surface, #ffffff)",
+  color: "var(--lc-fg, #404040)",
   fontSize: 15,
   lineHeight: 1,
   cursor: "pointer",
@@ -48,6 +48,7 @@ export function ZoomButtons({
   return (
     <div
       data-lc-zoom=""
+      data-lc-part="zoom"
       style={{ display: "flex", alignItems: "center", gap: 6 }}
     >
       <button
@@ -63,7 +64,7 @@ export function ZoomButtons({
           minWidth: 46,
           textAlign: "center",
           fontSize: 12,
-          color: "#525252",
+          color: "var(--lc-fg-muted, #525252)",
           fontVariantNumeric: "tabular-nums",
         }}
       >

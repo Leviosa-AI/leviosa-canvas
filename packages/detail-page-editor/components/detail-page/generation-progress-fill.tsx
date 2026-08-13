@@ -1,7 +1,7 @@
 "use client";
 
 /**
- * 어두운(bg-neutral-900) 생성 버튼 위에 얹는 가짜 프로그레스 오버레이.
+ * 어두운(bg-dpe-ink-900) 생성 버튼 위에 얹는 가짜 프로그레스 오버레이.
  *
  * 진행 신호를 두 겹으로 준다: (1) 버튼 전체를 은은하게 채우는 반투명 면,
  * (2) 하단의 또렷한 3px 바. 둘 다 왼→오로 자라며, 라벨(퍼센트 포함)은 버튼이
@@ -15,15 +15,15 @@ export function GenerationProgressFill({ progress }: { progress: number }) {
     <>
       <span
         aria-hidden="true"
-        className="pointer-events-none absolute inset-y-0 left-0 bg-white/10"
+        className="pointer-events-none absolute inset-y-0 left-0 bg-dpe-surface/10"
         style={{ width: `${pct}%`, transition: "width 200ms ease-out" }}
       />
       <span
         aria-hidden="true"
-        className="pointer-events-none absolute inset-x-0 bottom-0 h-[3px] bg-white/25"
+        className="pointer-events-none absolute inset-x-0 bottom-0 h-[3px] bg-dpe-surface/25"
       >
         <span
-          className="block h-full bg-white"
+          className="block h-full bg-dpe-surface"
           style={{ width: `${pct}%`, transition: "width 200ms ease-out" }}
         />
       </span>

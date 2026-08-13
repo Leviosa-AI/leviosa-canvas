@@ -122,10 +122,10 @@ export function SpecPromptEditPanel({
   ]);
 
   return (
-    <div className="relative flex flex-col overflow-hidden rounded-xl border border-border bg-card">
+    <div className="relative flex flex-col overflow-hidden rounded-dpe-xl border border-border bg-card">
       <div className="flex items-center gap-1.5 border-b border-border px-3 py-2">
         <Sparkles size={13} className="text-primary" />
-        <span className="text-xs font-medium text-foreground">
+        <span className="text-xs font-dpe-medium text-foreground">
           {t("detailPage.promptEdit.header")}
         </span>
         {unlimited || editLimit > 0 ? (
@@ -158,7 +158,7 @@ export function SpecPromptEditPanel({
             type="button"
             onClick={send}
             disabled={busy || !input.trim()}
-            className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-primary text-primary-foreground disabled:opacity-40"
+            className="grid h-8 w-8 shrink-0 place-items-center rounded-dpe-lg bg-primary text-primary-foreground disabled:opacity-40"
             aria-label={t("detailPage.promptEdit.send")}
           >
             {busy ? (

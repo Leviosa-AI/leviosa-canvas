@@ -106,7 +106,7 @@ export function EditUsageBadge({
         (remaining === 0
           ? "text-destructive"
           : warn
-            ? "text-amber-500"
+            ? "text-dpe-warn-500"
             : "text-muted-foreground")
       }
       title={t("detailPage.editQuota.remainingTitle", { remaining })}
@@ -130,7 +130,7 @@ export function EditQuotaBlock({
       : t("detailPage.editQuota.textEdit");
   return (
     <div className="flex flex-col items-center gap-2 px-4 py-4 text-center">
-      <p className="text-[13px] font-medium text-foreground">
+      <p className="text-[13px] font-dpe-medium text-foreground">
         {t("detailPage.editQuota.quotaExhausted", { label })}
       </p>
       <p className="text-[11px] leading-4 text-muted-foreground">
@@ -140,7 +140,7 @@ export function EditQuotaBlock({
         type="button"
         onClick={onBuyMore}
         disabled={!onBuyMore}
-        className="mt-1 inline-flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground disabled:opacity-40"
+        className="mt-1 inline-flex items-center gap-1.5 rounded-dpe-lg bg-primary px-3 py-1.5 text-xs font-dpe-medium text-primary-foreground disabled:opacity-40"
       >
         <Sparkles size={13} />
         {t("detailPage.editQuota.buyCredits")}

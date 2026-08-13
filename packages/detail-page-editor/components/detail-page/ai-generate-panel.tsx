@@ -470,8 +470,8 @@ export function AiGeneratePanel({
             onClick={() => setMode("image")}
             className={
               mode === "image"
-                ? "flex h-10 items-center justify-center gap-2 rounded-md bg-neutral-900 text-sm font-semibold text-white"
-                : "flex h-10 items-center justify-center gap-2 rounded-md border border-neutral-200 text-sm font-medium text-neutral-600 hover:bg-neutral-50"
+                ? "flex h-10 items-center justify-center gap-2 rounded-dpe-md bg-dpe-ink-900 text-sm font-dpe-semibold text-dpe-on-accent"
+                : "flex h-10 items-center justify-center gap-2 rounded-dpe-md border border-dpe-ink-200 text-sm font-dpe-medium text-dpe-ink-600 hover:bg-dpe-ink-50"
             }
           >
             <Sparkles aria-hidden="true" size={15} />
@@ -482,8 +482,8 @@ export function AiGeneratePanel({
             onClick={() => setMode("gif")}
             className={
               isGif
-                ? "flex h-10 items-center justify-center gap-2 rounded-md bg-neutral-900 text-sm font-semibold text-white"
-                : "flex h-10 items-center justify-center gap-2 rounded-md border border-neutral-200 text-sm font-medium text-neutral-600 hover:bg-neutral-50"
+                ? "flex h-10 items-center justify-center gap-2 rounded-dpe-md bg-dpe-ink-900 text-sm font-dpe-semibold text-dpe-on-accent"
+                : "flex h-10 items-center justify-center gap-2 rounded-dpe-md border border-dpe-ink-200 text-sm font-dpe-medium text-dpe-ink-600 hover:bg-dpe-ink-50"
             }
           >
             <Sparkles aria-hidden="true" size={15} />
@@ -494,12 +494,12 @@ export function AiGeneratePanel({
 
       {/* GIF 모드: 배경 투명 토글(기본 ON). 상세페이지 움짤은 대체로 배경 투명. */}
       {isGif ? (
-        <label className="flex cursor-pointer items-center justify-between rounded-md border border-neutral-200 px-3 py-2.5">
+        <label className="flex cursor-pointer items-center justify-between rounded-dpe-md border border-dpe-ink-200 px-3 py-2.5">
           <span className="flex flex-col">
-            <span className="text-sm font-medium text-neutral-800">
+            <span className="text-sm font-dpe-medium text-dpe-ink-800">
               {t("detailPage.aiGenerate.transparentBg")}
             </span>
-            <span className="text-[11px] leading-4 text-neutral-500">
+            <span className="text-[11px] leading-4 text-dpe-ink-500">
               {t("detailPage.aiGenerate.transparentBgHint")}
             </span>
           </span>
@@ -507,7 +507,7 @@ export function AiGeneratePanel({
             type="checkbox"
             checked={transparent}
             onChange={(e) => setTransparent(e.target.checked)}
-            className="h-4 w-4 accent-neutral-900"
+            className="h-4 w-4 accent-dpe-ink-900"
           />
         </label>
       ) : null}
@@ -515,23 +515,23 @@ export function AiGeneratePanel({
       {/* 이미지 모델(티어) 선택 — GIF 모드는 단일 모델이라 숨긴다. */}
       <div hidden={isGif}>
         <div className="mb-2 flex items-center gap-1">
-          <p className="text-xs font-medium text-neutral-500">{t("detailPage.aiGenerate.imageModel")}</p>
+          <p className="text-xs font-dpe-medium text-dpe-ink-500">{t("detailPage.aiGenerate.imageModel")}</p>
           <Tooltip>
             <TooltipTrigger asChild>
               <button
                 type="button"
-                className="flex h-4 w-4 items-center justify-center rounded-full text-neutral-400 hover:text-neutral-600"
+                className="flex h-4 w-4 items-center justify-center rounded-full text-dpe-ink-400 hover:text-dpe-ink-600"
                 aria-label={t("detailPage.aiGenerate.modelQualityHelp")}
               >
                 <Info aria-hidden="true" size={13} />
               </button>
             </TooltipTrigger>
             <TooltipContent side="left" className="max-w-[240px] text-left">
-              <p className="mb-1 font-semibold">{t("detailPage.aiGenerate.modelTooltipTitle")}</p>
+              <p className="mb-1 font-dpe-semibold">{t("detailPage.aiGenerate.modelTooltipTitle")}</p>
               <ul className="space-y-1">
                 {IMAGE_TIERS.map((tk) => (
                   <li key={tk}>
-                    <span className="font-medium">{IMAGE_TIER_META[tk].label}</span>
+                    <span className="font-dpe-medium">{IMAGE_TIER_META[tk].label}</span>
                     <span className="opacity-80"> · {IMAGE_TIER_META[tk].quality}</span>
                   </li>
                 ))}
@@ -550,20 +550,20 @@ export function AiGeneratePanel({
               return (
                 <SelectItem key={tk} value={tk} className="items-start py-2">
                   <div className="flex flex-col gap-0.5 pr-2">
-                    <span className="flex items-center gap-1.5 text-sm font-medium text-neutral-900">
+                    <span className="flex items-center gap-1.5 text-sm font-dpe-medium text-dpe-ink-900">
                       {meta.label}
                       {meta.badge ? (
-                        <span className="rounded-full bg-neutral-900 px-1.5 py-px text-[10px] font-semibold text-white">
+                        <span className="rounded-full bg-dpe-ink-900 px-1.5 py-px text-[10px] font-dpe-semibold text-dpe-on-accent">
                           {meta.badge}
                         </span>
                       ) : null}
                       {typeof cost === "number" && cost > 0 ? (
-                        <span className="text-[11px] font-normal text-neutral-500">
+                        <span className="text-[11px] font-dpe-normal text-dpe-ink-500">
                           · {cost}cr
                         </span>
                       ) : null}
                     </span>
-                    <span className="text-[11px] leading-4 text-neutral-500">
+                    <span className="text-[11px] leading-4 text-dpe-ink-500">
                       {meta.quality}
                     </span>
                   </div>
@@ -572,7 +572,7 @@ export function AiGeneratePanel({
             })}
           </SelectContent>
         </Select>
-        <p className="mt-1.5 text-[11px] leading-4 text-neutral-500">
+        <p className="mt-1.5 text-[11px] leading-4 text-dpe-ink-500">
           {IMAGE_TIER_META[tier].description}
         </p>
       </div>
@@ -584,10 +584,10 @@ export function AiGeneratePanel({
           - 좌측 자유 생성: GIF는 참조 필수(image→video), 이미지는 선택 업로드. */}
       {hasImplicitReference && implicitReferenceSrc ? (
         <div>
-          <p className="mb-2 text-xs font-medium text-neutral-500">
+          <p className="mb-2 text-xs font-dpe-medium text-dpe-ink-500">
             {t("detailPage.aiGenerate.currentImageLabel")}
           </p>
-          <div className="relative overflow-hidden rounded-lg border border-neutral-200 bg-neutral-50">
+          <div className="relative overflow-hidden rounded-dpe-lg border border-dpe-ink-200 bg-dpe-ink-50">
             {/* crossOrigin: S3 이미지를 Origin 없이 그리면 ACAO 없는 응답이 캐시돼
                 캔버스 crossOrigin 로드를 오염시킨다. 미리보기도 Origin을 실어 로드한다. */}
             {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -598,7 +598,7 @@ export function AiGeneratePanel({
               className="h-36 w-full object-contain"
             />
           </div>
-          <p className="mt-1.5 text-[11px] leading-4 text-neutral-500">
+          <p className="mt-1.5 text-[11px] leading-4 text-dpe-ink-500">
             {isGif
               ? t("detailPage.aiGenerate.currentImageGifHint")
               : t("detailPage.aiGenerate.currentImageHint")}
@@ -610,7 +610,7 @@ export function AiGeneratePanel({
               type="button"
               onClick={() => void openAnnotate()}
               disabled={annotatePreparing || loading}
-              className="mt-2 inline-flex h-9 w-full items-center justify-center gap-1.5 rounded-md border border-neutral-200 text-xs font-medium text-neutral-700 hover:bg-neutral-50 disabled:cursor-not-allowed disabled:opacity-40"
+              className="mt-2 inline-flex h-9 w-full items-center justify-center gap-1.5 rounded-dpe-md border border-dpe-ink-200 text-xs font-dpe-medium text-dpe-ink-700 hover:bg-dpe-ink-50 disabled:cursor-not-allowed disabled:opacity-40"
             >
               {annotatePreparing ? (
                 <Loader2 aria-hidden="true" className="animate-spin" size={14} />
@@ -623,29 +623,29 @@ export function AiGeneratePanel({
         </div>
       ) : (
       <div hidden={isGif && hasImplicitReference}>
-        <p className="mb-2 text-xs font-medium text-neutral-500">
+        <p className="mb-2 text-xs font-dpe-medium text-dpe-ink-500">
           {t("detailPage.aiGenerate.referenceLabel")}{" "}
           {isGif ? (
-            <span className="text-red-500">*</span>
+            <span className="text-dpe-danger-500">*</span>
           ) : (
             t("detailPage.aiGenerate.referenceOptional")
           )}
         </p>
         {refUrl ? (
-          <div className="relative overflow-hidden rounded-lg border border-neutral-200">
+          <div className="relative overflow-hidden rounded-dpe-lg border border-dpe-ink-200">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src={refUrl} crossOrigin="anonymous" alt={t("detailPage.aiGenerate.referenceAlt")} className="h-36 w-full object-cover" />
             <button
               type="button"
               onClick={() => setRefUrl(null)}
-              className="absolute right-2 top-2 flex h-7 w-7 items-center justify-center rounded-full bg-black/60 text-white hover:bg-black/80"
+              className="absolute right-2 top-2 flex h-7 w-7 items-center justify-center rounded-full bg-dpe-scrim/60 text-dpe-on-accent hover:bg-dpe-scrim/80"
               aria-label={t("detailPage.aiGenerate.removeReference")}
             >
               <X aria-hidden="true" size={15} />
             </button>
           </div>
         ) : (
-          <label className="flex h-36 cursor-pointer flex-col items-center justify-center gap-2 rounded-lg border border-dashed border-neutral-300 text-neutral-400 hover:border-neutral-400 hover:text-neutral-500">
+          <label className="flex h-36 cursor-pointer flex-col items-center justify-center gap-2 rounded-dpe-lg border border-dashed border-dpe-ink-300 text-dpe-ink-400 hover:border-dpe-ink-400 hover:text-dpe-ink-500">
             {refUploading ? (
               <Loader2 aria-hidden="true" className="animate-spin" size={22} />
             ) : (
@@ -665,35 +665,35 @@ export function AiGeneratePanel({
 
       {/* 프롬프트 */}
       <div className="flex min-h-0 flex-1 flex-col">
-        <label className="mb-2 text-xs font-medium text-neutral-500">
-          {t("detailPage.aiGenerate.prompt")} <span className="text-red-500">*</span>
+        <label className="mb-2 text-xs font-dpe-medium text-dpe-ink-500">
+          {t("detailPage.aiGenerate.prompt")} <span className="text-dpe-danger-500">*</span>
         </label>
         <textarea
           value={prompt}
           onChange={(e) => setPrompt(e.target.value)}
           placeholder={t("detailPage.aiGenerate.promptPlaceholder")}
-          className="min-h-[160px] flex-1 resize-none rounded-lg border border-neutral-200 p-3 text-sm text-neutral-800 outline-none placeholder:text-neutral-400 focus:border-neutral-400"
+          className="min-h-[160px] flex-1 resize-none rounded-dpe-lg border border-dpe-ink-200 p-3 text-sm text-dpe-ink-800 outline-none placeholder:text-dpe-ink-400 focus:border-dpe-ink-400"
         />
       </div>
 
       {error ? (
-        <p className="text-xs font-medium text-red-600">{error}</p>
+        <p className="text-xs font-dpe-medium text-dpe-danger-600">{error}</p>
       ) : null}
 
       {/* 1.5× 안전 마진 미달(또는 생성 중 크레딧 부족) → 차단 안내 + 추가구매 CTA */}
       {activeCost > 0 && (blocked || insufficient) ? (
-        <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2.5 text-center">
-          <p className="text-[13px] font-medium text-amber-800">
+        <div className="rounded-dpe-lg border border-dpe-warn-200 bg-dpe-warn-50 px-3 py-2.5 text-center">
+          <p className="text-[13px] font-dpe-medium text-dpe-warn-800">
             {t("detailPage.aiGenerate.insufficientCreditsTitle")}
           </p>
-          <p className="mt-0.5 text-[11px] leading-4 text-amber-700">
+          <p className="mt-0.5 text-[11px] leading-4 text-dpe-warn-700">
             {t("detailPage.aiGenerate.insufficientCreditsHint", { required, balance: creditBalance })}
           </p>
           <button
             type="button"
             onClick={onBuyCredits}
             disabled={!onBuyCredits}
-            className="mt-2 inline-flex items-center gap-1.5 rounded-md bg-neutral-900 px-3 py-1.5 text-xs font-medium text-white disabled:opacity-40"
+            className="mt-2 inline-flex items-center gap-1.5 rounded-dpe-md bg-dpe-ink-900 px-3 py-1.5 text-xs font-dpe-medium text-dpe-on-accent disabled:opacity-40"
           >
             <Sparkles aria-hidden="true" size={13} />
             {t("detailPage.aiGenerate.buyCredits")}
@@ -702,7 +702,7 @@ export function AiGeneratePanel({
       ) : null}
 
       {gifMissingRef ? (
-        <p className="text-xs font-medium text-neutral-500">
+        <p className="text-xs font-dpe-medium text-dpe-ink-500">
           {t("detailPage.aiGenerate.gifNeedsReference")}
         </p>
       ) : null}
@@ -712,7 +712,7 @@ export function AiGeneratePanel({
         onClick={handleGenerate}
         disabled={loading || !prompt.trim() || blocked || gifMissingRef}
         className={
-          "relative flex h-11 items-center justify-center gap-2 overflow-hidden rounded-lg bg-neutral-900 text-sm font-semibold text-white " +
+          "relative flex h-11 items-center justify-center gap-2 overflow-hidden rounded-dpe-lg bg-dpe-ink-900 text-sm font-dpe-semibold text-dpe-on-accent " +
           (loading
             ? "cursor-progress"
             : "disabled:cursor-not-allowed disabled:opacity-40")
@@ -738,7 +738,7 @@ export function AiGeneratePanel({
                 ? t("detailPage.aiGenerate.replaceImage")
                 : t("detailPage.aiGenerate.generate")}
           {activeCost > 0 && !loading ? (
-            <span className="text-xs font-normal opacity-80">· {activeCost}cr</span>
+            <span className="text-xs font-dpe-normal opacity-80">· {activeCost}cr</span>
           ) : null}
         </span>
       </button>

@@ -38,8 +38,9 @@ export type PanelTabProps = {
   [key: string]: unknown;
 };
 
-const RAIL_WIDTH = 76;
-const PANEL_WIDTH = 320;
+// 폭도 갈아 끼울 수 있게 변수로 낸다 — 좁은 레일을 쓰는 소비자가 있다.
+const RAIL_WIDTH = "var(--lc-rail-width, 76px)";
+const PANEL_WIDTH = "var(--lc-panel-width, 320px)";
 
 /**
  * 레일 버튼 하나.
@@ -59,6 +60,7 @@ export function SectionTab({
       onClick={onClick}
       aria-pressed={active === true}
       data-lc-tab={name ?? ""}
+      data-lc-part="rail-tab"
       style={{
         width: "100%",
         display: "flex",
@@ -67,8 +69,12 @@ export function SectionTab({
         gap: 5,
         padding: "12px 4px",
         border: "none",
-        background: active ? "rgba(37, 99, 235, 0.1)" : "transparent",
-        color: active ? "#1d4ed8" : "#525252",
+        background: active
+          ? "var(--lc-tab-active-bg, rgba(37, 99, 235, 0.1))"
+          : "transparent",
+        color: active
+          ? "var(--lc-tab-active-fg, #1d4ed8)"
+          : "var(--lc-tab-fg, #525252)",
         fontSize: 12,
         lineHeight: 1.2,
         whiteSpace: "pre",
@@ -109,20 +115,22 @@ export function SidePanel({
   return (
     <div
       data-lc-side-panel={opened || "collapsed"}
+      data-lc-part="side-panel"
       style={{
         display: "flex",
         height: "100%",
         minHeight: 0,
-        background: "#ffffff",
-        borderRight: "1px solid #e5e5e5",
+        background: "var(--lc-surface, #ffffff)",
+        borderRight: "1px solid var(--lc-border, #e5e5e5)",
       }}
     >
       <div
+        data-lc-part="rail"
         style={{
           width: RAIL_WIDTH,
           flexShrink: 0,
           overflowY: "auto",
-          borderRight: opened ? "1px solid #e5e5e5" : "none",
+          borderRight: opened ? "1px solid var(--lc-border, #e5e5e5)" : "none",
         }}
       >
         {listed.map(({ name, Tab }) => (
@@ -136,6 +144,7 @@ export function SidePanel({
       </div>
       {Panel ? (
         <div
+          data-lc-part="panel"
           style={{
             width: PANEL_WIDTH,
             flexShrink: 0,
