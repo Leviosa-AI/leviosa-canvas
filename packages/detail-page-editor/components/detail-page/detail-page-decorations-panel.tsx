@@ -72,14 +72,14 @@ export function DetailPageDecorationsPanel({ store }: { store: unknown }) {
   if (isError) {
     return (
       <div className="p-3">
-        <p className="text-xs text-red-600">{t("detailPage.shapes.decorationsFailed")}</p>
+        <p className="text-xs text-dpe-danger-600">{t("detailPage.shapes.decorationsFailed")}</p>
       </div>
     );
   }
 
   if (isPending) {
     return (
-      <div className="flex h-full items-center justify-center text-neutral-400">
+      <div className="flex h-full items-center justify-center text-dpe-ink-400">
         <Loader2 aria-hidden="true" className="animate-spin" size={18} />
       </div>
     );
@@ -88,7 +88,7 @@ export function DetailPageDecorationsPanel({ store }: { store: unknown }) {
   if (!groups.length) {
     return (
       <div className="p-3">
-        <p className="text-xs text-neutral-400">{t("detailPage.shapes.decorationsEmpty")}</p>
+        <p className="text-xs text-dpe-ink-400">{t("detailPage.shapes.decorationsEmpty")}</p>
       </div>
     );
   }
@@ -97,7 +97,7 @@ export function DetailPageDecorationsPanel({ store }: { store: unknown }) {
     <div className="flex h-full flex-col overflow-y-auto p-3">
       {groups.map(({ category, cells }) => (
         <div key={category} className="mb-4 last:mb-0">
-          <p className="mb-2 text-xs font-medium text-neutral-500">
+          <p className="mb-2 text-xs font-dpe-medium text-dpe-ink-500">
             {t(`detailPage.shapes.decorations.${category}`)}
           </p>
           <div className="grid grid-cols-4 gap-2">
@@ -106,7 +106,7 @@ export function DetailPageDecorationsPanel({ store }: { store: unknown }) {
                 key={item.id}
                 type="button"
                 onClick={() => insert(item)}
-                className="flex aspect-square items-center justify-center rounded-lg border border-neutral-200 p-2 hover:border-neutral-400"
+                className="flex aspect-square items-center justify-center rounded-dpe-lg border border-dpe-ink-200 p-2 hover:border-dpe-ink-400"
                 title={t("detailPage.shapes.insertHint")}
               >
                 {/* eslint-disable-next-line @next/next/no-img-element */}

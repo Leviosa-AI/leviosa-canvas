@@ -167,10 +167,10 @@ function IconButton({
       }}
       className={[
         "flex h-6 w-6 items-center justify-center rounded transition-colors",
-        active ? "text-neutral-800" : "text-neutral-400",
+        active ? "text-dpe-ink-800" : "text-dpe-ink-400",
         disabled
           ? "cursor-not-allowed opacity-30"
-          : "hover:bg-neutral-200/70 hover:text-neutral-800",
+          : "hover:bg-dpe-ink-200/70 hover:text-dpe-ink-800",
       ].join(" ")}
     >
       {children}
@@ -394,15 +394,15 @@ const LayerRow = observer(function LayerRow({
           }
         }}
         className={[
-          "group relative flex items-center gap-1 rounded-md pr-1.5 text-neutral-700",
+          "group relative flex items-center gap-1 rounded-dpe-md pr-1.5 text-dpe-ink-700",
           "min-h-[30px] cursor-default select-none",
           dragging ? "opacity-40" : "",
-          over === "inside" ? "ring-2 ring-inset ring-sky-400" : "",
+          over === "inside" ? "ring-2 ring-inset ring-dpe-select-400" : "",
           selected
-            ? "bg-sky-200 text-sky-950"
+            ? "bg-dpe-select-200 text-dpe-select-950"
             : context.has(el.id)
-              ? "bg-sky-50 text-sky-900 hover:bg-sky-100"
-              : "hover:bg-neutral-100",
+              ? "bg-dpe-select-50 text-dpe-select-900 hover:bg-dpe-select-100"
+              : "hover:bg-dpe-ink-100",
         ].join(" ")}
         style={{ paddingLeft: 6 + depth * 14 }}
       >
@@ -411,7 +411,7 @@ const LayerRow = observer(function LayerRow({
             aria-hidden="true"
             data-testid={`drop-line-${over}`}
             className={[
-              "pointer-events-none absolute inset-x-1 h-0.5 rounded-full bg-sky-500",
+              "pointer-events-none absolute inset-x-1 h-0.5 rounded-full bg-dpe-select-500",
               over === "before" ? "top-0" : "bottom-0",
             ].join(" ")}
           />
@@ -426,7 +426,7 @@ const LayerRow = observer(function LayerRow({
               e.stopPropagation();
               onToggle(el.id);
             }}
-            className="flex h-5 w-5 shrink-0 items-center justify-center rounded text-neutral-400 hover:bg-neutral-200/70 hover:text-neutral-700"
+            className="flex h-5 w-5 shrink-0 items-center justify-center rounded text-dpe-ink-400 hover:bg-dpe-ink-200/70 hover:text-dpe-ink-700"
           >
             {isCollapsed ? <ChevronRight size={14} /> : <ChevronDown size={14} />}
           </button>
@@ -436,13 +436,13 @@ const LayerRow = observer(function LayerRow({
 
         <Icon
           size={14}
-          className={["shrink-0", selected ? "text-sky-500" : "text-neutral-400"].join(" ")}
+          className={["shrink-0", selected ? "text-dpe-select-500" : "text-dpe-ink-400"].join(" ")}
         />
 
         <span
           className={[
             "flex-1 truncate text-[13px]",
-            hidden ? "text-neutral-300 line-through" : "",
+            hidden ? "text-dpe-ink-300 line-through" : "",
           ].join(" ")}
           title={label}
         >
@@ -583,17 +583,17 @@ export const DetailPageLayersPanel = observer(function DetailPageLayersPanel({
 
   return (
     <div className="flex h-full min-h-0 flex-col">
-      <div className="flex items-center justify-between px-3 py-2.5 text-[11px] font-semibold uppercase tracking-[0.06em] text-neutral-400">
+      <div className="flex items-center justify-between px-3 py-2.5 text-[11px] font-dpe-semibold uppercase tracking-[0.06em] text-dpe-ink-400">
         <span>{t("detailPage.layers.title")}</span>
         {/* 머리글 숫자는 **맨 위 층의 줄 수**다. 그룹을 펴면 줄은 늘지만 레이어 수는
             그대로다 — 펼침 상태에 따라 숫자가 오르내리면 그건 개수가 아니다. */}
-        <span className="tabular-nums text-neutral-300">
+        <span className="tabular-nums text-dpe-ink-300">
           {rows.filter((row) => row.depth === 0).length}
         </span>
       </div>
       <div className="min-h-0 flex-1 overflow-y-auto px-1.5 pb-4">
         {rows.length === 0 ? (
-          <p className="px-2 py-6 text-center text-xs text-neutral-400">
+          <p className="px-2 py-6 text-center text-xs text-dpe-ink-400">
             {t("detailPage.layers.empty")}
           </p>
         ) : (

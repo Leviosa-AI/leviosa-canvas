@@ -102,7 +102,7 @@ function Cell({
           (e.target as HTMLInputElement).blur();
         }
       }}
-      className="w-full min-w-0 rounded-md border border-neutral-200 bg-white px-2 py-1.5 text-sm text-neutral-900 outline-none focus:border-neutral-400"
+      className="w-full min-w-0 rounded-dpe-md border border-dpe-ink-200 bg-dpe-surface px-2 py-1.5 text-sm text-dpe-ink-900 outline-none focus:border-dpe-ink-400"
     />
   );
 }
@@ -212,10 +212,10 @@ export const TableInspector = observer(function TableInspector({
               type="button"
               aria-pressed={kind === spec.kind}
               onClick={() => apply({ kind })}
-              className={`h-8 rounded-md border text-xs transition-colors ${
+              className={`h-8 rounded-dpe-md border text-xs transition-colors ${
                 kind === spec.kind
-                  ? "border-neutral-300 bg-neutral-100 font-semibold text-neutral-900"
-                  : "border-neutral-200 bg-white text-neutral-600 hover:bg-neutral-50"
+                  ? "border-dpe-ink-300 bg-dpe-ink-100 font-dpe-semibold text-dpe-ink-900"
+                  : "border-dpe-ink-200 bg-dpe-surface text-dpe-ink-600 hover:bg-dpe-ink-50"
               }`}
             >
               {t(`detailPage.table.kinds.${kind}`)}
@@ -223,7 +223,7 @@ export const TableInspector = observer(function TableInspector({
           ))}
         </div>
         {spec.kind === "keyvalue" && spec.data.columns.length > 2 ? (
-          <p className="mt-2 text-[11px] text-amber-600">
+          <p className="mt-2 text-[11px] text-dpe-warn-600">
             {t("detailPage.table.hiddenColumns", {
               count: spec.data.columns.length - 2,
             })}
@@ -263,7 +263,7 @@ export const TableInspector = observer(function TableInspector({
                     },
                   })
                 }
-                className="shrink-0 rounded-md p-1.5 text-neutral-400 hover:bg-neutral-100 hover:text-neutral-700 disabled:opacity-30"
+                className="shrink-0 rounded-dpe-md p-1.5 text-dpe-ink-400 hover:bg-dpe-ink-100 hover:text-dpe-ink-700 disabled:opacity-30"
               >
                 <Trash2 className="h-3.5 w-3.5" />
               </button>
@@ -292,7 +292,7 @@ export const TableInspector = observer(function TableInspector({
                   title={t("detailPage.table.removeRow")}
                   disabled={rowCount <= 1}
                   onClick={() => apply({ data: withRowRemoved(spec.data, row) })}
-                  className="shrink-0 rounded-md p-1.5 text-neutral-400 hover:bg-neutral-100 hover:text-neutral-700 disabled:opacity-30"
+                  className="shrink-0 rounded-dpe-md p-1.5 text-dpe-ink-400 hover:bg-dpe-ink-100 hover:text-dpe-ink-700 disabled:opacity-30"
                 >
                   <Trash2 className="h-3.5 w-3.5" />
                 </button>
@@ -305,7 +305,7 @@ export const TableInspector = observer(function TableInspector({
               type="button"
               disabled={rowCount >= MAX_ROWS}
               onClick={() => apply({ data: withRowAdded(spec.data) })}
-              className="flex flex-1 items-center justify-center gap-1 rounded-md border border-neutral-200 py-1.5 text-xs text-neutral-600 hover:bg-neutral-50 disabled:opacity-40"
+              className="flex flex-1 items-center justify-center gap-1 rounded-dpe-md border border-dpe-ink-200 py-1.5 text-xs text-dpe-ink-600 hover:bg-dpe-ink-50 disabled:opacity-40"
             >
               <Rows3 className="h-3.5 w-3.5" />
               {t("detailPage.table.addRow")}
@@ -315,14 +315,14 @@ export const TableInspector = observer(function TableInspector({
               disabled={!isGrid || columnCount >= MAX_COLUMNS}
               onClick={() => apply({ data: withColumnAdded(spec.data) })}
               title={isGrid ? undefined : t("detailPage.table.addColumnGridOnly")}
-              className="flex flex-1 items-center justify-center gap-1 rounded-md border border-neutral-200 py-1.5 text-xs text-neutral-600 hover:bg-neutral-50 disabled:opacity-40"
+              className="flex flex-1 items-center justify-center gap-1 rounded-dpe-md border border-dpe-ink-200 py-1.5 text-xs text-dpe-ink-600 hover:bg-dpe-ink-50 disabled:opacity-40"
             >
               <Columns3 className="h-3.5 w-3.5" />
               {t("detailPage.table.addColumn")}
             </button>
           </div>
 
-          <p className="mt-2 text-[11px] text-neutral-400">
+          <p className="mt-2 text-[11px] text-dpe-ink-400">
             {notice ?? `${t("detailPage.table.pasteHint")} ${t("detailPage.table.canvasHint")}`}
           </p>
         </div>
@@ -355,12 +355,12 @@ export const TableInspector = observer(function TableInspector({
               <button
                 type="button"
                 onClick={() => apply(autoColumnWidths(spec))}
-                className="flex items-center gap-1 rounded-md border border-neutral-200 px-2 py-1.5 text-xs text-neutral-600 hover:bg-neutral-50"
+                className="flex items-center gap-1 rounded-dpe-md border border-dpe-ink-200 px-2 py-1.5 text-xs text-dpe-ink-600 hover:bg-dpe-ink-50"
               >
                 <RotateCcw className="h-3.5 w-3.5" />
                 {t("detailPage.table.autoWidths")}
               </button>
-              <span className="text-[11px] text-neutral-400">
+              <span className="text-[11px] text-dpe-ink-400">
                 {t("detailPage.table.autoWidthsHint")}
               </span>
             </div>
@@ -389,7 +389,7 @@ export const TableInspector = observer(function TableInspector({
           )}
 
           <div className="flex items-center gap-1.5">
-            <span className="w-16 shrink-0 text-[11px] text-neutral-500">
+            <span className="w-16 shrink-0 text-[11px] text-dpe-ink-500">
               {t("detailPage.table.align")}
             </span>
             <div className="flex flex-1 gap-1">
@@ -405,10 +405,10 @@ export const TableInspector = observer(function TableInspector({
                     next[columnCount - 1] = align;
                     setOptions({ align: next });
                   }}
-                  className={`h-7 flex-1 rounded-md border text-[11px] ${
+                  className={`h-7 flex-1 rounded-dpe-md border text-[11px] ${
                     (spec.options.align[columnCount - 1] ?? "left") === align
-                      ? "border-neutral-300 bg-neutral-100 font-semibold text-neutral-900"
-                      : "border-neutral-200 bg-white text-neutral-600 hover:bg-neutral-50"
+                      ? "border-dpe-ink-300 bg-dpe-ink-100 font-dpe-semibold text-dpe-ink-900"
+                      : "border-dpe-ink-200 bg-dpe-surface text-dpe-ink-600 hover:bg-dpe-ink-50"
                   }`}
                 >
                   {t(`detailPage.table.aligns.${align}`)}
@@ -416,7 +416,7 @@ export const TableInspector = observer(function TableInspector({
               ))}
             </div>
           </div>
-          <p className="text-[11px] text-neutral-400">
+          <p className="text-[11px] text-dpe-ink-400">
             {t("detailPage.table.alignHint")}
           </p>
         </div>
@@ -490,7 +490,7 @@ export const TableInspector = observer(function TableInspector({
             ) : null}
           </div>
           <div className="flex items-center gap-2">
-            <span className="w-20 shrink-0 text-[11px] text-neutral-500">
+            <span className="w-20 shrink-0 text-[11px] text-dpe-ink-500">
               {t("detailPage.table.firstColor")}
             </span>
             <ColorInput
@@ -499,7 +499,7 @@ export const TableInspector = observer(function TableInspector({
             />
           </div>
           <div className="flex items-center gap-2">
-            <span className="w-20 shrink-0 text-[11px] text-neutral-500">
+            <span className="w-20 shrink-0 text-[11px] text-dpe-ink-500">
               {t("detailPage.table.textColor")}
             </span>
             <ColorInput
@@ -530,7 +530,7 @@ export const TableInspector = observer(function TableInspector({
       <Section title={t("detailPage.table.type")}>
         <div className="flex flex-col gap-2">
           <div className="flex items-center gap-2">
-            <span className="w-20 shrink-0 text-[11px] text-neutral-500">
+            <span className="w-20 shrink-0 text-[11px] text-dpe-ink-500">
               {t("detailPage.table.fontSize")}
             </span>
             <NumberField
@@ -542,7 +542,7 @@ export const TableInspector = observer(function TableInspector({
             />
           </div>
           <div className="flex items-center gap-2">
-            <span className="w-20 shrink-0 text-[11px] text-neutral-500">
+            <span className="w-20 shrink-0 text-[11px] text-dpe-ink-500">
               {t("detailPage.table.padX")}
             </span>
             <NumberField
@@ -554,7 +554,7 @@ export const TableInspector = observer(function TableInspector({
             />
           </div>
           <div className="flex items-center gap-2">
-            <span className="w-20 shrink-0 text-[11px] text-neutral-500">
+            <span className="w-20 shrink-0 text-[11px] text-dpe-ink-500">
               {t("detailPage.table.padY")}
             </span>
             <NumberField
@@ -572,12 +572,12 @@ export const TableInspector = observer(function TableInspector({
         <button
           type="button"
           onClick={() => detachTable(el)}
-          className="flex w-full items-center justify-center gap-1.5 rounded-md border border-neutral-200 py-1.5 text-xs text-neutral-600 hover:bg-neutral-50"
+          className="flex w-full items-center justify-center gap-1.5 rounded-dpe-md border border-dpe-ink-200 py-1.5 text-xs text-dpe-ink-600 hover:bg-dpe-ink-50"
         >
           <Unlink className="h-3.5 w-3.5" />
           {t("detailPage.table.detachAction")}
         </button>
-        <p className="mt-1.5 text-[11px] text-neutral-400">
+        <p className="mt-1.5 text-[11px] text-dpe-ink-400">
           {t("detailPage.table.detachHint")}
         </p>
       </Section>

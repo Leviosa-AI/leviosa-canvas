@@ -198,10 +198,10 @@ export function DesignReferencePicker({
   }, [api, busy, credits, instruction, items, onBriefChange]);
 
   return (
-    <div className="space-y-3 rounded-lg bg-neutral-50 p-3">
+    <div className="space-y-3 rounded-dpe-lg bg-dpe-ink-50 p-3">
       <div>
-        <p className="text-xs font-medium text-neutral-700">디자인 레퍼런스</p>
-        <p className="mt-1 text-[11px] text-neutral-500">
+        <p className="text-xs font-dpe-medium text-dpe-ink-700">디자인 레퍼런스</p>
+        <p className="mt-1 text-[11px] text-dpe-ink-500">
           &ldquo;이런 디자인으로&rdquo; 참고할 그림이에요. 상품 사진과 달리 페이지에
           들어가지 않고, 구조와 색을 고르는 근거로만 써요. 최대{" "}
           {MAX_DESIGN_REFERENCES}장.
@@ -212,13 +212,13 @@ export function DesignReferencePicker({
         {items.map((item, index) => (
           <div
             key={item.id}
-            className="flex items-start gap-2 rounded-lg border border-neutral-200 bg-white p-1.5"
+            className="flex items-start gap-2 rounded-dpe-lg border border-dpe-ink-200 bg-dpe-surface p-1.5"
           >
-            <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-md bg-neutral-100">
+            <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-dpe-md bg-dpe-ink-100">
               {/* 붙인 사진은 data URI라 next/image 로 최적화할 것이 없다. */}
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={item.uri} alt="디자인 레퍼런스" className="h-full w-full object-cover" />
-              <span className="absolute left-0.5 top-0.5 rounded bg-neutral-900/75 px-1 text-[10px] font-semibold leading-4 text-white">
+              <span className="absolute left-0.5 top-0.5 rounded bg-dpe-ink-900/75 px-1 text-[10px] font-dpe-semibold leading-4 text-dpe-on-accent">
                 {referenceOrdinal(index)}
               </span>
               <button
@@ -226,7 +226,7 @@ export function DesignReferencePicker({
                 disabled={disabled || busy}
                 onClick={() => remove(item.id)}
                 aria-label={`${referenceOrdinal(index)} 레퍼런스 빼기`}
-                className="absolute right-0.5 top-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-neutral-900/70 text-white disabled:opacity-40"
+                className="absolute right-0.5 top-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-dpe-ink-900/70 text-dpe-on-accent disabled:opacity-40"
               >
                 <X size={10} />
               </button>
@@ -245,8 +245,8 @@ export function DesignReferencePicker({
                     onClick={() => toggleAspect(item.id, aspect.key)}
                     className={`rounded-full border px-2 py-0.5 text-[11px] transition-colors disabled:opacity-40 ${
                       on
-                        ? "border-neutral-900 bg-neutral-900 text-white"
-                        : "border-neutral-200 text-neutral-500 hover:border-neutral-400 hover:text-neutral-700"
+                        ? "border-dpe-ink-900 bg-dpe-ink-900 text-dpe-on-accent"
+                        : "border-dpe-ink-200 text-dpe-ink-500 hover:border-dpe-ink-400 hover:text-dpe-ink-700"
                     }`}
                   >
                     {aspect.label}
@@ -261,7 +261,7 @@ export function DesignReferencePicker({
             type="button"
             disabled={disabled || busy}
             onClick={() => fileRef.current?.click()}
-            className="flex h-[4.75rem] items-center gap-1.5 rounded-lg border border-dashed border-neutral-300 bg-white px-3 text-xs text-neutral-500 transition-colors hover:border-neutral-400 hover:text-neutral-700 disabled:opacity-40"
+            className="flex h-[4.75rem] items-center gap-1.5 rounded-dpe-lg border border-dashed border-dpe-ink-300 bg-dpe-surface px-3 text-xs text-dpe-ink-500 transition-colors hover:border-dpe-ink-400 hover:text-dpe-ink-700 disabled:opacity-40"
           >
             <ImagePlus size={14} />
             레퍼런스 추가
@@ -285,13 +285,13 @@ export function DesignReferencePicker({
             rows={2}
             disabled={disabled || busy}
             placeholder="1번 이미지의 색감과 폰트, 2번 이미지의 레이아웃을 참고해 주세요"
-            className="w-full resize-none rounded-lg border border-neutral-200 bg-white px-3 py-2 text-xs text-neutral-900 outline-none placeholder:text-neutral-400 focus:border-neutral-400 disabled:bg-neutral-100"
+            className="w-full resize-none rounded-dpe-lg border border-dpe-ink-200 bg-dpe-surface px-3 py-2 text-xs text-dpe-ink-900 outline-none placeholder:text-dpe-ink-400 focus:border-dpe-ink-400 disabled:bg-dpe-ink-100"
           />
           <button
             type="button"
             disabled={disabled || busy}
             onClick={() => void analyze()}
-            className="inline-flex items-center gap-1.5 rounded-lg border border-neutral-900 px-3 py-1.5 text-xs font-medium text-neutral-900 transition-colors hover:bg-neutral-900 hover:text-white disabled:opacity-40"
+            className="inline-flex items-center gap-1.5 rounded-dpe-lg border border-dpe-ink-900 px-3 py-1.5 text-xs font-dpe-medium text-dpe-ink-900 transition-colors hover:bg-dpe-ink-900 hover:text-dpe-on-accent disabled:opacity-40"
           >
             {busy ? <Loader2 size={13} className="animate-spin" /> : null}
             {busy ? "읽는 중…" : brief ? "다시 읽기" : "레퍼런스 읽기"}
@@ -299,7 +299,7 @@ export function DesignReferencePicker({
           {/* 누르기 전에 값을 알려 준다 — 누른 뒤 402 로 알게 되면 이미 축 고르고
               지시까지 다 적은 뒤다. 장수가 아니라 그림 크기에 붙는 값이라, 큰 그림을
               작은 것으로 바꾸면 줄어든다. */}
-          <p className="text-[11px] text-neutral-500">
+          <p className="text-[11px] text-dpe-ink-500">
             읽을 때마다 {credits}크레딧이 들어요 (레퍼런스 {items.length}장 · 그림이 크고
             길수록 올라가요).
           </p>
@@ -307,7 +307,7 @@ export function DesignReferencePicker({
       ) : null}
 
       {brief ? <BriefSummary brief={brief} /> : null}
-      {error ? <p className="text-[11px] text-red-600">{error}</p> : null}
+      {error ? <p className="text-[11px] text-dpe-danger-600">{error}</p> : null}
     </div>
   );
 }
@@ -339,22 +339,22 @@ function BriefSummary({ brief }: { brief: DetailPageDesignBrief }) {
 
   if (nothingRead) {
     return (
-      <p className="text-[11px] text-neutral-500">
+      <p className="text-[11px] text-dpe-ink-500">
         레퍼런스에서 읽어낸 것이 없어요. 판면이 잘 보이는 그림으로 바꿔 보세요.
       </p>
     );
   }
 
   return (
-    <div className="space-y-1.5 rounded-lg border border-neutral-200 bg-white p-2.5">
+    <div className="space-y-1.5 rounded-dpe-lg border border-dpe-ink-200 bg-dpe-surface p-2.5">
       <div className="flex flex-wrap items-center gap-1.5">
         {brief.tone ? (
-          <span className="rounded-full bg-neutral-900 px-2 py-0.5 text-[11px] text-white">
+          <span className="rounded-full bg-dpe-ink-900 px-2 py-0.5 text-[11px] text-dpe-on-accent">
             {TONE_LABELS[brief.tone] ?? brief.tone}
           </span>
         ) : null}
         {brief.density ? (
-          <span className="rounded-full border border-neutral-300 px-2 py-0.5 text-[11px] text-neutral-600">
+          <span className="rounded-full border border-dpe-ink-300 px-2 py-0.5 text-[11px] text-dpe-ink-600">
             {DENSITY_LABELS[brief.density] ?? brief.density}
           </span>
         ) : null}
@@ -363,19 +363,19 @@ function BriefSummary({ brief }: { brief: DetailPageDesignBrief }) {
             key={color}
             title={color}
             style={{ backgroundColor: color }}
-            className="h-4 w-4 rounded-full border border-neutral-300"
+            className="h-4 w-4 rounded-full border border-dpe-ink-300"
           />
         ))}
       </div>
       {brief.summary ? (
-        <p className="text-[11px] text-neutral-600">{brief.summary}</p>
+        <p className="text-[11px] text-dpe-ink-600">{brief.summary}</p>
       ) : null}
       {brief.typography || brief.layout || brief.content ? (
-        <p className="text-[11px] text-neutral-500">
+        <p className="text-[11px] text-dpe-ink-500">
           {[brief.typography, brief.layout, brief.content].filter(Boolean).join(" · ")}
         </p>
       ) : null}
-      <p className="text-[11px] text-neutral-400">
+      <p className="text-[11px] text-dpe-ink-400">
         읽은 결과는 제안이에요. 위 디자인 톤을 직접 바꾸면 그 선택이 우선해요.
       </p>
     </div>

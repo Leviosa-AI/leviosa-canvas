@@ -18,8 +18,8 @@ export function Section({
   children: React.ReactNode;
 }) {
   return (
-    <section className="border-t border-neutral-200 px-4 py-3 first:border-t-0">
-      <h4 className="mb-2 text-[11px] font-semibold uppercase tracking-[0.06em] text-neutral-400">
+    <section className="border-t border-dpe-ink-200 px-4 py-3 first:border-t-0">
+      <h4 className="mb-2 text-[11px] font-dpe-semibold uppercase tracking-[0.06em] text-dpe-ink-400">
         {title}
       </h4>
       {children}
@@ -105,7 +105,7 @@ export function NumberField({
   };
 
   return (
-    <div className="flex items-center rounded-md border border-neutral-200 bg-white pr-2 focus-within:border-neutral-400">
+    <div className="flex items-center rounded-dpe-md border border-dpe-ink-200 bg-dpe-surface pr-2 focus-within:border-dpe-ink-400">
       {label ? (
         <span
           aria-hidden="true"
@@ -113,7 +113,7 @@ export function NumberField({
           onPointerMove={onScrubMove}
           onPointerUp={onScrubUp}
           onPointerCancel={onScrubUp}
-          className="cursor-ew-resize select-none touch-none py-1.5 pl-2 pr-1.5 text-xs font-medium text-neutral-400 hover:text-neutral-600"
+          className="cursor-ew-resize select-none touch-none py-1.5 pl-2 pr-1.5 text-xs font-dpe-medium text-dpe-ink-400 hover:text-dpe-ink-600"
           title={`${label} — 좌우로 드래그해 값 조절 (Shift ×10)`}
         >
           {label}
@@ -139,9 +139,9 @@ export function NumberField({
             stepBy(-1);
           }
         }}
-        className="w-full min-w-0 bg-transparent py-1.5 text-sm tabular-nums text-neutral-900 outline-none"
+        className="w-full min-w-0 bg-transparent py-1.5 text-sm tabular-nums text-dpe-ink-900 outline-none"
       />
-      {suffix ? <span className="ml-1 text-xs text-neutral-400">{suffix}</span> : null}
+      {suffix ? <span className="ml-1 text-xs text-dpe-ink-400">{suffix}</span> : null}
     </div>
   );
 }
@@ -163,10 +163,10 @@ export function ToggleButton({
       title={title}
       onClick={onClick}
       className={[
-        "flex h-8 flex-1 items-center justify-center rounded-md border transition-colors",
+        "flex h-8 flex-1 items-center justify-center rounded-dpe-md border transition-colors",
         active
-          ? "border-neutral-800 bg-neutral-900 text-white"
-          : "border-neutral-200 bg-white text-neutral-600 hover:bg-neutral-50",
+          ? "border-dpe-ink-800 bg-dpe-ink-900 text-dpe-on-accent"
+          : "border-dpe-ink-200 bg-dpe-surface text-dpe-ink-600 hover:bg-dpe-ink-50",
       ].join(" ")}
     >
       {children}

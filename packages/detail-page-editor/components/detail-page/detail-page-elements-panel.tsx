@@ -80,7 +80,7 @@ export function DetailPageElementsPanel({
       <div
         role="tablist"
         aria-label={t("detailPage.sidebar.elements")}
-        className="grid shrink-0 grid-cols-3 gap-0.5 border-b border-neutral-200 p-2"
+        className="grid shrink-0 grid-cols-3 gap-0.5 border-b border-dpe-ink-200 p-2"
       >
         {GROUPS.map(({ id, labelKey, Icon }) => {
           const active = id === group;
@@ -91,10 +91,10 @@ export function DetailPageElementsPanel({
               role="tab"
               aria-selected={active}
               onClick={() => select(id)}
-              className={`flex flex-col items-center justify-center gap-0.5 rounded-md px-1 py-1.5 text-[11px] font-medium transition-colors ${
+              className={`flex flex-col items-center justify-center gap-0.5 rounded-dpe-md px-1 py-1.5 text-[11px] font-dpe-medium transition-colors ${
                 active
-                  ? "bg-blue-50 text-blue-700"
-                  : "text-neutral-500 hover:bg-neutral-100"
+                  ? "bg-dpe-active-50 text-dpe-active-700"
+                  : "text-dpe-ink-500 hover:bg-dpe-ink-100"
               }`}
             >
               <Icon aria-hidden="true" size={14} />

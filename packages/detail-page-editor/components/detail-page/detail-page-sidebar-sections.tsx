@@ -103,7 +103,7 @@ function makeIconTab(
         {dividerBefore ? (
           <span
             aria-hidden="true"
-            className="mx-3 my-1.5 block border-t border-neutral-200"
+            className="mx-3 my-1.5 block border-t border-dpe-ink-200"
           />
         ) : null}
         <Tab name={label} {...props}>

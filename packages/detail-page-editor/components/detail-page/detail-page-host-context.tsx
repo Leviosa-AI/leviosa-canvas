@@ -429,6 +429,69 @@ export interface DetailPageHostSlots {
    * 도메인을 알아야 묶이므로 앱이 꽂는다. 안 꽂으면 탭 없이 브랜드 자산만 뜬다.
    */
   AuthoredImagesPanel?: ComponentType<{ store: unknown }>;
+
+  /**
+   * 상단 헤더를 통째로 갈아 끼운다.
+   *
+   * 색·모서리는 토큰(`tokens.css`)으로 바꾸면 되지만, "무엇이 어디에 놓이는가" 는
+   * 토큰이 못 바꾼다. 앱마다 헤더에 걸고 싶은 것이 다르므로 여기서 연다.
+   *
+   * 어려운 조각(되돌리기·내보내기 대화상자)은 만들어서 `parts` 로 넘긴다 — 그것까지
+   * 다시 만들라고 하면 슬롯이 아니라 포크가 된다.
+   */
+  EditorHeader?: ComponentType<EditorHeaderSlotProps>;
+
+  /**
+   * 우측 인스펙터를 감싸거나 갈아 끼운다. 기본 인스펙터는 `defaultInspector` 로 온다 —
+   * 자기 크롬만 두르고 속은 그대로 쓰는 것이 보통이다.
+   */
+  EditorInspector?: ComponentType<EditorInspectorSlotProps>;
+
+  /**
+   * 좌측 레일+패널 껍데기를 갈아 끼운다. 섹션 목록(탭·패널 컴포넌트)은 그대로 넘어가므로
+   * 앱은 배치만 다시 짜면 된다.
+   */
+  EditorSidebar?: ComponentType<EditorSidebarSlotProps>;
+}
+
+/** 헤더 슬롯이 받는 것. */
+export interface EditorHeaderSlotProps {
+  /** 표시용 이름. 비어 있으면 편집기가 기본 문구를 채워서 준다. */
+  productName: string;
+  onBack?: () => void;
+  save: {
+    run: () => void;
+    saving: boolean;
+    /** 방금 저장됐다. 잠시 뒤 스스로 꺼진다. */
+    ok: boolean;
+    error: string | null;
+  };
+  /** 편집기가 만들어 주는 조각들. 자리만 정하면 된다. */
+  parts: {
+    history: ReactNode;
+    download: ReactNode;
+    /** 앱이 `headerActions` 로 넘긴 것(크레딧·알림·언어). */
+    actions: ReactNode;
+  };
+}
+
+/** 인스펙터 슬롯이 받는 것. */
+export interface EditorInspectorSlotProps {
+  store: unknown;
+  defaultInspector: ReactNode;
+}
+
+/** 좌측 껍데기 슬롯이 받는 것. */
+export interface EditorSidebarSlotProps {
+  store: unknown;
+  sections: ReadonlyArray<{
+    name: string;
+    Tab: ComponentType<Record<string, unknown>>;
+    Panel: ComponentType<{ store: unknown }>;
+    visibleInList?: boolean;
+  }>;
+  /** 처음 열어 둘 섹션 이름. */
+  defaultSection: string;
 }
 
 export interface DetailPageHost {

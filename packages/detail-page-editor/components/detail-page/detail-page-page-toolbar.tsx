@@ -67,10 +67,10 @@ function IconButton({
         onClick();
       }}
       className={[
-        "flex h-8 w-8 items-center justify-center rounded-lg transition-colors",
+        "flex h-8 w-8 items-center justify-center rounded-dpe-lg transition-colors",
         disabled
-          ? "cursor-not-allowed text-neutral-300"
-          : "text-neutral-500 hover:bg-neutral-100 hover:text-neutral-900",
+          ? "cursor-not-allowed text-dpe-ink-300"
+          : "text-dpe-ink-500 hover:bg-dpe-ink-100 hover:text-dpe-ink-900",
       ].join(" ")}
     >
       {children}
@@ -110,7 +110,7 @@ export const DetailPagePageToolbar = observer(function DetailPagePageToolbar({
   };
 
   return (
-    <div className="flex flex-col items-center gap-0.5 rounded-2xl border border-neutral-200 bg-white/95 px-1 py-1.5 shadow-md backdrop-blur-sm">
+    <div className="flex flex-col items-center gap-0.5 rounded-2xl border border-dpe-ink-200 bg-dpe-surface/95 px-1 py-1.5 shadow-md backdrop-blur-sm">
       <button
         type="button"
         title={t("detailPage.pageToolbar.aiGenerate")}
@@ -119,9 +119,9 @@ export const DetailPagePageToolbar = observer(function DetailPagePageToolbar({
           e.stopPropagation();
           s.openSidePanel?.("ai-generate");
         }}
-        className="flex h-8 w-8 items-center justify-center rounded-lg transition-colors hover:bg-neutral-100"
+        className="flex h-8 w-8 items-center justify-center rounded-dpe-lg transition-colors hover:bg-dpe-ink-100"
       >
-        <Sparkles size={17} className="text-fuchsia-500" />
+        <Sparkles size={17} className="text-dpe-ai" />
       </button>
 
       {/* 이 화면만 마크업째 다시 만든다 — 슬롯 카피 편집과 달리 칸 수·표 같은 구조가
@@ -139,13 +139,13 @@ export const DetailPagePageToolbar = observer(function DetailPagePageToolbar({
             e.stopPropagation();
             requestSectionReauthor(p.id);
           }}
-          className="flex h-8 w-8 items-center justify-center rounded-lg transition-colors hover:bg-neutral-100"
+          className="flex h-8 w-8 items-center justify-center rounded-dpe-lg transition-colors hover:bg-dpe-ink-100"
         >
-          <Wand2 size={16} className="text-violet-500" />
+          <Wand2 size={16} className="text-dpe-ai-alt" />
         </button>
       ) : null}
 
-      <hr className="my-0.5 w-5 border-neutral-200" />
+      <hr className="my-0.5 w-5 border-dpe-ink-200" />
 
       <IconButton label={t("detailPage.pageToolbar.moveUp")} onClick={() => p.setZIndex(index - 1)} disabled={isFirst}>
         <ChevronUp size={17} />
@@ -160,7 +160,7 @@ export const DetailPagePageToolbar = observer(function DetailPagePageToolbar({
         <Plus size={17} />
       </IconButton>
 
-      <hr className="my-0.5 w-5 border-neutral-200" />
+      <hr className="my-0.5 w-5 border-dpe-ink-200" />
 
       <IconButton label={t("detailPage.pageToolbar.delete")} onClick={() => s.deletePages([p.id])} disabled={!canDelete}>
         <Trash2 size={16} />

@@ -76,7 +76,7 @@ export function DetailPageTablesPanel({ store }: { store: unknown }) {
 
   return (
     <div className="flex h-full flex-col overflow-y-auto p-3">
-      <p className="mb-2 text-xs font-medium text-neutral-500">
+      <p className="mb-2 text-xs font-dpe-medium text-dpe-ink-500">
         {t("detailPage.table.panelTitle")}
       </p>
       <div className="grid grid-cols-1 gap-2">
@@ -86,7 +86,7 @@ export function DetailPageTablesPanel({ store }: { store: unknown }) {
             type="button"
             onClick={() => insert(preset)}
             title={t("detailPage.table.insertHint")}
-            className="flex flex-col items-center gap-1.5 rounded-lg border border-neutral-200 p-2 hover:border-neutral-400"
+            className="flex flex-col items-center gap-1.5 rounded-dpe-lg border border-dpe-ink-200 p-2 hover:border-dpe-ink-400"
           >
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
@@ -94,11 +94,11 @@ export function DetailPageTablesPanel({ store }: { store: unknown }) {
               alt={t(preset.labelKey)}
               className="h-16 w-full object-contain"
             />
-            <span className="text-[11px] text-neutral-500">{t(preset.labelKey)}</span>
+            <span className="text-[11px] text-dpe-ink-500">{t(preset.labelKey)}</span>
           </button>
         ))}
       </div>
-      <p className="mt-3 text-[11px] leading-relaxed text-neutral-400">
+      <p className="mt-3 text-[11px] leading-relaxed text-dpe-ink-400">
         {t("detailPage.table.panelHint")}
       </p>
     </div>

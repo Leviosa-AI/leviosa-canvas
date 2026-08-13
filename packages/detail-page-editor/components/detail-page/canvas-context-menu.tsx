@@ -200,7 +200,7 @@ export const CanvasContextMenu = observer(function CanvasContextMenu({
         role="menu"
         data-dp-canvas-menu
         style={{ left, top, width: MENU_WIDTH }}
-        className="fixed z-[71] rounded-lg border border-neutral-200 bg-white py-1 shadow-lg"
+        className="fixed z-[71] rounded-dpe-lg border border-dpe-ink-200 bg-dpe-surface py-1 shadow-lg"
       >
         {items.map((item) => {
           const Icon = ICONS[item.action];
@@ -208,7 +208,7 @@ export const CanvasContextMenu = observer(function CanvasContextMenu({
           return (
             <div key={item.action}>
               {item.separated ? (
-                <div className="my-1 border-t border-neutral-100" />
+                <div className="my-1 border-t border-dpe-ink-100" />
               ) : null}
               <button
                 type="button"
@@ -219,9 +219,9 @@ export const CanvasContextMenu = observer(function CanvasContextMenu({
                   runCanvasMenuAction(s, item.action);
                   close();
                 }}
-                className="flex h-[30px] w-full items-center gap-2.5 px-3 text-left text-[13px] text-neutral-700 transition-colors hover:bg-neutral-100 disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:bg-transparent"
+                className="flex h-[30px] w-full items-center gap-2.5 px-3 text-left text-[13px] text-dpe-ink-700 transition-colors hover:bg-dpe-ink-100 disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:bg-transparent"
               >
-                <Icon size={14} className="shrink-0 text-neutral-500" />
+                <Icon size={14} className="shrink-0 text-dpe-ink-500" />
                 {label}
               </button>
             </div>

@@ -41,7 +41,7 @@ export const DetailPagePagesTimeline = observer(function DetailPagePagesTimeline
   return (
     <div
       data-dp-pages-timeline=""
-      className="pointer-events-auto absolute inset-x-0 bottom-0 z-20 flex items-center gap-1.5 overflow-x-auto border-t border-neutral-200 bg-white/95 px-3 py-1.5 backdrop-blur-sm"
+      className="pointer-events-auto absolute inset-x-0 bottom-0 z-20 flex items-center gap-1.5 overflow-x-auto border-t border-dpe-ink-200 bg-dpe-surface/95 px-3 py-1.5 backdrop-blur-sm"
     >
       {s.pages.map((page, index) => {
         const active = page.id === activeId;
@@ -54,10 +54,10 @@ export const DetailPagePagesTimeline = observer(function DetailPagePagesTimeline
             aria-current={active ? "true" : undefined}
             title={typeof page.name === "string" ? page.name : `${index + 1}`}
             className={[
-              "flex h-10 w-8 shrink-0 items-center justify-center overflow-hidden rounded border text-[11px] font-semibold transition-colors",
+              "flex h-10 w-8 shrink-0 items-center justify-center overflow-hidden rounded border text-[11px] font-dpe-semibold transition-colors",
               active
-                ? "border-neutral-900 bg-neutral-900 text-white"
-                : "border-neutral-200 bg-white text-neutral-500 hover:border-neutral-400",
+                ? "border-dpe-ink-900 bg-dpe-ink-900 text-dpe-on-accent"
+                : "border-dpe-ink-200 bg-dpe-surface text-dpe-ink-500 hover:border-dpe-ink-400",
             ].join(" ")}
           >
             {thumb ? (

@@ -147,7 +147,7 @@ export function DetailPageBrandGifsPanel({ store }: { store: unknown }) {
     <div className="flex h-full flex-col p-4">
       <BrandPanelHeader onRefresh={() => void gifsQuery.refetch()} />
 
-      <label className="mb-3 flex h-16 cursor-pointer flex-col items-center justify-center gap-1 rounded-md border border-dashed border-neutral-300 text-neutral-400 hover:border-neutral-400 hover:text-neutral-600">
+      <label className="mb-3 flex h-16 cursor-pointer flex-col items-center justify-center gap-1 rounded-dpe-md border border-dashed border-dpe-ink-300 text-dpe-ink-400 hover:border-dpe-ink-400 hover:text-dpe-ink-600">
         {uploadMutation.isPending ? (
           <Loader2 aria-hidden="true" className="animate-spin" size={18} />
         ) : (
@@ -166,19 +166,19 @@ export function DetailPageBrandGifsPanel({ store }: { store: unknown }) {
       </label>
 
       {brandsLoading || gifsQuery.isLoading ? (
-        <div className="flex flex-1 items-center justify-center text-neutral-400">
+        <div className="flex flex-1 items-center justify-center text-dpe-ink-400">
           <Loader2 aria-hidden="true" className="animate-spin" size={22} />
         </div>
       ) : error || gifsQuery.error ? (
-        <p className="text-xs font-medium text-red-600">
+        <p className="text-xs font-dpe-medium text-dpe-danger-600">
           {error ?? t("detailPage.brandAssets.loadFailed")}
         </p>
       ) : !activeBrand ? (
-        <p className="text-xs text-neutral-400">
+        <p className="text-xs text-dpe-ink-400">
           {t("detailPage.brandAssets.noBrand")}
         </p>
       ) : sections.length === 0 ? (
-        <div className="flex flex-1 flex-col items-center justify-center gap-2 text-center text-neutral-400">
+        <div className="flex flex-1 flex-col items-center justify-center gap-2 text-center text-dpe-ink-400">
           <Film aria-hidden="true" size={22} />
           <p className="text-xs">
             {t("detailPage.brandGifs.empty", {
@@ -191,7 +191,7 @@ export function DetailPageBrandGifsPanel({ store }: { store: unknown }) {
         <div className="flex flex-col gap-4 overflow-y-auto">
           {sections.map((section) => (
             <section key={section.kind}>
-              <h3 className="mb-1.5 text-[11px] font-semibold text-neutral-500">
+              <h3 className="mb-1.5 text-[11px] font-dpe-semibold text-dpe-ink-500">
                 {section.kind === "other"
                   ? t("detailPage.brandGifs.sectionOther", {
                       defaultValue: "기타",
@@ -205,7 +205,7 @@ export function DetailPageBrandGifsPanel({ store }: { store: unknown }) {
                         )!.fallback,
                       },
                     )}
-                <span className="ml-1 font-normal text-neutral-300">
+                <span className="ml-1 font-dpe-normal text-dpe-ink-300">
                   {section.items.length}
                 </span>
               </h3>
@@ -213,7 +213,7 @@ export function DetailPageBrandGifsPanel({ store }: { store: unknown }) {
                 {section.items.map((asset) => (
                   <div
                     key={asset.id}
-                    className="group relative overflow-hidden rounded-md border border-neutral-200 hover:border-neutral-500"
+                    className="group relative overflow-hidden rounded-dpe-md border border-dpe-ink-200 hover:border-dpe-ink-500"
                   >
                     <button
                       type="button"
@@ -237,14 +237,14 @@ export function DetailPageBrandGifsPanel({ store }: { store: unknown }) {
                         className="h-24 w-full object-cover transition group-hover:opacity-90"
                       />
                     </button>
-                    <span className="pointer-events-none absolute bottom-1.5 left-1.5 max-w-[calc(100%-12px)] truncate rounded-sm bg-black/70 px-1.5 py-0.5 text-[10px] text-white">
+                    <span className="pointer-events-none absolute bottom-1.5 left-1.5 max-w-[calc(100%-12px)] truncate rounded-dpe-sm bg-dpe-scrim/70 px-1.5 py-0.5 text-[10px] text-dpe-on-accent">
                       {String(asset.metadata?.effect ?? "") ||
                         (asset.display_name ?? asset.filename)}
                     </span>
                     <button
                       type="button"
                       onClick={() => deleteMutation.mutate(asset)}
-                      className="absolute right-1 top-1 hidden h-6 w-6 items-center justify-center rounded-md bg-white/95 text-neutral-400 shadow-sm hover:text-red-600 group-hover:flex"
+                      className="absolute right-1 top-1 hidden h-6 w-6 items-center justify-center rounded-dpe-md bg-dpe-surface/95 text-dpe-ink-400 shadow-sm hover:text-dpe-danger-600 group-hover:flex"
                       aria-label={t("detailPage.brandAssets.delete")}
                     >
                       <Trash2 aria-hidden="true" size={13} />

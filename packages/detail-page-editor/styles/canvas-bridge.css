@@ -1,0 +1,35 @@
+/**
+ * 캔버스 껍데기(좌측 레일 · 배율 버튼)를 편집기 토큰에 물린다.
+ *
+ * 레일은 `@leviosa-ai/canvas` 가 그리고, 그쪽은 Tailwind 를 안 쓴다(인라인 style 이다).
+ * 그래서 자기 변수 `--lc-*` 를 따로 읽는다. 이 파일은 그 변수를 편집기 토큰으로 이어
+ * 주므로, `--color-dpe-*` 하나만 바꿔도 레일까지 같이 따라온다.
+ *
+ *   @import "@leviosa-ai/detail-page-editor/tokens.css";
+ *   @import "@leviosa-ai/detail-page-editor/canvas-bridge.css";
+ *
+ * **기본으로 딸려 오지 않는 이유**: 이어 붙이면 색 공간이 달라 지금 화면과 아주 조금
+ * 어긋난다(레일 활성 배경이 sRGB 혼합 → oklab 혼합). 갈아입힐 사람에게는 무의미한
+ * 차이지만, 그대로 쓰는 앱의 화면을 말없이 바꿀 이유는 없다. 그래서 부르는 쪽이 고른다.
+ *
+ * 이걸 안 쓰고 레일만 따로 잡고 싶으면 딱지를 쓴다:
+ *
+ *   [data-lc-part="rail"] { ... }
+ *   [data-lc-part="rail-tab"] { ... }
+ *   [data-lc-part="panel"] { ... }
+ *   [data-lc-part="zoom"] { ... }
+ */
+[data-dpe-root] {
+  --lc-surface: var(--color-dpe-surface);
+  --lc-border: var(--color-dpe-ink-200);
+  --lc-fg: var(--color-dpe-ink-700);
+  --lc-fg-muted: var(--color-dpe-ink-500);
+  --lc-tab-fg: var(--color-dpe-ink-600);
+  --lc-tab-active-fg: var(--color-dpe-active-700);
+  --lc-tab-active-bg: color-mix(
+    in oklab,
+    var(--color-dpe-active-600) 10%,
+    transparent
+  );
+  --lc-radius: var(--radius-dpe-md);
+}
