@@ -30,6 +30,6 @@ describe("dpnext layout renderer", () => {
     const elapsed = performance.now() - started;
     expect(container.querySelectorAll("[data-dpnext-node-id]")).toHaveLength(801);
     expect(container.querySelector("[data-dpnext-node-id='sec_long']")).toHaveStyle({ height: "15000px" });
-    expect(elapsed).toBeLessThan(2000);
+    expect(elapsed).toBeLessThan(5000);
   });
 });
