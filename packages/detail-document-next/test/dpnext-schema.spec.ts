@@ -41,6 +41,14 @@ describe("dpnext document schema", () => {
     }] as never;
     expect(() => validateDocument(externalSvg)).toThrow(/DPNEXT-SVG-002/);
 
+    const whitespaceSvg = structuredClone(document);
+    whitespaceSvg.sections[0].children = [{
+      id: "svg_whitespace",
+      type: "svg",
+      svg: '<svg><image href="  https://example.com/tracker.png" /></svg>',
+    }] as never;
+    expect(() => validateDocument(whitespaceSvg)).toThrow(/DPNEXT-SVG-002/);
+
     const externalCss = structuredClone(document);
     (externalCss.sections[0].children[0] as DpnextNode).style = {
       backgroundImage: "url(https://example.com/tracker.png)",

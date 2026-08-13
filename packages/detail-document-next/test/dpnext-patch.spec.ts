@@ -38,4 +38,15 @@ describe("dpnext patch", () => {
       operations: [],
     }, "a".repeat(64))).toThrow(DpnextRevisionConflict);
   });
+
+  it("rejects unsupported operations without advancing the source revision", () => {
+    expect(() => applyPatch(source, {
+      schema_version: "detail-document-patch-v1",
+      document_id: "dpnd_patch",
+      base_revision: 2,
+      base_sha256: "a".repeat(64),
+      operations: [{ op: "execute_script" } as never],
+    }, "a".repeat(64))).toThrow(/unsupported patch operation/);
+    expect(source.revision).toBe(2);
+  });
 });

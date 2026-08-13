@@ -3,6 +3,19 @@ import { validateDocument } from "./validate";
 
 export class DpnextRevisionConflict extends Error {}
 
+const PATCH_OPERATIONS = new Set([
+  "replace_text",
+  "set_style",
+  "set_layout",
+  "replace_asset",
+  "replace_svg",
+  "insert_node",
+  "remove_node",
+  "move_node",
+  "duplicate_node",
+  "replace_section",
+]);
+
 function locate(nodes: DpnextNode[], nodeId: string): { node: DpnextNode; parent: DpnextNode[]; index: number } | null {
   for (const [index, node] of nodes.entries()) {
     if (node.id === nodeId) return { node, parent: nodes, index };
@@ -18,6 +31,9 @@ export function applyPatch(
   currentSha256: string,
   options: { allowUserOwned?: boolean } = {},
 ): DetailDocumentV2 {
+  if (patch.schema_version !== "detail-document-patch-v1") {
+    throw new Error("unsupported patch schema");
+  }
   if (patch.base_revision !== document.revision || patch.base_sha256 !== currentSha256) {
     throw new DpnextRevisionConflict("stale DetailDocument base");
   }
@@ -26,6 +42,9 @@ export function applyPatch(
   }
   const next = structuredClone(document);
   for (const operation of patch.operations) {
+    if (!PATCH_OPERATIONS.has(operation.op)) {
+      throw new Error(`unsupported patch operation: ${operation.op}`);
+    }
     if (operation.op === "insert_node") {
       const target = locate(next.sections, operation.parent_id);
       if (!target) throw new Error(`missing parent: ${operation.parent_id}`);

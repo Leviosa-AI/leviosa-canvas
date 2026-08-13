@@ -10,7 +10,7 @@ const NODE_TYPES = new Set([
   "shape",
   "divider",
 ]);
-const FORBIDDEN_SVG = /<\s*script\b|<\s*foreignObject\b|\son[a-z]+\s*=|javascript:|(?:href|xlink:href)\s*=\s*["'](?:https?:|\/\/|data:)/i;
+const FORBIDDEN_SVG = /<\s*script\b|<\s*foreignObject\b|\son[a-z]+\s*=|javascript:|(?:href|xlink:href)\s*=\s*["']\s*(?:https?:|\/\/|data:)|url\(\s*["']?\s*(?:https?:|\/\/|javascript:|data:)/i;
 const FORBIDDEN_STYLE_VALUE = /(?:url|image-set)\s*\(|expression\s*\(|javascript:|@import/i;
 
 function validateSafeScalars(value: unknown, path: string): void {
