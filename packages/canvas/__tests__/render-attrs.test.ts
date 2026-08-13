@@ -177,6 +177,8 @@ describe("이미지 주소", () => {
     // 되짚기가 길이의 제곱이던 시절에는 이런 값 하나가 렌더를 세웠다.
     const started = Date.now();
     expect(cssUrl(`url(${" ".repeat(60_000)}`)).toBeNull();
+    expect(cssUrl("url(".repeat(20_000))).toBeNull();
+    expect(cssUrl(`url("${"a".repeat(60_000)}`)).toBeNull();
     expect(Date.now() - started).toBeLessThan(1_000);
   });
 

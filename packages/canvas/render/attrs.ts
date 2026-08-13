@@ -181,7 +181,9 @@ export function cssUrl(value: unknown): string | null {
   if (doubled) return doubled[1] || null;
   const singled = value.match(/url\(\s*'([^']*)'\s*\)/);
   if (singled) return singled[1] || null;
-  const bare = value.match(/url\(([^'")]*)\)/);
+  // 따옴표가 없으면 괄호도 못 품는다. `(` 를 받아 주면 `url(url(url(…` 에서 시작점마다
+  // 닫는 괄호를 찾아 끝까지 훑는다 — 따옴표를 갈라 놓아도 여기서 다시 제곱이 된다.
+  const bare = value.match(/url\(([^'"()]*)\)/);
   const inner = bare?.[1].trim();
   return inner || null;
 }
