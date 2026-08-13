@@ -1,4 +1,5 @@
 import { execFileSync } from "node:child_process";
+import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
@@ -31,7 +32,7 @@ function callSites(): Array<{ key: string; hasDefault: boolean; dynamic: boolean
 
   const out: Array<{ key: string; hasDefault: boolean; dynamic: boolean }> = [];
   for (const file of files) {
-    const text = execFileSync("cat", [file], { encoding: "utf8" });
+    const text = readFileSync(file, "utf8");
     // 키 뒤 400자 안에 defaultValue 가 있으면 기본값을 단 자리로 본다.
     const re = /\bt\(\s*([`"])([a-zA-Z0-9_.]+)/g;
     let match: RegExpExecArray | null;

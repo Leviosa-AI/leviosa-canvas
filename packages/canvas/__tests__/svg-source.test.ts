@@ -64,6 +64,23 @@ describe("ensureSvgNamespace", () => {
     const svg = '<svg xmlns="http://www.w3.org/2000/svg"><path/></svg>';
     expect(ensureSvgNamespace(svg)).toBe(svg);
   });
+
+  it("여는 태그 밖의 xmlns 는 있는 것으로 안 친다", () => {
+    // 루트가 안 들고 있으면 브라우저가 못 읽는다 — 자식이 들고 있어도 마찬가지다.
+    expect(
+      ensureSvgNamespace('<svg><svg xmlns="http://www.w3.org/2000/svg"/></svg>'),
+    ).toBe(
+      '<svg xmlns="http://www.w3.org/2000/svg"><svg xmlns="http://www.w3.org/2000/svg"/></svg>',
+    );
+  });
+
+  it("태그가 안 닫힌 긴 마크업에서 멈추지 않는다", () => {
+    const started = Date.now();
+    expect(ensureSvgNamespace("<svg ".repeat(20_000))).toContain(
+      '<svg xmlns="http://www.w3.org/2000/svg"',
+    );
+    expect(Date.now() - started).toBeLessThan(1_000);
+  });
 });
 
 describe("decodeSvgSrc / encodeSvgSrc", () => {

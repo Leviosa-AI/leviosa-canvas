@@ -351,14 +351,20 @@ export function parseCssShadow(value: unknown): ParsedShadow | null {
   if (typeof value !== "string") return null;
   const trimmed = value.trim();
   if (!trimmed || trimmed === "none") return null;
+  // 색 함수 안에 괄호를 허용하지 않는다(`[^()]` ). `[^)]` 이면 `rgb(rgb(rgb(…`
+  // 처럼 여는 괄호만 이어지는 값에서 시작점마다 끝까지 훑어 되짚기가 길이의 제곱으로
+  // 늘어난다 — 값은 문서에서 그대로 들어온다.
   const colorMatch = trimmed.match(
-    /(rgba?\([^)]*\)|hsla?\([^)]*\)|#[0-9a-fA-F]{3,8})/,
+    /(rgba?\([^()]*\)|hsla?\([^()]*\)|#[0-9a-fA-F]{3,8})/,
   );
   const color = colorMatch ? colorMatch[0] : "#000000";
   const rest = colorMatch ? trimmed.replace(colorMatch[0], " ") : trimmed;
-  const lengths = (rest.match(/-?\d+(?:\.\d+)?px/g) ?? []).map((token) =>
-    parseFloat(token),
-  );
+  // 길이는 공백으로 끊어 토막마다 통째로 맞춰 본다. 이어 붙은 숫자열을 훑는
+  // 방식(`/-?\d+(?:\.\d+)?px/g`)은 `px` 가 끝내 안 나오는 숫자열에서 같은 제곱이 된다.
+  const lengths = rest
+    .split(/\s+/)
+    .filter((token) => /^-?\d+(?:\.\d+)?px$/.test(token))
+    .map((token) => parseFloat(token));
   if (!lengths.length) return null;
   const [offsetX = 0, offsetY = 0, blur = 0] = lengths;
   return { color, offsetX, offsetY, blur };

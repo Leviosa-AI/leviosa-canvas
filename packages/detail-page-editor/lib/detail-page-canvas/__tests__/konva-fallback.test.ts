@@ -414,4 +414,26 @@ describe("parseCssShadow", () => {
     expect(parseCssShadow("")).toBeNull();
     expect(parseCssShadow(undefined)).toBeNull();
   });
+
+  it("keeps the inset keyword and hex colors readable", () => {
+    expect(parseCssShadow("inset 0px 2px 4px #112233")).toEqual({
+      color: "#112233",
+      offsetX: 0,
+      offsetY: 2,
+      blur: 4,
+    });
+  });
+
+  it("does not stall on malformed values", () => {
+    // Backtracking used to grow with the square of the length here.
+    const started = Date.now();
+    expect(parseCssShadow("rgb(".repeat(20_000))).toBeNull();
+    expect(parseCssShadow(`4px 4px ${"9".repeat(60_000)}`)).toEqual({
+      color: "#000000",
+      offsetX: 4,
+      offsetY: 4,
+      blur: 0,
+    });
+    expect(Date.now() - started).toBeLessThan(1_000);
+  });
 });

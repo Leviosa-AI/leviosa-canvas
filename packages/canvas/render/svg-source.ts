@@ -80,7 +80,12 @@ export function replaceSvgColors(
 
 /** `xmlns`가 없으면 채운다 — 없으면 브라우저가 data URI를 이미지로 못 읽는다. */
 export function ensureSvgNamespace(markup: string): string {
-  if (/<svg[^>]*\sxmlns\s*=/i.test(markup)) return markup;
+  // 여는 태그를 먼저 잘라 낸 다음 그 안을 본다. 한 식으로 보면(`<svg[^>]*\sxmlns`)
+  // `[^>]*` 와 `\s` 가 같은 공백을 서로 가져갈 수 있어, `<svg` 가 여러 번 나오고
+  // 태그가 안 닫히는 마크업에서 되짚기가 길이의 제곱으로 늘어난다.
+  const openTag = markup.match(/<svg\b[^>]*/i);
+  if (!openTag) return markup;
+  if (/\sxmlns\s*=/i.test(openTag[0])) return markup;
   return markup.replace(/<svg\b/i, '<svg xmlns="http://www.w3.org/2000/svg"');
 }
 
