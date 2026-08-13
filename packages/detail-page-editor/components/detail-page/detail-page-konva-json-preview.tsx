@@ -11,13 +11,13 @@ import {
   Text,
 } from "react-konva/es/ReactKonvaCore";
 
-import { roundedRectPath } from "../../lib/detail-page-canvas/clip-rect";
+import { roundedRectPath } from "@leviosa-ai/canvas/paint/clip-rect";
 import {
   normalizeCanvasJsonForKonva,
   type ParsedGradient,
   type CanvasFallbackElement,
-} from "../../lib/detail-page-canvas/konva-fallback";
-import { computeHighlightBands } from "../../lib/detail-page-canvas/text-highlight-bands";
+} from "@leviosa-ai/canvas/paint/konva-fallback";
+import { computeHighlightBands } from "@leviosa-ai/canvas/paint/text-highlight-bands";
 import type { LeviosaCanvasDocument } from "../../types/detail-page-canvas";
 
 /** Konva gradient/shadow/cornerRadius props derived from a fallback element. */

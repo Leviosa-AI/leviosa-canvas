@@ -1,7 +1,7 @@
 import type { Layer, Psd } from "ag-psd";
 
 import { parseColor } from "./color";
-import { parseCssGradient } from "../konva-fallback";
+import { parseCssGradient } from "@leviosa-ai/canvas/paint/konva-fallback";
 import {
   documentWidth,
   pageHeight,

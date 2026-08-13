@@ -14,7 +14,7 @@ import {
   readBubbleParams,
   type BubbleParams,
   type Pt,
-} from "../../lib/detail-page-canvas/bubble-path";
+} from "@leviosa-ai/canvas/paint/bubble-path";
 
 /**
  * 말풍선 꼬리 끝점을 드래그하는 핸들 — Canva/미리캔버스식.

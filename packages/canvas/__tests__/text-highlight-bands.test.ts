@@ -2,8 +2,25 @@ import { describe, expect, it } from "vitest";
 
 import {
   computeHighlightBands,
+  isTransparentColor,
   lineHeightRatioFor,
-} from "../text-highlight-bands";
+} from "../paint/text-highlight-bands";
+
+describe("isTransparentColor", () => {
+  it("treats transparent keywords and zero-alpha rgba as transparent", () => {
+    expect(isTransparentColor("transparent")).toBe(true);
+    expect(isTransparentColor("rgba(0,0,0,0)")).toBe(true);
+    expect(isTransparentColor("rgba(123, 214, 255, 0)")).toBe(true);
+    expect(isTransparentColor("")).toBe(true);
+    expect(isTransparentColor(undefined)).toBe(true);
+  });
+
+  it("treats opaque colours as not transparent", () => {
+    expect(isTransparentColor("rgb(123, 214, 255)")).toBe(false);
+    expect(isTransparentColor("rgba(0,0,0,0.5)")).toBe(false);
+    expect(isTransparentColor("#7bd6ff")).toBe(false);
+  });
+});
 
 describe("lineHeightRatioFor", () => {
   it("passes a numeric ratio through", () => {

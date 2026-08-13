@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 
-import { readClipRect, roundedRectPath } from "../clip-rect";
+import { readClipRect, roundedRectPath } from "../paint/clip-rect";
 
 describe("readClipRect", () => {
   it("reads a valid clipToRect from an element's custom payload", () => {

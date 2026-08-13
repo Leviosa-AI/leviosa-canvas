@@ -1,4 +1,5 @@
-import { parseCssGradient, type ParsedGradient } from "./konva-fallback";
+import { parseCssGradient, type ParsedGradient } from "@leviosa-ai/canvas/paint/konva-fallback";
+import { isTransparentColor } from "@leviosa-ai/canvas/paint/text-highlight-bands";
 
 /**
  * The Canvas SDK editor paints a text element's background as a per-line
@@ -55,19 +56,6 @@ export type TextBackgroundPlan =
       cornerRadius: number;
     }
   | null;
-
-/** True for ``"transparent"`` or any colour whose alpha channel is 0. */
-export function isTransparentColor(value: unknown): boolean {
-  if (typeof value !== "string") return true;
-  const color = value.trim().toLowerCase();
-  if (!color || color === "transparent" || color === "none") return true;
-  const rgba = color.match(/^rgba?\(([^)]+)\)$/);
-  if (rgba) {
-    const parts = rgba[1].split(",").map((part) => part.trim());
-    if (parts.length === 4) return parseFloat(parts[3]) === 0;
-  }
-  return false;
-}
 
 /**
  * Decide what background rect (if any) to paint behind a Canvas text element.
