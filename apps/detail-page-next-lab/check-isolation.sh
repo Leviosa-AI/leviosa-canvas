@@ -2,7 +2,7 @@
 set -euo pipefail
 
 repo_root="$(git rev-parse --show-toplevel)"
-base_sha="c06f020"
+base_sha="9320c08"
 
 is_allowed() {
   case "$1" in
