@@ -5,9 +5,11 @@ import userEvent from "@testing-library/user-event";
 
 import {
   DetailPageProperties,
+  ElementAiEditPanel,
   alignedCoord,
   groupFrame,
 } from "../detail-page-properties-panel";
+import { EditorAiProvider } from "../editor-ai-context";
 import { CanvasStoreContext } from "../canvas-observer";
 import { createCanvasStore } from "@leviosa-ai/canvas/store";
 import { encodeSvgDataUri } from "../../../lib/detail-page-canvas/export/svg";
@@ -22,6 +24,23 @@ const mockGroupPromptEdit = vi.fn();
 function render(ui: ReactNode) {
   return rtlRender(
     withDetailPageHost(ui, { api: { groupPromptEditDetailPage: mockGroupPromptEdit } }),
+  );
+}
+
+/**
+ * 프롬프트 편집은 우측 패널이 아니라 **캔버스 위 띠**에서 열린다. 부품은 그대로라
+ * 계약도 그대로지만, 여는 자리가 달라졌으므로 여기서는 그 부품을 직접 세운다.
+ * 생성 ID·사용량은 이제 컨텍스트로 온다(`editor-ai-context`).
+ */
+function renderAiEdit(
+  store: Record<string, unknown>,
+  els: Array<Record<string, unknown>>,
+  generatedId?: string,
+) {
+  return render(
+    <EditorAiProvider value={{ generatedId }}>
+      <ElementAiEditPanel store={store as never} els={els as never} />
+    </EditorAiProvider>,
   );
 }
 
@@ -634,7 +653,7 @@ describe("DetailPageProperties — 텍스트 프롬프트 편집 게이팅", () 
   it("shows the copy prompt-edit panel for a slotless text when a generatedId is present", () => {
     const el = makeElement({ id: "t1", type: "text", text: "해외에서 먼저 입소문 난" });
     const store = makeStore([el]);
-    render(<DetailPageProperties store={store} generatedId="gen_1" />);
+    renderAiEdit(store, [el], "gen_1");
     expect(screen.getByText("detailPage.promptEdit.header")).toBeTruthy();
   });
 
@@ -646,14 +665,14 @@ describe("DetailPageProperties — 텍스트 프롬프트 편집 게이팅", () 
       custom: { leviosaSlot: "headline.sub" },
     });
     const store = makeStore([el]);
-    render(<DetailPageProperties store={store} generatedId="gen_1" />);
+    renderAiEdit(store, [el], "gen_1");
     expect(screen.getByText("detailPage.promptEdit.header")).toBeTruthy();
   });
 
   it("hides it in fixture mode (no generatedId)", () => {
     const el = makeElement({ id: "t1", type: "text", text: "본문" });
     const store = makeStore([el]);
-    render(<DetailPageProperties store={store} />);
+    renderAiEdit(store, [el]);
     expect(screen.queryByText("detailPage.promptEdit.header")).toBeNull();
   });
 });
@@ -682,18 +701,24 @@ describe("DetailPageProperties — 그룹 편집", () => {
       children: [t1, img, t2],
     });
     const store = makeStore([group]);
-    render(<DetailPageProperties store={store} generatedId="gen_1" />);
+    renderAiEdit(store, [group], "gen_1");
 
-    expect(screen.getByText("그룹 편집")).toBeTruthy();
-    expect(
-      screen.getByText("그룹 안 텍스트를 한 번에 프롬프트로 다시 씁니다."),
-    ).toBeTruthy();
+    expect(screen.getByText("detailPage.groupEdit.title")).toBeTruthy();
+    expect(screen.getByText("detailPage.groupEdit.texts")).toBeTruthy();
     // 텍스트가 여러 개여도 프롬프트 편집 컴포넌트는 딱 하나.
     expect(screen.getAllByText("프롬프트로 편집")).toHaveLength(1);
-    // 그룹 해제/삭제는 그대로 노출.
+  });
+
+  it("그룹 해제·삭제는 우측 패널에 그대로 남는다", () => {
+    const t1 = makeElement({ id: "t1", type: "text", text: "문구" });
+    const group = makeElement({ id: "g1", type: "group", children: [t1] });
+    const store = makeStore([group]);
+    render(<DetailPageProperties store={store} generatedId="gen_1" />);
     expect(
       screen.getByRole("button", { name: "detailPage.properties.ungroup" }),
     ).toBeTruthy();
+    // 프롬프트 편집은 띠로 옮겼으므로 우측에는 없다.
+    expect(screen.queryByText("detailPage.groupEdit.title")).toBeNull();
   });
 
   it("includes texts nested in sub-groups under one panel", () => {
@@ -701,8 +726,8 @@ describe("DetailPageProperties — 그룹 편집", () => {
     const inner = makeElement({ id: "gi", type: "group", children: [deep] });
     const group = makeElement({ id: "g1", type: "group", children: [inner] });
     const store = makeStore([group]);
-    render(<DetailPageProperties store={store} generatedId="gen_1" />);
-    expect(screen.getByText("그룹 편집")).toBeTruthy();
+    renderAiEdit(store, [group], "gen_1");
+    expect(screen.getByText("detailPage.groupEdit.title")).toBeTruthy();
     expect(screen.getAllByText("프롬프트로 편집")).toHaveLength(1);
   });
 
@@ -712,11 +737,9 @@ describe("DetailPageProperties — 그룹 편집", () => {
     const s2 = makeElement({ id: "s2", type: "svg", src: svg });
     const group = makeElement({ id: "g1", type: "group", children: [s1, s2] });
     const store = makeStore([group]);
-    render(<DetailPageProperties store={store} generatedId="gen_1" />);
-    expect(screen.getByText("그룹 편집")).toBeTruthy();
-    expect(
-      screen.getByText("그룹 안 도형을 프롬프트로 함께 수정합니다."),
-    ).toBeTruthy();
+    renderAiEdit(store, [group], "gen_1");
+    expect(screen.getByText("detailPage.groupEdit.title")).toBeTruthy();
+    expect(screen.getByText("detailPage.groupEdit.shapes")).toBeTruthy();
     expect(screen.getAllByText("프롬프트로 편집")).toHaveLength(1);
   });
 
@@ -726,10 +749,8 @@ describe("DetailPageProperties — 그룹 편집", () => {
     const s1 = makeElement({ id: "s1", type: "svg", src: svg });
     const group = makeElement({ id: "g1", type: "group", children: [s1, t1] });
     const store = makeStore([group]);
-    render(<DetailPageProperties store={store} generatedId="gen_1" />);
-    expect(
-      screen.getByText("그룹 안 텍스트와 도형을 한 번에 프롬프트로 수정합니다."),
-    ).toBeTruthy();
+    renderAiEdit(store, [group], "gen_1");
+    expect(screen.getByText("detailPage.groupEdit.both")).toBeTruthy();
     expect(screen.getAllByText("프롬프트로 편집")).toHaveLength(1);
   });
 
@@ -749,7 +770,7 @@ describe("DetailPageProperties — 그룹 편집", () => {
     const t2 = makeElement({ id: "t2", type: "text", text: "옛 문구 2" });
     const group = makeElement({ id: "g1", type: "group", children: [t1, t2] });
     const store = makeStore([group]);
-    render(<DetailPageProperties store={store} generatedId="gen_1" />);
+    renderAiEdit(store, [group], "gen_1");
 
     await user.type(
       screen.getByPlaceholderText(/어떻게 바꿀까요/),
@@ -774,9 +795,10 @@ describe("DetailPageProperties — 그룹 편집", () => {
     const shape = makeElement({ id: "s1", type: "svg" });
     const group = makeElement({ id: "g1", type: "group", children: [img, shape] });
     const store = makeStore([group]);
+    renderAiEdit(store, [group], "gen_1");
+    expect(screen.queryByText("detailPage.groupEdit.title")).toBeNull();
+    // 하지만 그룹 자체 액션(해제/삭제)은 우측 패널에 여전히 있다.
     render(<DetailPageProperties store={store} generatedId="gen_1" />);
-    expect(screen.queryByText("그룹 편집")).toBeNull();
-    // 하지만 그룹 자체 액션(해제/삭제)은 여전히 있다.
     expect(screen.getByRole("button", { name: "detailPage.properties.ungroup" })).toBeTruthy();
   });
 
@@ -784,8 +806,8 @@ describe("DetailPageProperties — 그룹 편집", () => {
     const t1 = makeElement({ id: "t1", type: "text", text: "본문" });
     const group = makeElement({ id: "g1", type: "group", children: [t1] });
     const store = makeStore([group]);
-    render(<DetailPageProperties store={store} />);
-    expect(screen.queryByText("그룹 편집")).toBeNull();
+    renderAiEdit(store, [group]);
+    expect(screen.queryByText("detailPage.groupEdit.title")).toBeNull();
   });
 });
 
@@ -805,21 +827,21 @@ describe("DetailPageProperties — SVG 프롬프트 편집", () => {
   it("shows the prompt-edit panel for an svg with markup when a generatedId is present", () => {
     const el = makeElement({ id: "s1", type: "svg", src: svgDataUri });
     const store = makeStore([el]);
-    render(<DetailPageProperties store={store} generatedId="gen_1" />);
+    renderAiEdit(store, [el], "gen_1");
     expect(screen.getByText("detailPage.properties.aiShapeEdit")).toBeTruthy();
   });
 
   it("hides the prompt-edit panel in fixture mode (no generatedId)", () => {
     const el = makeElement({ id: "s1", type: "svg", src: svgDataUri });
     const store = makeStore([el]);
-    render(<DetailPageProperties store={store} />);
+    renderAiEdit(store, [el]);
     expect(screen.queryByText("detailPage.properties.aiShapeEdit")).toBeNull();
   });
 
   it("hides the prompt-edit panel for a shape without decodable svg markup", () => {
     const el = makeElement({ id: "f1", type: "svg", src: "" });
     const store = makeStore([el]);
-    render(<DetailPageProperties store={store} generatedId="gen_1" />);
+    renderAiEdit(store, [el], "gen_1");
     expect(screen.queryByText("detailPage.properties.aiShapeEdit")).toBeNull();
   });
 });

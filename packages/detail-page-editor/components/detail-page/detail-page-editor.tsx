@@ -35,6 +35,8 @@ import { normalizeDocumentAssetSrcs } from "../../lib/detail-page/asset-bytes-ur
 import type { DocumentJson } from "@leviosa-ai/canvas/types";
 import { buildDetailPageSections } from "./detail-page-sidebar-sections";
 import { DetailPageProperties } from "./detail-page-properties-panel";
+import { EditorAiProvider } from "./editor-ai-context";
+import { useDetailPageEditUsage } from "./edit-quota-ui";
 import type { ImageTier } from "../../lib/detail-page/image-credit";
 import { DetailPageHistoryButtons } from "./detail-page-history-buttons";
 import { DetailPageDownloadDialog } from "./detail-page-download-dialog";
@@ -448,6 +450,9 @@ export function DetailPageEditor({
   const SidebarSlot = slots?.EditorSidebar;
   const HeaderSlot = slots?.EditorHeader;
   const InspectorSlot = slots?.EditorInspector;
+  // 프롬프트 편집 사용량은 여기서 한 번만 조회한다 — 캔버스 위 띠와 우측 패널(표·차트)이
+  // 같은 숫자를 봐야 "몇 번 남았는가"가 갈라지지 않는다.
+  const { usage, applyUsage } = useDetailPageEditUsage(generatedId);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [saveOk, setSaveOk] = useState(false);
   // 편집 한도 소진 시 "편집 크레딧 추가하기" → pricing 모달을 인플레이스로 연다.
@@ -704,13 +709,42 @@ export function DetailPageEditor({
             {findReplace}
             <DetailPagePagesTimeline store={store} />
           </LeviosaCanvasWorkspace>
-          <div className="absolute bottom-16 left-1/2 z-20 -translate-x-1/2 rounded-dpe-lg border border-dpe-ink-200 bg-dpe-surface/95 px-2 py-1 shadow-sm backdrop-blur-sm">
+          {/* 배율은 오른쪽 아래로 — 가운데 아래는 삽입 띠 자리다(작업 영역이 그린다). */}
+          <div className="absolute bottom-4 right-4 z-20 rounded-dpe-lg border border-dpe-ink-200 bg-dpe-surface/95 px-2 py-1 shadow-sm backdrop-blur-sm">
             <LeviosaZoomButtons store={store} />
           </div>
         </div>
       </div>
     );
   }, [store, sidebarSections, SidebarSlot]);
+
+  const aiValue = useMemo(
+    () => ({
+      generatedId,
+      usage,
+      applyUsage,
+      onBuyCredits: () => setPricingOpen(true),
+      imageCreditCost,
+      imageCreditBalance,
+      imageCostByTier,
+      onGenerateGif,
+      gifCreditCost,
+      onRemoveBackground,
+      bgRemoveCreditCost,
+    }),
+    [
+      generatedId,
+      usage,
+      applyUsage,
+      imageCreditCost,
+      imageCreditBalance,
+      imageCostByTier,
+      onGenerateGif,
+      gifCreditCost,
+      onRemoveBackground,
+      bgRemoveCreditCost,
+    ],
+  );
 
   const historyPart = <DetailPageHistoryButtons store={store} />;
   const downloadPart = (
@@ -785,19 +819,12 @@ export function DetailPageEditor({
               store={store}
               generatedId={generatedId}
               onBuyEditCredits={() => setPricingOpen(true)}
-              imageCreditCost={imageCreditCost}
-              imageCreditBalance={imageCreditBalance}
-              imageCostByTier={imageCostByTier}
-              onGenerateGif={onGenerateGif}
-              gifCreditCost={gifCreditCost}
               onGenerateTextGif={onGenerateTextGif}
               textGifCreditCost={textGifCreditCost}
               onGenerateImageGif={onGenerateImageGif}
               imageGifCreditCost={imageGifCreditCost}
               onGenerateDataGif={onGenerateDataGif}
               dataGifCreditCost={dataGifCreditCost}
-              onRemoveBackground={onRemoveBackground}
-              bgRemoveCreditCost={bgRemoveCreditCost}
             />
           </div>
 
@@ -996,6 +1023,8 @@ export function DetailPageEditor({
     // 꽂혀 있으면 `observer`로 싼 패널·오버레이가 이 스토어의 변경 신호를 받는다
     // (canvas-observer.tsx).
     <CanvasStoreContext.Provider value={store}>
+    {/* 캔버스 위 띠가 쓰는 값들. props로 내리면 작업 영역이 통째로 다시 만들어진다. */}
+    <EditorAiProvider value={aiValue}>
     <div
       data-dpe-root=""
       className="flex h-screen min-h-[640px] flex-col bg-dpe-ink-100"
@@ -1024,6 +1053,7 @@ export function DetailPageEditor({
         <slots.PricingModal open={pricingOpen} onOpenChange={setPricingOpen} />
       ) : null}
     </div>
+    </EditorAiProvider>
     </CanvasStoreContext.Provider>
   );
 }

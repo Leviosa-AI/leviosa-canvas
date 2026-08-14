@@ -779,6 +779,44 @@
       },
       "recents": {
         "title": "Favorites & recent"
+      },
+      "crop": {
+        "title": "Crop",
+        "cancel": "Cancel",
+        "apply": "Apply",
+        "zoom": "Zoom",
+        "ratio": "Ratio",
+        "reset": "Fit to image",
+        "presets": {
+          "custom": "Custom",
+          "original": "Original",
+          "square": "Square (1:1)",
+          "circle": "Circle (1:1)",
+          "16-9": "Landscape 16:9",
+          "4-3": "Landscape 4:3",
+          "3-2": "Landscape 3:2",
+          "9-16": "Portrait 9:16",
+          "3-4": "Portrait 3:4",
+          "2-3": "Portrait 2:3"
+        }
+      },
+      "quickToolbar": {
+        "crop": "Crop",
+        "bgRemove": "Remove background",
+        "promptEdit": "Edit with prompt",
+        "more": "More"
+      },
+      "insert": {
+        "text": "Text",
+        "shape": "Shape",
+        "moreText": "Open text panel",
+        "moreShapes": "More shapes"
+      },
+      "groupEdit": {
+        "title": "Group edit",
+        "texts": "Rewrite every text in this group with one prompt.",
+        "shapes": "Redraw every shape in this group with one prompt.",
+        "both": "Rewrite the texts and redraw the shapes in this group with one prompt."
       }
     }
   },

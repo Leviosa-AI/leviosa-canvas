@@ -49,7 +49,8 @@ type MenuStore = CanvasMenuStore & {
   selectElements?: (ids: string[]) => void;
 };
 
-const ICONS: Record<CanvasMenuAction, LucideIcon> = {
+/** 항목 → 아이콘. 우클릭 메뉴와 캔버스 위 띠의 "더보기"가 같은 그림을 쓴다. */
+export const CANVAS_MENU_ICONS: Record<CanvasMenuAction, LucideIcon> = {
   duplicate: Copy,
   lock: Lock,
   unlock: Unlock,
@@ -203,7 +204,7 @@ export const CanvasContextMenu = observer(function CanvasContextMenu({
         className="fixed z-[71] rounded-dpe-lg border border-dpe-ink-200 bg-dpe-surface py-1 shadow-lg"
       >
         {items.map((item) => {
-          const Icon = ICONS[item.action];
+          const Icon = CANVAS_MENU_ICONS[item.action];
           const label = t(`detailPage.canvasMenu.${item.action}`);
           return (
             <div key={item.action}>
