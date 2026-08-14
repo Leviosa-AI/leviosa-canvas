@@ -369,7 +369,13 @@
         "uploadShape": "Upload brand SVG shape",
         "invalidShape": "Upload an SVG file up to 500KB.",
         "shapesEmpty": "No shapes saved for this brand.",
-        "refresh": "Refresh"
+        "refresh": "Refresh",
+        "filterLabel": "Image category",
+        "filterAll": "All",
+        "filterProduct": "Product",
+        "filterModel": "Model",
+        "filterGenerated": "Generated",
+        "filterOther": "Other"
       },
       "brandGifs": {
         "notAGif": "Only GIF files can be uploaded.",

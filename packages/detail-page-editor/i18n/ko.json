@@ -369,7 +369,13 @@
         "uploadShape": "브랜드 SVG 도형 업로드",
         "invalidShape": "500KB 이하 SVG 파일만 올릴 수 있어요.",
         "shapesEmpty": "이 브랜드에 저장된 도형이 없어요.",
-        "refresh": "새로고침"
+        "refresh": "새로고침",
+        "filterLabel": "이미지 갈래",
+        "filterAll": "전체",
+        "filterProduct": "제품",
+        "filterModel": "모델",
+        "filterGenerated": "직접 생성",
+        "filterOther": "기타"
       },
       "brandGifs": {
         "notAGif": "GIF 파일만 올릴 수 있어요.",

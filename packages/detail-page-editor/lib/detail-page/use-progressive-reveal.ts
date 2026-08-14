@@ -47,11 +47,23 @@ export function useProgressiveReveal(
   const [count, setCount] = useState(initial);
   const [node, setNode] = useState<HTMLElement | null>(null);
 
-  // 목록이 갈아끼워지면(브랜드 전환·새로고침) 다시 처음부터 센다. 안 그러면 200장을
-  // 보고 온 사람이 다른 브랜드로 옮겨도 200장을 그대로 요청한다.
-  useEffect(() => {
+  // 목록이 갈아끼워지면(브랜드 전환·갈래 전환·새로고침) 다시 처음부터 센다. 안 그러면
+  // 200장을 보고 온 사람이 다른 목록으로 옮겨도 200장을 그대로 요청한다.
+  //
+  // effect 가 아니라 **렌더 중에** 되돌린다. effect 로 미루면 갈아탄 직후 한 프레임
+  // 동안 새 목록에 옛 숫자가 걸려, 열두 장만 보자고 나눈 목록이 그 프레임에 스물넷을
+  // 굽는다. 되돌릴 값이 렌더에 이미 있는데 그림을 한 번 내보낼 이유가 없다.
+  const [lastResetKey, setLastResetKey] = useState<unknown>(resetKey);
+  const [lastInitial, setLastInitial] = useState(initial);
+  // 되돌린 값은 이번 렌더가 바로 쓴다. `count` 는 다음 렌더에나 바뀌므로, 이걸
+  // 안 두면 되돌리기로 해 놓고 정작 이번 렌더는 옛 숫자를 내보낸다.
+  let revealed = count;
+  if (!Object.is(lastResetKey, resetKey) || lastInitial !== initial) {
+    setLastResetKey(resetKey);
+    setLastInitial(initial);
     setCount(initial);
-  }, [resetKey, initial]);
+    revealed = initial;
+  }
 
   useEffect(() => {
     if (!node || count >= total) return;
@@ -75,8 +87,8 @@ export function useProgressiveReveal(
   }, [node, count, total, step]);
 
   return {
-    visible: Math.min(count, total),
+    visible: Math.min(revealed, total),
     sentinelRef: setNode,
-    hasMore: count < total,
+    hasMore: revealed < total,
   };
 }

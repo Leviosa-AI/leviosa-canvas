@@ -205,6 +205,79 @@ describe("DetailPageMyImagesPanel", () => {
     vi.unstubAllGlobals();
   });
 
+  it("갈래를 갈아타면 그 갈래만 남고 처음부터 다시 그린다", async () => {
+    class FakeObserver {
+      observe() {}
+      disconnect() {}
+    }
+    vi.stubGlobal("IntersectionObserver", FakeObserver);
+    mockList.mockResolvedValue([
+      ...Array.from({ length: 20 }, (_, index) => ({
+        id: `product-${index}`,
+        brand_id: "brand-1",
+        asset_type: "product_image",
+        content_type: "image/jpeg",
+        download_url: `https://s3/brand-1/product-${index}.jpg`,
+        display_name: `제품 ${index}`,
+        filename: `product-${index}.jpg`,
+        metadata: {},
+      })),
+      {
+        id: "model-0",
+        brand_id: "brand-1",
+        asset_type: "model_image",
+        content_type: "image/jpeg",
+        download_url: "https://s3/brand-1/model-0.jpg",
+        display_name: "모델 0",
+        filename: "model-0.jpg",
+        metadata: {},
+      },
+    ]);
+    const user = userEvent.setup();
+    renderPanel();
+
+    // 토글 숫자는 거르기 전 전체다 — 갈아타도 흔들리면 숫자가 아니라 착시가 된다.
+    const modelChip = await screen.findByRole("button", {
+      name: /detailPage\.brandAssets\.filterModel\s*1/,
+    });
+    // 스무 장이 있어도 첫 화면은 열두 장이다.
+    expect(screen.getAllByRole("img")).toHaveLength(12);
+
+    await user.click(modelChip);
+
+    const images = await screen.findAllByRole("img");
+    expect(images).toHaveLength(1);
+    expect(images[0]).toHaveAttribute("alt", "모델 0");
+    // 갈래가 한 화면에 들어오면 더 부를 것이 없다.
+    expect(screen.queryByTestId("brand-assets-sentinel")).not.toBeInTheDocument();
+    vi.unstubAllGlobals();
+  });
+
+  it("갈래가 하나뿐이면 토글을 내지 않는다", async () => {
+    // 눌러 봐야 같은 화면인 칸은 고르는 일을 돕는 게 아니라 늘린다.
+    mockList.mockResolvedValue([
+      {
+        id: "asset-1",
+        brand_id: "brand-1",
+        asset_type: "image",
+        content_type: "image/jpeg",
+        download_url: "https://s3/brand-1/product.jpg",
+        display_name: "대표 제품",
+        filename: "product.jpg",
+        metadata: {},
+      },
+    ]);
+
+    renderPanel();
+
+    await screen.findAllByRole("img");
+    expect(
+      screen.queryByRole("group", {
+        name: "detailPage.brandAssets.filterLabel",
+      }),
+    ).not.toBeInTheDocument();
+  });
+
   it("GIF가 섞여 들어와도 사진 패널에는 띄우지 않는다", async () => {
     mockList.mockResolvedValue([
       {
