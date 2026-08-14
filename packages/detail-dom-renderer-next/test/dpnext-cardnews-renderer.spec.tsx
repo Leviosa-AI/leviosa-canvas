@@ -83,7 +83,7 @@ describe("dpnext cardnews renderer", () => {
           content: "브랜드의 한 문장",
           marks: [
             { kind: "cardnews_text_highlight", color: "#00FF00", radius: 0.2, pad_x: 0.1 },
-            { text: "브랜드", highlight_color: "#FFD600" },
+            { text: "브랜드", font_size: 88, highlight_color: "#FFD600" },
           ],
           layout: { mode: "absolute", x: 0, y: 0, width: 900, height: 200 },
         }, {
@@ -101,6 +101,7 @@ describe("dpnext cardnews renderer", () => {
     const segment = container.querySelector("[data-dpnext-node-id='partial-headline'] span span");
     expect(segment).toHaveTextContent("브랜드");
     expect(segment).toHaveStyle({ background: "rgb(255, 214, 0)" });
+    expect(segment).toHaveStyle({ fontSize: "88px" });
     expect(container.querySelector("[data-dpnext-text-highlight='true']")).toHaveTextContent("브랜드의 한 문장");
     const particle = container.querySelector("[data-dpnext-node-id='seeded'] i");
     expect(particle).toHaveStyle({
