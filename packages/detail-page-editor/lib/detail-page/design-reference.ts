@@ -73,6 +73,19 @@ export const MAX_REFERENCE_FILE_BYTES = 12 * 1024 * 1024;
 /** 줄인 **뒤** 서버가 받아 주는 한 장의 크기. 서버의 ``MAX_REFERENCE_BYTES`` 와 같다. */
 export const MAX_REFERENCE_UPLOAD_BYTES = 4 * 1024 * 1024;
 
+/**
+ * 세로로 긴 캡쳐 한 장의 상한. 위 값보다 크다.
+ *
+ * 서버의 한 장 상한(``MAX_REFERENCE_BYTES``)은 **안 나눈 한 장**에만 걸린다
+ * (``_normalize_data_uri`` 의 ``len(pieces) == 1``). 세로로 긴 캡쳐는 서버가 밴드로
+ * 나누므로 그 상한을 안 지나가고, 대신 나누기 전 상한(16MB)과 합계 상한(18MB)이
+ * 받아 준다. 여기서 4MB 로 막으면 **폭을 살려 보내려던 그림이 붙는 자리에서 거절된다** —
+ * 그러면 유저는 다시 긴 변을 줄인 띠를 넣게 되고, 사고가 그대로 돌아온다.
+ *
+ * 파일 상한과 같은 값이다: 붙이는 자리에서 이미 통과시킨 크기를 다시 막지 않는다.
+ */
+export const MAX_TALL_REFERENCE_UPLOAD_BYTES = MAX_REFERENCE_FILE_BYTES;
+
 /** 붙일 수 없는 파일이면 이유를, 괜찮으면 null. */
 export function referenceFileRejection(file: File): string | null {
   const type = String(file.type || "").toLowerCase();
@@ -126,8 +139,11 @@ export async function finalizeReferenceDataUri(
   original: string,
 ): Promise<{ uri: string; inputTokens: number } | { error: string }> {
   const shrunk = await shrinkReferenceDataUri(original);
-  if (dataUriByteLength(shrunk.uri) > MAX_REFERENCE_UPLOAD_BYTES) {
-    const limit = Math.round(MAX_REFERENCE_UPLOAD_BYTES / (1024 * 1024));
+  const cap = shrunk.tall
+    ? MAX_TALL_REFERENCE_UPLOAD_BYTES
+    : MAX_REFERENCE_UPLOAD_BYTES;
+  if (dataUriByteLength(shrunk.uri) > cap) {
+    const limit = Math.round(cap / (1024 * 1024));
     return {
       error: `참고 사진을 ${limit}MB 아래로 줄이지 못했어요. 더 작은 그림을 써 주세요.`,
     };
