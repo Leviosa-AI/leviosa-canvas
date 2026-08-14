@@ -1,4 +1,4 @@
-import type { DetailDocumentV2, DpnextNode } from "./types";
+import type { DetailDocumentPatchV1, DetailDocumentV2, DpnextNode, DpnextPatchOperation } from "./types";
 
 const NODE_TYPES = new Set([
   "section",
@@ -14,6 +14,7 @@ const NODE_TYPES = new Set([
 ]);
 const FORBIDDEN_SVG = /<\s*script\b|<\s*foreignObject\b|\son[a-z]+\s*=|javascript:|(?:href|xlink:href)\s*=\s*["']\s*(?:https?:|\/\/|data:)|url\(\s*["']?\s*(?:https?:|\/\/|javascript:|data:)/i;
 const FORBIDDEN_STYLE_VALUE = /(?:url|image-set)\s*\(|expression\s*\(|javascript:|@import/i;
+const SHA256 = /^[0-9a-f]{64}$/;
 
 function validateSafeScalars(value: unknown, path: string): void {
   if (typeof value === "string" && FORBIDDEN_STYLE_VALUE.test(value)) {
@@ -38,6 +39,12 @@ export class DpnextValidationError extends Error {
 
 function fail(code: string, path: string, message: string): never {
   throw new DpnextValidationError(code, path, message);
+}
+
+export function validateSvgMarkup(svg: string, path = "$.svg"): void {
+  if (!svg.startsWith("<svg") || FORBIDDEN_SVG.test(svg)) {
+    fail("DPNEXT-SVG-002", path, "unsafe SVG");
+  }
 }
 
 function validateNode(
@@ -69,8 +76,9 @@ function validateNode(
       fail("DPNEXT-ASSET-008", `${path}.assetId`, "media node and asset kind disagree");
     }
   }
-  if (node.type === "svg" && (!node.svg?.startsWith("<svg") || FORBIDDEN_SVG.test(node.svg))) {
-    fail("DPNEXT-SVG-002", `${path}.svg`, "unsafe SVG");
+  if (node.type === "svg") {
+    if (typeof node.svg !== "string") fail("DPNEXT-SVG-002", `${path}.svg`, "unsafe SVG");
+    validateSvgMarkup(node.svg, `${path}.svg`);
   }
   if (node.type === "particles" && (!node.particles || typeof node.particles !== "object")) {
     fail("DPNEXT-SCHEMA-001", `${path}.particles`, "particles must be an object");
@@ -96,7 +104,7 @@ export function validateDocument(document: DetailDocumentV2): void {
   if (!document.assets || typeof document.assets !== "object") fail("DPNEXT-SCHEMA-001", "$.assets", "assets are required");
   for (const [assetId, asset] of Object.entries(document.assets)) {
     if (!asset.uri.match(/^(s3|asset):\/\//)) fail("DPNEXT-ASSET-002", `$.assets.${assetId}.uri`, "unsafe asset URI");
-    if (!asset.sha256.match(/^[0-9a-f]{64}$/)) fail("DPNEXT-ASSET-004", `$.assets.${assetId}.sha256`, "invalid hash");
+    if (!asset.sha256.match(SHA256)) fail("DPNEXT-ASSET-004", `$.assets.${assetId}.sha256`, "invalid hash");
   }
   validateSafeScalars(document.theme, "$.theme");
   validateSafeScalars(document.metadata, "$.metadata");
@@ -104,4 +112,84 @@ export function validateDocument(document: DetailDocumentV2): void {
   for (const [index, section] of document.sections.entries()) {
     validateNode(section, `$.sections[${index}]`, document, ids, 0);
   }
+}
+
+function validateNodePayload(node: DpnextNode, path: string): void {
+  const document: DetailDocumentV2 = {
+    schema_version: "detail-document-v2",
+    document_id: "dpnd_patch_payload",
+    revision: 0,
+    canvas: { width: 1 },
+    sections: [node.type === "section" ? node : { id: "sec_patch_payload", type: "section", children: [node] }],
+    assets: {},
+  };
+  const collectAssets = (current: DpnextNode): void => {
+    if ((current.type === "image" || current.type === "video") && current.assetId) {
+      document.assets[current.assetId] = {
+        kind: current.type,
+        uri: `asset://placeholder/${current.assetId}`,
+        mimeType: current.type === "video" ? "video/mp4" : "image/png",
+        sha256: "0".repeat(64),
+      };
+    }
+    current.children?.forEach(collectAssets);
+  };
+  collectAssets(node);
+  try {
+    validateDocument(document);
+  } catch (cause) {
+    if (cause instanceof DpnextValidationError) {
+      fail(cause.code, `${path}${cause.path.replace("$", "")}`, cause.message);
+    }
+    throw cause;
+  }
+}
+
+function validateOperation(operation: DpnextPatchOperation, path: string): void {
+  if (!operation || typeof operation !== "object") fail("DPNEXT-PATCH-001", path, "operation must be an object");
+  if (operation.op === "replace_text") {
+    if (!operation.node_id || typeof operation.value !== "string") fail("DPNEXT-PATCH-002", path, "invalid replace_text operation");
+  } else if (operation.op === "set_style" || operation.op === "set_layout") {
+    if (!operation.node_id || !operation.value || typeof operation.value !== "object" || Array.isArray(operation.value)) {
+      fail("DPNEXT-PATCH-002", path, `invalid ${operation.op} operation`);
+    }
+    validateSafeScalars(operation.value, `${path}.value`);
+  } else if (operation.op === "replace_asset") {
+    if (!operation.node_id || typeof operation.value !== "string" || !operation.value.trim()) {
+      fail("DPNEXT-PATCH-002", path, "invalid replace_asset operation");
+    }
+  } else if (operation.op === "replace_svg") {
+    if (!operation.node_id || typeof operation.value !== "string") fail("DPNEXT-PATCH-002", path, "invalid replace_svg operation");
+    validateSvgMarkup(operation.value, `${path}.value`);
+  } else if (operation.op === "insert_node") {
+    if (!operation.parent_id || !Number.isInteger(operation.index) || operation.index < 0) {
+      fail("DPNEXT-PATCH-002", path, "invalid insert_node operation");
+    }
+    validateNodePayload(operation.value, `${path}.value`);
+  } else if (operation.op === "remove_node") {
+    if (!operation.node_id) fail("DPNEXT-PATCH-002", path, "invalid remove_node operation");
+  } else if (operation.op === "move_node") {
+    if (!operation.node_id || !operation.parent_id || !Number.isInteger(operation.index) || operation.index < 0) {
+      fail("DPNEXT-PATCH-002", path, "invalid move_node operation");
+    }
+  } else if (operation.op === "duplicate_node") {
+    if (!operation.node_id || !operation.value || typeof operation.value !== "object" || Array.isArray(operation.value)) {
+      fail("DPNEXT-PATCH-002", path, "invalid duplicate_node operation");
+    }
+  } else if (operation.op === "replace_section") {
+    if (!operation.node_id || operation.value?.type !== "section") fail("DPNEXT-PATCH-002", path, "invalid replace_section operation");
+    validateNodePayload(operation.value, `${path}.value`);
+  } else {
+    fail("DPNEXT-PATCH-003", path, "unsupported patch operation");
+  }
+}
+
+export function validatePatch(patch: DetailDocumentPatchV1): void {
+  if (!patch || typeof patch !== "object") fail("DPNEXT-PATCH-001", "$", "patch must be an object");
+  if (patch.schema_version !== "detail-document-patch-v1") fail("DPNEXT-PATCH-004", "$.schema_version", "unsupported patch schema");
+  if (!patch.document_id?.startsWith("dpnd_")) fail("DPNEXT-PATCH-005", "$.document_id", "invalid document namespace");
+  if (!Number.isInteger(patch.base_revision) || patch.base_revision < 0) fail("DPNEXT-PATCH-006", "$.base_revision", "invalid base revision");
+  if (!SHA256.test(patch.base_sha256)) fail("DPNEXT-PATCH-007", "$.base_sha256", "invalid base hash");
+  if (!Array.isArray(patch.operations) || patch.operations.length === 0) fail("DPNEXT-PATCH-008", "$.operations", "operations are required");
+  patch.operations.forEach((operation, index) => validateOperation(operation, `$.operations[${index}]`));
 }

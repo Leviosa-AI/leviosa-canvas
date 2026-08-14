@@ -1,5 +1,6 @@
 export * from "./commands";
 export * from "./CoordinateSpace";
+export * from "./EditorController";
 export * from "./EditorSurface";
 export * from "./History";
 export * from "./layers";

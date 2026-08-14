@@ -1,18 +1,20 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import {
-  applyPatch,
-  documentSha256,
   type DetailDocumentPatchV1,
   type DetailDocumentV2,
   type DpnextNode,
-  validateDocument,
+  type DpnextScalar,
 } from "../../../packages/detail-document-next/src";
 import {
   EditorSurface,
+  cropImage,
+  editorHistoryIntent,
+  replaceAsset,
   replaceSvg,
   replaceText,
   setLayout,
+  useEditorController,
 } from "../../../packages/detail-dom-editor-next/src";
 import {
   DocumentRenderer,
@@ -22,10 +24,12 @@ import {
   type AssetResolver,
   type DpnextDomMeasurementV1,
 } from "../../../packages/detail-dom-renderer-next/src";
-import { fixture } from "./fixture";
+import { fixture, fixtureAssetUrls } from "./fixture";
 import {
+  createDpnextSessionNonce,
   DPNEXT_LAB_PROTOCOL,
-  isDpnextLabParentMessage,
+  DPNEXT_LAB_PROTOCOL_VERSION,
+  trustedDpnextMessage,
   type DpnextLabMessage,
 } from "./protocol";
 
@@ -38,9 +42,9 @@ function findNode(nodes: DpnextNode[], nodeId: string): DpnextNode | null {
   return null;
 }
 
-function postToParent(message: DpnextLabMessage): void {
+function postToParent(message: DpnextLabMessage, targetOrigin: string): void {
   if (window.parent === window) return;
-  window.parent.postMessage(message, window.location.origin);
+  window.parent.postMessage(message, targetOrigin);
 }
 
 export function LabApp() {
@@ -48,43 +52,45 @@ export function LabApp() {
   const embedded = query.get("mode") === "embed";
   const capture = query.get("mode") === "capture";
   const featureLabel = query.get("fx") || "local";
-  const [document, setDocument] = useState<DetailDocumentV2>(fixture);
-  const [sha256, setSha256] = useState("");
-  const [selection, setSelection] = useState<string[]>([]);
+  const sessionNonce = useMemo(() => query.get("nonce") || createDpnextSessionNonce(), [query]);
+  const controller = useEditorController(fixture);
+  const {
+    applyValidatedPatch,
+    loadDocument,
+    redo,
+    setSelection: setControllerSelection,
+    undo,
+  } = controller;
+  const { document, sha256, selection } = controller.state;
   const [error, setError] = useState<string | null>(null);
-  const [assetUrls, setAssetUrls] = useState<Record<string, string>>({});
-
-  useEffect(() => {
-    let cancelled = false;
-    void documentSha256(document).then((value) => {
-      if (!cancelled) setSha256(value);
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, [document]);
+  const [assetUrls, setAssetUrls] = useState<Record<string, string>>(fixtureAssetUrls);
+  const parentOrigin = useRef(window.location.origin);
 
   useEffect(() => {
     const receive = (event: MessageEvent) => {
-      if (event.origin !== window.location.origin || !isDpnextLabParentMessage(event.data)) {
-        return;
-      }
+      const expected = { source: window.parent, origin: window.location.origin, sessionNonce };
+      const message = trustedDpnextMessage(event, expected);
+      if (!message) return;
       try {
-        validateDocument(event.data.document);
-        setDocument(structuredClone(event.data.document));
-        setAssetUrls({ ...(event.data.assetUrls ?? {}) });
-        setSelection([]);
+        parentOrigin.current = event.origin;
+        void loadDocument(message.document).catch((cause: unknown) => {
+          const errorMessage = cause instanceof Error ? cause.message : "문서를 읽지 못했습니다.";
+          setError(errorMessage);
+          postToParent(envelope(sessionNonce, { type: "error", message: errorMessage }), parentOrigin.current);
+        });
+        setAssetUrls({ ...(message.assetUrls ?? {}) });
+        setControllerSelection([]);
         setError(null);
       } catch (cause) {
         const message = cause instanceof Error ? cause.message : "문서를 읽지 못했습니다.";
         setError(message);
-        postToParent({ protocol: DPNEXT_LAB_PROTOCOL, type: "error", message });
+        postToParent(envelope(sessionNonce, { type: "error", message }), parentOrigin.current);
       }
     };
     window.addEventListener("message", receive);
-    postToParent({ protocol: DPNEXT_LAB_PROTOCOL, type: "ready" });
+    postToParent(envelope(sessionNonce, { type: "ready" }), parentOrigin.current);
     return () => window.removeEventListener("message", receive);
-  }, []);
+  }, [loadDocument, sessionNonce, setControllerSelection]);
 
   const resolveAsset = useCallback<AssetResolver>((assetId, asset) => {
     const resolved = assetUrls[assetId];
@@ -109,28 +115,56 @@ export function LabApp() {
 
   const commitPatch = useCallback(
     (patch: DetailDocumentPatchV1) => {
-      if (embedded) {
-        postToParent({
-          protocol: DPNEXT_LAB_PROTOCOL,
-          type: "patch",
-          patch,
-          nodeIds: selection,
-        });
-        return;
-      }
       try {
-        setDocument(applyPatch(document, patch, sha256, { allowUserOwned: true }));
-        setError(null);
+        void applyValidatedPatch(patch)
+          .then(() => {
+            if (embedded) {
+              postToParent(envelope(sessionNonce, {
+                type: "patch",
+                patch,
+                nodeIds: selection,
+              }), parentOrigin.current);
+            }
+            setError(null);
+          })
+          .catch((cause: unknown) => {
+            setError(cause instanceof Error ? cause.message : "수정 사항을 적용하지 못했습니다.");
+          });
       } catch (cause) {
         setError(cause instanceof Error ? cause.message : "수정 사항을 적용하지 못했습니다.");
       }
     },
-    [document, embedded, selection, sha256],
+    [applyValidatedPatch, embedded, selection, sessionNonce],
   );
 
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      const target = event.target as HTMLElement | null;
+      if (target?.matches("input, textarea, select, [contenteditable='true']")) return;
+      const intent = editorHistoryIntent(event);
+      if (!intent) return;
+      event.preventDefault();
+      const operation = intent === "undo" ? undo : redo;
+      void operation()
+        .then((commit) => {
+          if (!commit || !embedded) return;
+          postToParent(envelope(sessionNonce, {
+            type: "patch",
+            patch: commit.patch,
+            nodeIds: selection,
+          }), parentOrigin.current);
+        })
+        .catch((cause: unknown) => {
+          setError(cause instanceof Error ? cause.message : "실행 취소를 적용하지 못했습니다.");
+        });
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [embedded, redo, selection, sessionNonce, undo]);
+
   const select = (nodeIds: string[]) => {
-    setSelection(nodeIds);
-    postToParent({ protocol: DPNEXT_LAB_PROTOCOL, type: "selection", nodeIds });
+    setControllerSelection(nodeIds);
+    postToParent(envelope(sessionNonce, { type: "selection", nodeIds }), parentOrigin.current);
   };
 
   if (capture) {
@@ -176,14 +210,51 @@ export function LabApp() {
           <div className="lab-canvas">
             <EditorSurface
               document={document}
+              sha256={sha256}
               resolveAsset={resolveAsset}
               onSelectionChange={select}
+              onPatch={commitPatch}
             />
           </div>
         </section>
       </main>
     </div>
   );
+}
+
+type LayoutKey = "x" | "y" | "width" | "height";
+
+function layoutField(node: DpnextNode, key: LayoutKey): string {
+  const value = node.layout?.[key];
+  return typeof value === "number" || typeof value === "string" ? String(value) : "";
+}
+
+function scalarFromField(value: string): DpnextScalar | undefined {
+  const trimmed = value.trim();
+  if (!trimmed) return undefined;
+  return /^-?\d+(?:\.\d+)?$/.test(trimmed) ? Number(trimmed) : trimmed;
+}
+
+function layoutPatchValue(layout: Record<LayoutKey, string>): Record<string, DpnextScalar> {
+  const next: Record<string, DpnextScalar> = {};
+  for (const key of ["x", "y", "width", "height"] as const) {
+    const value = scalarFromField(layout[key]);
+    if (value !== undefined) next[key] = value;
+  }
+  if (next.x !== undefined || next.y !== undefined) next.mode = "absolute";
+  return next;
+}
+
+function envelope<T extends Omit<DpnextLabMessage, "protocol" | "version" | "sessionNonce">>(
+  sessionNonce: string,
+  message: T,
+): DpnextLabMessage {
+  return {
+    protocol: DPNEXT_LAB_PROTOCOL,
+    version: DPNEXT_LAB_PROTOCOL_VERSION,
+    sessionNonce,
+    ...message,
+  } as DpnextLabMessage;
 }
 
 function documentRef(): HTMLElement {
@@ -211,13 +282,20 @@ function NodeInspector({
 }) {
   const [text, setText] = useState(node.content ?? "");
   const [svg, setSvg] = useState(node.svg ?? "");
+  const [assetId, setAssetId] = useState(node.assetId ?? "");
+  const [crop, setCrop] = useState(String(node.style?.objectPosition ?? "center center"));
   const [layout, setLayoutDraft] = useState(() => ({
-    x: Number(node.layout?.x ?? 0),
-    y: Number(node.layout?.y ?? 0),
-    width: Number(node.layout?.width ?? 0),
-    height: Number(node.layout?.height ?? 0),
+    x: layoutField(node, "x"),
+    y: layoutField(node, "y"),
+    width: layoutField(node, "width"),
+    height: layoutField(node, "height"),
   }));
   const ready = sha256.length === 64;
+  const assetOptions = Object.entries(document.assets).filter(([, asset]) => {
+    if (node.type === "video") return asset.kind === "video";
+    if (node.type === "image") return asset.kind === "image" || asset.kind === "gif";
+    return false;
+  });
 
   return (
     <div className="lab-inspector__body">
@@ -240,6 +318,34 @@ function NodeInspector({
           </button>
         </label>
       ) : null}
+      {node.type === "image" || node.type === "video" ? (
+        <fieldset>
+          <legend>에셋</legend>
+          <label>
+            <span>assetId</span>
+            <select value={assetId} onChange={(event) => setAssetId(event.target.value)}>
+              {assetOptions.map(([id]) => <option key={id} value={id}>{id}</option>)}
+            </select>
+          </label>
+          <button disabled={!ready || assetId === node.assetId} onClick={() => onPatch(replaceAsset(document, sha256, node.id, assetId))}>
+            에셋 교체
+          </button>
+          {node.type === "image" ? (
+            <label>
+              <span>crop</span>
+              <input
+                type="text"
+                value={crop}
+                placeholder="center center"
+                onChange={(event) => setCrop(event.target.value)}
+              />
+              <button disabled={!ready} onClick={() => onPatch(cropImage(document, sha256, node.id, crop))}>
+                크롭 적용
+              </button>
+            </label>
+          ) : null}
+        </fieldset>
+      ) : null}
       <fieldset>
         <legend>위치와 크기</legend>
         <div className="lab-grid">
@@ -247,14 +353,16 @@ function NodeInspector({
             <label key={key}>
               <span>{key}</span>
               <input
-                type="number"
+                type="text"
+                inputMode="decimal"
+                placeholder="auto"
                 value={layout[key]}
-                onChange={(event) => setLayoutDraft((current) => ({ ...current, [key]: Number(event.target.value) }))}
+                onChange={(event) => setLayoutDraft((current) => ({ ...current, [key]: event.target.value }))}
               />
             </label>
           ))}
         </div>
-        <button disabled={!ready} onClick={() => onPatch(setLayout(document, sha256, node.id, layout))}>
+        <button disabled={!ready} onClick={() => onPatch(setLayout(document, sha256, node.id, layoutPatchValue(layout)))}>
           위치·크기 적용
         </button>
       </fieldset>
