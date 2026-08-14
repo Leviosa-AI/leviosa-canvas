@@ -23,6 +23,19 @@ type StoreLike = {
   selectPage: (id: string) => void;
 };
 
+/**
+ * 이 띠가 차지하는 높이와, 떠 있는지 여부.
+ *
+ * 아래 띠(삽입·배율)가 이 위로 비켜서야 하는데, 그 셈을 작업 영역이 따로 하면
+ * 두 벌이 갈라진다 — 여기가 정본이고 높이는 아래 style 로 자기가 쓴다.
+ */
+export const PAGES_TIMELINE_HEIGHT = 53;
+
+export function pagesTimelineVisible(store: unknown): boolean {
+  const pages = (store as StoreLike | null)?.pages;
+  return Array.isArray(pages) && pages.length >= 2;
+}
+
 export const DetailPagePagesTimeline = observer(function DetailPagePagesTimeline({
   store,
 }: {
@@ -36,11 +49,12 @@ export const DetailPagePagesTimeline = observer(function DetailPagePagesTimeline
   );
   const activeId = s.activePage?.id;
 
-  if (s.pages.length < 2) return null;
+  if (!pagesTimelineVisible(s)) return null;
 
   return (
     <div
       data-dp-pages-timeline=""
+      style={{ minHeight: PAGES_TIMELINE_HEIGHT }}
       className="pointer-events-auto absolute inset-x-0 bottom-0 z-20 flex items-center gap-1.5 overflow-x-auto border-t border-dpe-ink-200 bg-dpe-surface/95 px-3 py-1.5 backdrop-blur-sm"
     >
       {s.pages.map((page, index) => {

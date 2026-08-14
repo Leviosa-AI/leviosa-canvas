@@ -23,10 +23,7 @@ import {
 import { CanvasStoreContext } from "./canvas-observer";
 import { LeviosaCanvasWorkspace } from "./leviosa-canvas-workspace";
 import { DetailPagePagesTimeline } from "./detail-page-pages-timeline";
-import {
-  SidePanel as LeviosaSidePanel,
-  ZoomButtons as LeviosaZoomButtons,
-} from "@leviosa-ai/canvas";
+import { SidePanel as LeviosaSidePanel } from "@leviosa-ai/canvas";
 import { createCanvasStore } from "@leviosa-ai/canvas/store";
 import { collectFontRequests } from "@leviosa-ai/canvas/render/use-document-fonts";
 import { ensureCanvasKey } from "../../lib/detail-page-canvas/canvas-key";
@@ -709,10 +706,6 @@ export function DetailPageEditor({
             {findReplace}
             <DetailPagePagesTimeline store={store} />
           </LeviosaCanvasWorkspace>
-          {/* 배율은 오른쪽 아래로 — 가운데 아래는 삽입 띠 자리다(작업 영역이 그린다). */}
-          <div className="absolute bottom-4 right-4 z-20 rounded-dpe-lg border border-dpe-ink-200 bg-dpe-surface/95 px-2 py-1 shadow-sm backdrop-blur-sm">
-            <LeviosaZoomButtons store={store} />
-          </div>
         </div>
       </div>
     );
