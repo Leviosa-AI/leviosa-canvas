@@ -111,6 +111,27 @@ describe("useProgressiveReveal", () => {
     expect(view.getByTestId("visible").textContent).toBe(String(REVEAL_INITIAL));
   });
 
+  it("갈아탄 렌더가 옛 숫자를 한 번도 내지 않는다", () => {
+    // effect 로 미루면 갈아탄 직후 한 프레임 동안 새 목록에 옛 숫자가 걸려, 열두 장만
+    // 보자고 나눈 목록이 그 프레임에 스물넷을 굽는다.
+    install();
+    const seen: number[] = [];
+    function Recorder({ resetKey }: { resetKey: string }) {
+      const reveal = useProgressiveReveal(200, { resetKey });
+      seen.push(reveal.visible);
+      return reveal.hasMore ? <div ref={reveal.sentinelRef} /> : null;
+    }
+    const view = render(<Recorder resetKey="brand-a" />);
+    act(() => FakeObserver.latest().fire());
+    expect(seen).toContain(24);
+
+    seen.length = 0;
+    view.rerender(<Recorder resetKey="brand-b" />);
+
+    expect(seen).not.toContain(24);
+    expect(seen.at(-1)).toBe(REVEAL_INITIAL);
+  });
+
   it("감시자가 없는 환경에서는 다 그린다", () => {
     // 스크롤해도 안 나오는 것보다는 다 그리는 편이 낫다.
     FakeObserver.live = [];
