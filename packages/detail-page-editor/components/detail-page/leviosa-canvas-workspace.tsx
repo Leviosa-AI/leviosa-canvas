@@ -31,12 +31,17 @@ import { CanvasInsertToolbar } from "./canvas-insert-toolbar";
 import { CanvasOverlayHost } from "./canvas-overlay-host";
 import { CanvasSelectionTools } from "./canvas-selection-tools";
 import { DetailPagePageToolbar } from "./detail-page-page-toolbar";
+import {
+  PAGES_TIMELINE_HEIGHT,
+  pagesTimelineVisible,
+} from "./detail-page-pages-timeline";
 import { detailPageThumbnailBus } from "./detail-page-thumbnail-bus";
 import { GifAnimator } from "./gif-animator";
 import { GroupDrillIn } from "./group-drill-in";
 import { HoverHighlightOverlay } from "./hover-highlight-overlay";
 import { CanvasSectionHeightHandle } from "./section-height-handle";
 import { loadEditorFont } from "../../lib/detail-page-canvas/editor-fonts";
+import { ZoomButtons } from "@leviosa-ai/canvas";
 import { CanvasView } from "@leviosa-ai/canvas/render/canvas-view";
 import { useCanvasVersion } from "@leviosa-ai/canvas/use-canvas";
 import type { CanvasStore } from "@leviosa-ai/canvas/store";
@@ -48,6 +53,9 @@ const clamp = (v: number, lo: number, hi: number) =>
 
 /** 썸네일 해상도. 페이지 패널의 칸이 작아 이 정도면 충분하다. */
 const THUMB_PIXEL_RATIO = 0.12;
+
+/** 아래 띠가 가장자리·화면 목록에서 떨어지는 거리. */
+const DOCK_GAP = 16;
 
 export function LeviosaCanvasWorkspace({
   store,
@@ -299,19 +307,37 @@ export function LeviosaCanvasWorkspace({
 
       {children}
 
-      {/* 삽입 띠 — 글상자·기본 도형을 좌측 패널까지 가지 않고 넣는다. 화면 아래 가운데는
-          피그마·캔바가 모두 쓰는 자리라 손이 먼저 간다(배율은 오른쪽 아래로 비켰다). */}
+      {/* 아래 띠 한 줄 — 가운데는 삽입(글상자·기본 도형), 오른쪽 끝은 배율. 화면 아래
+          가운데는 피그마·캔바가 모두 쓰는 자리라 손이 먼저 간다.
+
+          화면 목록(가로 띠)이 떠 있으면 그 높이만큼 위로 비킨다 — 안 그러면 두 띠가
+          겹쳐서 아래 것이 안 눌린다. 높이와 표시 규칙은 그 띠가 들고 있다. */}
       <div
-        data-dp-insert-dock=""
+        data-dp-bottom-dock=""
         style={{
           position: "absolute",
-          left: "50%",
-          bottom: 16,
-          transform: "translateX(-50%)",
+          left: 0,
+          right: 0,
+          bottom: pagesTimelineVisible(store)
+            ? PAGES_TIMELINE_HEIGHT + DOCK_GAP
+            : DOCK_GAP,
           zIndex: 30,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          pointerEvents: "none",
         }}
       >
-        <CanvasInsertToolbar store={store} />
+        <div data-dp-insert-dock="" style={{ pointerEvents: "auto" }}>
+          <CanvasInsertToolbar store={store} />
+        </div>
+        <div
+          data-dp-zoom-dock=""
+          style={{ position: "absolute", right: DOCK_GAP, pointerEvents: "auto" }}
+          className="rounded-dpe-lg border border-dpe-ink-200 bg-dpe-surface/95 px-2 py-1 shadow-sm backdrop-blur-sm"
+        >
+          <ZoomButtons store={store} />
+        </div>
       </div>
 
       {store.activePage ? (

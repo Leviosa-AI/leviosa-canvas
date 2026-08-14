@@ -41,6 +41,7 @@ vi.mock("react-konva/es/ReactKonvaCore", () => {
 });
 
 import { LeviosaCanvasWorkspace } from "../leviosa-canvas-workspace";
+import { PAGES_TIMELINE_HEIGHT } from "../detail-page-pages-timeline";
 import { createCanvasStore } from "@leviosa-ai/canvas/store";
 
 function store() {
@@ -94,6 +95,35 @@ describe("LeviosaCanvasWorkspace", () => {
     });
 
     expect(s.scale).toBe(before);
+  });
+
+  it("삽입과 배율은 같은 줄에 산다", () => {
+    const s = store();
+    const { container } = render(<LeviosaCanvasWorkspace store={s} />);
+    const dock = container.querySelector("[data-dp-bottom-dock]")!;
+
+    expect(dock.querySelector("[data-dp-insert-dock]")).toBeTruthy();
+    expect(dock.querySelector("[data-dp-zoom-dock]")).toBeTruthy();
+  });
+
+  it("화면이 여럿이면 아래 띠가 화면 목록 위로 비킨다", () => {
+    const s = store(); // 페이지 둘 — 목록이 뜬다
+    const { container } = render(<LeviosaCanvasWorkspace store={s} />);
+    const dock = container.querySelector<HTMLElement>("[data-dp-bottom-dock]")!;
+
+    expect(dock.style.bottom).toBe(`${PAGES_TIMELINE_HEIGHT + 16}px`);
+  });
+
+  it("화면이 하나면 목록이 없으니 가장자리에 붙는다", () => {
+    const s = createCanvasStore({
+      width: 800,
+      height: 600,
+      pages: [{ id: "p1", children: [] }],
+    });
+    const { container } = render(<LeviosaCanvasWorkspace store={s} />);
+    const dock = container.querySelector<HTMLElement>("[data-dp-bottom-dock]")!;
+
+    expect(dock.style.bottom).toBe("16px");
   });
 
   it("얹은 것을 그대로 그린다", () => {
