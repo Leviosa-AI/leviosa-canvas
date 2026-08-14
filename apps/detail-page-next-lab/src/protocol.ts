@@ -6,6 +6,7 @@ export type DpnextLabParentMessage = {
   protocol: typeof DPNEXT_LAB_PROTOCOL;
   type: "load-document";
   document: DetailDocumentV2;
+  assetUrls?: Record<string, string>;
 };
 
 export type DpnextLabMessage =
@@ -20,6 +21,7 @@ export function isDpnextLabParentMessage(value: unknown): value is DpnextLabPare
   return (
     message.protocol === DPNEXT_LAB_PROTOCOL &&
     message.type === "load-document" &&
-    Boolean(message.document && typeof message.document === "object")
+    Boolean(message.document && typeof message.document === "object") &&
+    (!message.assetUrls || typeof message.assetUrls === "object")
   );
 }

@@ -14,7 +14,14 @@ import {
   replaceText,
   setLayout,
 } from "../../../packages/detail-dom-editor-next/src";
-import { placeholderAssetResolver } from "../../../packages/detail-dom-renderer-next/src";
+import {
+  DocumentRenderer,
+  measureDocumentDom,
+  placeholderAssetResolver,
+  waitForDocumentDom,
+  type AssetResolver,
+  type DpnextDomMeasurementV1,
+} from "../../../packages/detail-dom-renderer-next/src";
 import { fixture } from "./fixture";
 import {
   DPNEXT_LAB_PROTOCOL,
@@ -39,11 +46,13 @@ function postToParent(message: DpnextLabMessage): void {
 export function LabApp() {
   const query = useMemo(() => new URLSearchParams(window.location.search), []);
   const embedded = query.get("mode") === "embed";
+  const capture = query.get("mode") === "capture";
   const featureLabel = query.get("fx") || "local";
   const [document, setDocument] = useState<DetailDocumentV2>(fixture);
   const [sha256, setSha256] = useState("");
   const [selection, setSelection] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [assetUrls, setAssetUrls] = useState<Record<string, string>>({});
 
   useEffect(() => {
     let cancelled = false;
@@ -63,6 +72,7 @@ export function LabApp() {
       try {
         validateDocument(event.data.document);
         setDocument(structuredClone(event.data.document));
+        setAssetUrls({ ...(event.data.assetUrls ?? {}) });
         setSelection([]);
         setError(null);
       } catch (cause) {
@@ -75,6 +85,23 @@ export function LabApp() {
     postToParent({ protocol: DPNEXT_LAB_PROTOCOL, type: "ready" });
     return () => window.removeEventListener("message", receive);
   }, []);
+
+  const resolveAsset = useCallback<AssetResolver>((assetId, asset) => {
+    const resolved = assetUrls[assetId];
+    return resolved || placeholderAssetResolver(assetId, asset);
+  }, [assetUrls]);
+
+  useEffect(() => {
+    if (!capture) return;
+    window.__LEVIOSA_DPNEXT_MEASURE__ = async () => {
+      const root = documentRef();
+      await waitForDocumentDom(root);
+      return measureDocumentDom(root);
+    };
+    return () => {
+      delete window.__LEVIOSA_DPNEXT_MEASURE__;
+    };
+  }, [capture, document, assetUrls]);
 
   const selectedNode = selection.length
     ? findNode(document.sections, selection.at(-1)!)
@@ -105,6 +132,14 @@ export function LabApp() {
     setSelection(nodeIds);
     postToParent({ protocol: DPNEXT_LAB_PROTOCOL, type: "selection", nodeIds });
   };
+
+  if (capture) {
+    return (
+      <div className="dpnext-capture-surface">
+        <DocumentRenderer document={document} resolveAsset={resolveAsset} />
+      </div>
+    );
+  }
 
   return (
     <div className={embedded ? "lab-app lab-app--embedded" : "lab-app"}>
@@ -141,7 +176,7 @@ export function LabApp() {
           <div className="lab-canvas">
             <EditorSurface
               document={document}
-              resolveAsset={placeholderAssetResolver}
+              resolveAsset={resolveAsset}
               onSelectionChange={select}
             />
           </div>
@@ -149,6 +184,18 @@ export function LabApp() {
       </main>
     </div>
   );
+}
+
+function documentRef(): HTMLElement {
+  const root = window.document.querySelector<HTMLElement>("[data-dpnext-document-id]");
+  if (!root) throw new Error("DetailDocument renderer is not mounted");
+  return root;
+}
+
+declare global {
+  interface Window {
+    __LEVIOSA_DPNEXT_MEASURE__?: () => Promise<DpnextDomMeasurementV1>;
+  }
 }
 
 function NodeInspector({

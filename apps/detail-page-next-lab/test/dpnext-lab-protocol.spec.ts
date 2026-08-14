@@ -9,6 +9,7 @@ describe("dpnext lab message protocol", () => {
       protocol: DPNEXT_LAB_PROTOCOL,
       type: "load-document",
       document: fixture,
+      assetUrls: { asset_product: "data:image/png;base64,AA==" },
     })).toBe(true);
     expect(isDpnextLabParentMessage({
       protocol: "legacy-canvas-message",
