@@ -42,6 +42,48 @@ export function konvaClientRect(id: string): ClientRect | null {
   return null;
 }
 
+/**
+ * 요소 **상자**의 화면 자리. `konvaClientRect`가 그려진 잉크를 재는 것과 다르다 — 누끼
+ * 사진처럼 상자 안에 작게 앉은 그림은 잉크와 상자가 다르고, 자르기는 상자 좌표계에서
+ * 셈하므로 상자를 그대로 받아야 한다.
+ *
+ * 엔진은 요소마다 자기 Group을 만들고 거기에 요소 id를 박는다(`ElementFrame`). 그래서
+ * 여기서는 그 Group의 절대 변환을 그대로 읽는다 — 배율·스크롤·페이지 자리가 전부 들어
+ * 있어 다시 셈할 것이 없다.
+ */
+export type ScreenBox = {
+  left: number;
+  top: number;
+  width: number;
+  height: number;
+  /** 화면 배율(문서 px → 화면 px). */
+  scale: number;
+  /** 도(°). 상자의 왼쪽 위를 축으로 돈다 — CSS `transform-origin: 0 0`과 같다. */
+  rotation: number;
+};
+
+export function elementScreenBox(id: string): ScreenBox | null {
+  for (const stage of Konva.stages) {
+    const node = stage.findOne(`#${id}`);
+    if (!node) continue;
+    const origin = node.getAbsolutePosition();
+    const scale = node.getAbsoluteScale();
+    const host = stage.container().getBoundingClientRect();
+    const width = node.width() * scale.x;
+    const height = node.height() * scale.y;
+    if (!width || !height) return null;
+    return {
+      left: host.left + origin.x,
+      top: host.top + origin.y,
+      width,
+      height,
+      scale: scale.x || 1,
+      rotation: node.getAbsoluteRotation(),
+    };
+  }
+  return null;
+}
+
 export function unionRect(rects: ReadonlyArray<ClientRect | null>): ClientRect | null {
   let out: ClientRect | null = null;
   for (const r of rects) {

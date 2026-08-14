@@ -69,6 +69,7 @@ import {
 } from "../../lib/detail-page/svg-colors";
 import { readColorReplace } from "@leviosa-ai/canvas/render/svg-source";
 import { selectedElementsDeep } from "./detail-page-selection";
+import { useEditorAi } from "./editor-ai-context";
 import { PromptEditPanel } from "./prompt-edit-panel";
 import { SvgPromptEditPanel } from "./svg-prompt-edit-panel";
 import { GroupPromptEditPanel } from "./group-prompt-edit-panel";
@@ -673,10 +674,6 @@ function DeleteRow({ store, els }: { store: StoreLike; els: ElementLike[] }) {
 const TextInspector = observer(function TextInspector({
   store,
   els,
-  generatedId,
-  usage,
-  onUsage,
-  onBuyMore,
   onGenerateTextGif,
   textGifCreditCost,
   onGenerateDataGif,
@@ -684,10 +681,6 @@ const TextInspector = observer(function TextInspector({
 }: {
   store: StoreLike;
   els: ElementLike[];
-  generatedId?: string;
-  usage?: EditUsageState;
-  onUsage?: (used: number, limit: number) => void;
-  onBuyMore?: () => void;
   onGenerateTextGif?: GenerateTextGifFn;
   textGifCreditCost?: number;
   /** 숫자가 든 텍스트를 카운트업 GIF로. 미지정이면 섹션 숨김. */
@@ -697,13 +690,6 @@ const TextInspector = observer(function TextInspector({
   const { t } = useTranslation("branding");
   const { toast } = useDetailPageHost();
   const single = els.length === 1 ? els[0] : null;
-  const singleCustom = (single?.custom ?? {}) as Record<string, unknown>;
-  const slotRole =
-    typeof singleCustom.leviosaSlot === "string" ? singleCustom.leviosaSlot : "";
-  const slotKind =
-    typeof singleCustom.leviosaSlotKind === "string"
-      ? singleCustom.leviosaSlotKind
-      : undefined;
   const ref = els[0];
   const fontFamily = str(ref.fontFamily, "Roboto");
   const currentFontWeight = normalizeFontWeight(ref.fontWeight);
@@ -791,28 +777,8 @@ const TextInspector = observer(function TextInspector({
             rows={3}
             className="w-full resize-y rounded-dpe-md border border-dpe-ink-200 bg-dpe-surface px-2 py-2 text-sm text-dpe-ink-900 outline-none focus:border-dpe-ink-400"
           />
-          {/* 실서비스(생성 ID 존재)면 모든 텍스트에 프롬프트 편집을 노출한다. 예전에는
-              custom.leviosaSlot(카피 슬롯)이 있어야만 떴는데, 헤드라인처럼 슬롯 배정을
-              못 받았거나 그룹 해제 과정에서 슬롯이 유실된 텍스트가 편집 불가가 되는
-              문제가 있었다. 백엔드는 slot_role이 비어도 current_text+지시로 재작성하므로
-              슬롯 유무와 무관하게 편집을 허용한다. 픽스처(dev-canvas)는 generatedId가
-              없어 자동으로 숨는다. */}
-          {single && generatedId ? (
-            <div className="mt-2">
-              <PromptEditPanel
-                generatedId={generatedId}
-                slotRole={slotRole}
-                currentText={str(single.text)}
-                renderKind={slotKind}
-                onApplied={(text) => single.set({ text })}
-                editsUsed={usage?.textUsed}
-                editLimit={usage?.textLimit}
-                unlimited={usage?.unlimited}
-                onUsage={onUsage}
-                onBuyMore={onBuyMore}
-              />
-            </div>
-          ) : null}
+          {/* 프롬프트로 편집은 캔버스 위 띠로 옮겼다(`ElementAiEditPanel`) — 고른 자리
+              바로 위에서 열린다. 같은 일을 두 군데 두면 사용량 표시가 갈라진다. */}
         </Section>
       ) : null}
 
@@ -1088,7 +1054,7 @@ const IMAGE_GIF_STAGE_KEY: Record<string, string> = {
  * 새 소재를 만드는 일이 아니라 지금 놓인 사진을 고치는 일이라, 자리·크기·자르기가
  * 그대로 유지돼야 한다.
  */
-const BgRemoveSection = observer(function BgRemoveSection({
+export const BgRemoveSection = observer(function BgRemoveSection({
   el,
   onRemove,
   creditCost,
@@ -1822,102 +1788,23 @@ const CellGridGifSection = observer(function CellGridGifSection({
 const ImageInspector = observer(function ImageInspector({
   store,
   els,
-  generatedId,
   isGif = false,
-  imageCreditCost,
-  imageCreditBalance,
-  imageCostByTier,
-  onBuyMore,
-  onGenerateGif,
-  gifCreditCost,
   onGenerateImageGif,
   imageGifCreditCost,
-  onRemoveBackground,
-  bgRemoveCreditCost,
 }: {
   store: StoreLike;
   els: ElementLike[];
-  generatedId?: string;
-  /** 선택 요소가 GIF면 AI 편집을 GIF 재생성으로 기본 전환하고 라벨을 GIF로 바꾼다. */
+  /** 선택 요소가 GIF면 GIF에 다시 GIF를 굽지 않게 섹션을 숨긴다. */
   isGif?: boolean;
-  imageCreditCost?: number;
-  imageCreditBalance?: number;
-  imageCostByTier?: Partial<Record<ImageTier, number>>;
-  onBuyMore?: () => void;
-  /** 선택 이미지를 참조로 GIF 생성. 미지정이면 GIF 토글이 뜨지 않는다. */
-  onGenerateGif?: GenerateGifFn;
-  /** GIF 1회 비용(크레딧). */
-  gifCreditCost?: number;
   /** 선택 이미지에 이펙트를 걸어 GIF로. 미지정이면 섹션이 뜨지 않는다. */
   onGenerateImageGif?: GenerateImageGifFn;
   /** 이미지 GIF 1회 비용(크레딧). */
   imageGifCreditCost?: number;
-  /** 선택 이미지의 배경을 지운다. 미지정이면 섹션이 뜨지 않는다. */
-  onRemoveBackground?: RemoveBackgroundFn;
-  /** 배경 제거 1회 비용(크레딧). */
-  bgRemoveCreditCost?: number;
 }) {
   const { t } = useTranslation("branding");
-  const { api } = useDetailPageHost();
   const single = els.length === 1 ? els[0] : null;
   const ref = els[0];
   const radius = num(ref.cornerRadius, 0);
-  const singleCustom = (single?.custom ?? {}) as Record<string, unknown>;
-  const slotRole =
-    typeof singleCustom.leviosaSlot === "string" ? singleCustom.leviosaSlot : "";
-
-  // 우측 실시간 편집: 선택 이미지를 base로 프롬프트 방향으로 재생성(크레딧 과금).
-  // data URI면 base64로, http(s) URL이면 그대로 넘긴다. 402는 크레딧 부족 마커로 승격.
-  const editImage = useCallback<GenerateImageFn>(
-    async ({ prompt, tier, brandId, annotatedImage }) => {
-      if (!single || !generatedId) return [];
-      const src = str(single.src);
-      const isData = src.startsWith("data:");
-      try {
-        const res = await api.promptEditDetailPageImage(generatedId, {
-          slot_role: slotRole,
-          current_image_url: isData ? undefined : src,
-          current_image_base64: isData ? src.split(",")[1] : undefined,
-          instruction: prompt,
-          // 마킹본은 원본과 **함께** 간다. 마킹만 보내면 모델이 빨간 자국을 그림의
-          // 일부로 읽는다 — 서버 계약이 막으려던 바로 그 실패다.
-          annotated_image: annotatedImage,
-          tier,
-          brand_id: brandId,
-        });
-        return res.url ? [res.url] : [];
-      } catch (err) {
-        const short = api.asInsufficientCreditsError(err);
-        if (short) {
-          throw Object.assign(new Error(short.message), {
-            insufficientCredits: true,
-          });
-        }
-        throw err;
-      }
-    },
-    [single, generatedId, slotRole],
-  );
-
-  // 선택 이미지를 레퍼런스로 넣어 GIF 생성. 좌측 자유 생성과 달리 지금 고른 이미지를
-  // 그대로 input으로 참조한다. GIF는 원본을 교체하지 않고 새 요소로 삽입된다(패널이
-  // insertPersonalImage 사용). 백엔드 load_reference_bytes는 data:/http(s) 둘 다 받으므로,
-  // 편집기 src(상대경로·blob·data·동일출처 프록시)를 data URI로 변환해 넘긴다(alpha 보존).
-  // 교차출처 http(s)만 원본 URL로 넘겨 백엔드가 직접 내려받게 한다.
-  const editGif = useCallback<GenerateGifFn>(
-    async ({ prompt, referenceImages, transparent, brandId }) => {
-      if (!single || !onGenerateGif) return [];
-      const ref = await resolveReferenceSrc(str(single.src));
-      const refs = ref ? [ref, ...referenceImages] : referenceImages;
-      return onGenerateGif({
-        prompt,
-        referenceImages: refs,
-        transparent,
-        brandId,
-      });
-    },
-    [single, onGenerateGif],
-  );
 
   return (
     <>
@@ -1937,15 +1824,7 @@ const ImageInspector = observer(function ImageInspector({
         </div>
       </Section>
       <OpacityRow els={els} />
-      {/* 배경 지우기 — 선택 사진의 배경을 지워 그 자리에서 컷아웃으로 갈아 끼운다.
-          GIF에는 숨긴다(프레임마다 지워야 해서 같은 경로로 처리되지 않는다). */}
-      {single && !isGif && onRemoveBackground ? (
-        <BgRemoveSection
-          el={single}
-          onRemove={onRemoveBackground}
-          creditCost={bgRemoveCreditCost}
-        />
-      ) : null}
+      {/* 배경 지우기와 프롬프트 편집은 캔버스 위 띠로 옮겼다(`ElementAiEditPanel`). */}
       {/* 이미지를 GIF로 — 선택 이미지에 이펙트를 걸어 새 GIF 요소로 삽입한다.
           이미 GIF인 요소에는 숨긴다(GIF에 GIF를 다시 굽지 않게). */}
       {single && !isGif && onGenerateImageGif ? (
@@ -1955,36 +1834,6 @@ const ImageInspector = observer(function ImageInspector({
           onGenerate={onGenerateImageGif}
           creditCost={imageGifCreditCost}
         />
-      ) : null}
-      {/* AI 이미지 편집 — 선택된 이미지를 프롬프트로 실시간 재생성해 src를 교체한다.
-          비싸므로 크레딧을 과금하며, 생성 ID가 있을 때만 노출(픽스처는 자동 생략). */}
-      {single && generatedId ? (
-        <section className="border-t border-dpe-ink-200">
-          <h4 className="flex items-center gap-1.5 px-4 pt-3 text-[11px] font-dpe-semibold uppercase tracking-[0.06em] text-dpe-ink-400">
-            <Sparkles size={13} className="text-dpe-ai" />
-            {isGif
-              ? t("detailPage.properties.aiGifEdit")
-              : t("detailPage.properties.aiImageEdit")}
-          </h4>
-          <AiGeneratePanel
-            store={store}
-            onGenerate={editImage}
-            onGenerateGif={onGenerateGif ? editGif : undefined}
-            gifCreditCost={gifCreditCost}
-            hasImplicitReference
-            // 현재 선택된 이미지를 예시 입력(참조)으로 패널에 그대로 노출한다.
-            implicitReferenceSrc={str(single.src)}
-            // 같은 이미지 위에 그림으로 가리켜 고칠 수 있게 한다(마킹본 + 원본 두 장).
-            annotateBaseSrc={str(single.src)}
-            // GIF 요소를 편집 중이면 GIF 재생성 모드를 기본으로 연다.
-            initialMode={isGif ? "gif" : "image"}
-            onResult={(src) => single.set({ src })}
-            costByTier={imageCostByTier}
-            creditCost={imageCreditCost}
-            creditBalance={imageCreditBalance}
-            onBuyCredits={onBuyMore}
-          />
-        </section>
       ) : null}
       <DeleteRow store={store} els={els} />
     </>
@@ -2099,19 +1948,11 @@ const SvgColorSection = observer(function SvgColorSection({
 const SvgInspector = observer(function SvgInspector({
   store,
   els,
-  generatedId,
-  usage,
-  onUsage,
-  onBuyMore,
   onGenerateImageGif,
   imageGifCreditCost,
 }: {
   store: StoreLike;
   els: ElementLike[];
-  generatedId?: string;
-  usage?: EditUsageState;
-  onUsage?: (used: number, limit: number) => void;
-  onBuyMore?: () => void;
   onGenerateImageGif?: GenerateImageGifFn;
   imageGifCreditCost?: number;
 }) {
@@ -2119,9 +1960,6 @@ const SvgInspector = observer(function SvgInspector({
   const host = useDetailPageHost();
   const single = els.length === 1 ? els[0] : null;
   const currentSvg = single ? decodeSvgDataUri(str(single.src)) : null;
-  const singleCustom = (single?.custom ?? {}) as Record<string, unknown>;
-  const slotRole =
-    typeof singleCustom.leviosaSlot === "string" ? singleCustom.leviosaSlot : "";
   return (
     <>
       {single && currentSvg ? (
@@ -2148,29 +1986,7 @@ const SvgInspector = observer(function SvgInspector({
           </button>
         </div>
       ) : null}
-      {single && generatedId && currentSvg ? (
-        <section className="border-t border-dpe-ink-200 px-4 py-3">
-          <h4 className="mb-2 flex items-center gap-1.5 text-[11px] font-dpe-semibold uppercase tracking-[0.06em] text-dpe-ink-400">
-            <Sparkles size={13} className="text-primary" />
-            {t("detailPage.properties.aiShapeEdit")}
-          </h4>
-          <SvgPromptEditPanel
-            generatedId={generatedId}
-            slotRole={slotRole}
-            currentSvg={currentSvg}
-            onApplied={(svg) => {
-              single.set({ src: svgToDataUri(svg) });
-              // 프롬프트로 편집한 결과는 "내 도형"에 자동 저장(재사용 가능하게).
-              void saveShapeToMyShapes(host, svg, "prompt_edit", t, { silent: true });
-            }}
-            editsUsed={usage?.svgUsed}
-            editLimit={usage?.svgLimit}
-            unlimited={usage?.unlimited}
-            onUsage={onUsage}
-            onBuyMore={onBuyMore}
-          />
-        </section>
-      ) : null}
+      {/* 도형 프롬프트 편집은 캔버스 위 띠로 옮겼다(`ElementAiEditPanel`). */}
       <DeleteRow store={store} els={els} />
     </>
   );
@@ -2183,76 +1999,16 @@ const SvgInspector = observer(function SvgInspector({
 const GroupInspector = observer(function GroupInspector({
   store,
   els,
-  generatedId,
-  usage,
-  applyUsage,
-  onBuyMore,
   onGenerateTextGif,
   textGifCreditCost,
 }: {
   store: StoreLike;
   els: ElementLike[];
-  generatedId?: string;
-  usage?: EditUsageState;
-  applyUsage?: (kind: "svg" | "text", used: number, limit: number) => void;
-  onBuyMore?: () => void;
   /** 그룹 안이 전부 텍스트면 그룹째로 GIF를 굽는다(카피 그룹 편집과 같은 결). */
   onGenerateTextGif?: GenerateTextGifFn;
   textGifCreditCost?: number;
 }) {
-  const { t } = useTranslation("branding");
-  const host = useDetailPageHost();
   const members = collectEditableDescendants(els[0]);
-  // 그룹 편집 요청 items + id→요소 매핑을 만든다(svg는 디코드 가능한 마크업이 있을 때만).
-  const items: DetailPageGroupEditItem[] = [];
-  const byId = new Map<string, ElementLike>();
-  for (const el of members) {
-    const custom = (el.custom ?? {}) as Record<string, unknown>;
-    const slotRole =
-      typeof custom.leviosaSlot === "string" ? custom.leviosaSlot : "";
-    if (el.type === "text") {
-      items.push({
-        id: el.id,
-        kind: "text",
-        current_text: str(el.text),
-        slot_role: slotRole,
-        render_kind:
-          typeof custom.leviosaSlotKind === "string"
-            ? custom.leviosaSlotKind
-            : undefined,
-      });
-      byId.set(el.id, el);
-    } else if (el.type === "svg") {
-      const svg = decodeSvgDataUri(str(el.src));
-      if (svg) {
-        items.push({ id: el.id, kind: "svg", current_svg: svg, slot_role: slotRole });
-        byId.set(el.id, el);
-      }
-    }
-  }
-
-  const applyResults = (results: DetailPageGroupEditResultItem[]) => {
-    for (const r of results) {
-      const el = byId.get(r.id);
-      if (!el) continue;
-      if (r.kind === "text" && typeof r.text === "string") {
-        el.set({ text: r.text });
-      } else if (r.kind === "svg" && typeof r.svg === "string") {
-        el.set({ src: svgToDataUri(r.svg) });
-        // 프롬프트로 편집한 도형은 "내 도형"에 자동 저장(재사용 가능하게).
-        void saveShapeToMyShapes(host, r.svg, "prompt_edit", t, { silent: true });
-      }
-    }
-  };
-
-  const hasText = items.some((i) => i.kind === "text");
-  const hasSvg = items.some((i) => i.kind === "svg");
-  const desc =
-    hasText && hasSvg
-      ? "그룹 안 텍스트와 도형을 한 번에 프롬프트로 수정합니다."
-      : hasSvg
-        ? "그룹 안 도형을 프롬프트로 함께 수정합니다."
-        : "그룹 안 텍스트를 한 번에 프롬프트로 다시 씁니다.";
 
   // 텍스트만 든 그룹만 GIF로 굽는다 — 도형·이미지가 섞이면 텍스트 렌더러가 그릴 수
   // 없는 것들이 조용히 빠져서 "일부만 담긴 GIF"가 나온다.
@@ -2272,27 +2028,7 @@ const GroupInspector = observer(function GroupInspector({
           creditCost={textGifCreditCost}
         />
       ) : null}
-      {generatedId && items.length > 0 ? (
-        <section className="border-t border-dpe-ink-200 px-4 py-3">
-          <h4 className="mb-1 flex items-center gap-1.5 text-[11px] font-dpe-semibold uppercase tracking-[0.06em] text-dpe-ink-400">
-            <Sparkles size={13} className="text-primary" />
-            그룹 편집
-          </h4>
-          <p className="mb-2 text-xs text-dpe-ink-400">{desc}</p>
-          <GroupPromptEditPanel
-            generatedId={generatedId}
-            items={items}
-            onApplied={applyResults}
-            textUsed={usage?.textUsed}
-            textLimit={usage?.textLimit}
-            svgUsed={usage?.svgUsed}
-            svgLimit={usage?.svgLimit}
-            unlimited={usage?.unlimited}
-            onUsage={applyUsage}
-            onBuyMore={onBuyMore}
-          />
-        </section>
-      ) : null}
+      {/* 그룹째 프롬프트 편집은 캔버스 위 띠로 옮겼다(`ElementAiEditPanel`). */}
       <DeleteRow store={store} els={els} />
     </>
   );
@@ -2435,6 +2171,244 @@ const PageInspector = observer(function PageInspector({
 
 // ── Header + root ─────────────────────────────────────────────────────────────
 
+/**
+ * 캔버스 위 띠에서 여는 "프롬프트로 편집".
+ *
+ * 우측 패널 맨 아래에 있던 넷(글·사진·도형·그룹)을 한 자리로 모았다. **셈은 하나도 안
+ * 바꿨다** — 같은 패널 부품에 같은 값을 넘긴다. 달라진 것은 여는 자리뿐이다.
+ *
+ * 필요한 것(생성 ID·사용량·크레딧)은 컨텍스트에서 집는다. 이 층은 작업 영역 안에 살아서
+ * props로 내리면 캔버스 나무가 통째로 다시 만들어진다(`editor-ai-context.tsx`).
+ */
+export const ElementAiEditPanel = observer(function ElementAiEditPanel({
+  store,
+  els,
+}: {
+  store: StoreLike;
+  els: ElementLike[];
+}) {
+  const { t } = useTranslation("branding");
+  const host = useDetailPageHost();
+  const { api } = host;
+  const ai = useEditorAi();
+  const generatedId = ai.generatedId;
+  const usage = ai.usage;
+  const single = els.length === 1 ? els[0] : null;
+  const singleCustom = (single?.custom ?? {}) as Record<string, unknown>;
+  const slotRole =
+    typeof singleCustom.leviosaSlot === "string" ? singleCustom.leviosaSlot : "";
+  const onGenerateGif = ai.onGenerateGif;
+
+  // 선택 이미지를 base로 프롬프트 방향으로 재생성(크레딧 과금). data URI면 base64로,
+  // http(s) URL이면 그대로 넘긴다. 402는 크레딧 부족 마커로 승격.
+  const editImage = useCallback<GenerateImageFn>(
+    async ({ prompt, tier, brandId, annotatedImage }) => {
+      if (!single || !generatedId) return [];
+      const src = str(single.src);
+      const isData = src.startsWith("data:");
+      try {
+        const res = await api.promptEditDetailPageImage(generatedId, {
+          slot_role: slotRole,
+          current_image_url: isData ? undefined : src,
+          current_image_base64: isData ? src.split(",")[1] : undefined,
+          instruction: prompt,
+          // 마킹본은 원본과 **함께** 간다. 마킹만 보내면 모델이 빨간 자국을 그림의
+          // 일부로 읽는다 — 서버 계약이 막으려던 바로 그 실패다.
+          annotated_image: annotatedImage,
+          tier,
+          brand_id: brandId,
+        });
+        return res.url ? [res.url] : [];
+      } catch (err) {
+        const short = api.asInsufficientCreditsError(err);
+        if (short) {
+          throw Object.assign(new Error(short.message), {
+            insufficientCredits: true,
+          });
+        }
+        throw err;
+      }
+    },
+    [api, single, generatedId, slotRole],
+  );
+
+  // 선택 이미지를 레퍼런스로 넣어 GIF 생성. 백엔드 load_reference_bytes는 data:/http(s)를
+  // 받으므로 편집기 src(상대경로·blob·동일출처 프록시)를 data URI로 바꿔 넘긴다(alpha 보존).
+  const editGif = useCallback<GenerateGifFn>(
+    async ({ prompt, referenceImages, transparent, brandId }) => {
+      if (!single || !onGenerateGif) return [];
+      const reference = await resolveReferenceSrc(str(single.src));
+      return onGenerateGif({
+        prompt,
+        referenceImages: reference ? [reference, ...referenceImages] : referenceImages,
+        transparent,
+        brandId,
+      });
+    },
+    [single, onGenerateGif],
+  );
+
+  if (!single || !generatedId) return null;
+
+  if (single.type === "text") {
+    const slotKind =
+      typeof singleCustom.leviosaSlotKind === "string"
+        ? singleCustom.leviosaSlotKind
+        : undefined;
+    return (
+      <PromptEditPanel
+        generatedId={generatedId}
+        slotRole={slotRole}
+        currentText={str(single.text)}
+        renderKind={slotKind}
+        onApplied={(text) => single.set({ text })}
+        editsUsed={usage?.textUsed}
+        editLimit={usage?.textLimit}
+        unlimited={usage?.unlimited}
+        onUsage={(used, limit) => ai.applyUsage?.("text", used, limit)}
+        onBuyMore={ai.onBuyCredits}
+      />
+    );
+  }
+
+  if (single.type === "image") {
+    const isGif = isGifElement(single);
+    return (
+      <section>
+        <h4 className="flex items-center gap-1.5 px-4 pt-3 text-[11px] font-dpe-semibold uppercase tracking-[0.06em] text-dpe-ink-400">
+          <Sparkles size={13} className="text-dpe-ai" />
+          {isGif
+            ? t("detailPage.properties.aiGifEdit")
+            : t("detailPage.properties.aiImageEdit")}
+        </h4>
+        <AiGeneratePanel
+          store={store}
+          onGenerate={editImage}
+          onGenerateGif={onGenerateGif ? editGif : undefined}
+          gifCreditCost={ai.gifCreditCost}
+          hasImplicitReference
+          // 지금 고른 이미지를 예시 입력(참조)으로 패널에 그대로 노출한다.
+          implicitReferenceSrc={str(single.src)}
+          // 같은 이미지 위에 그림으로 가리켜 고칠 수 있게 한다(마킹본 + 원본 두 장).
+          annotateBaseSrc={str(single.src)}
+          // GIF 요소를 편집 중이면 GIF 재생성 모드를 기본으로 연다.
+          initialMode={isGif ? "gif" : "image"}
+          onResult={(src) => single.set({ src })}
+          costByTier={ai.imageCostByTier}
+          creditCost={ai.imageCreditCost}
+          creditBalance={ai.imageCreditBalance}
+          onBuyCredits={ai.onBuyCredits}
+        />
+      </section>
+    );
+  }
+
+  if (single.type === "svg") {
+    const currentSvg = decodeSvgDataUri(str(single.src));
+    if (!currentSvg) return null;
+    return (
+      <div className="px-3 py-3">
+        <h4 className="mb-2 flex items-center gap-1.5 px-1 text-[11px] font-dpe-semibold uppercase tracking-[0.06em] text-dpe-ink-400">
+          <Sparkles size={13} className="text-dpe-ai" />
+          {t("detailPage.properties.aiShapeEdit")}
+        </h4>
+        <SvgPromptEditPanel
+          generatedId={generatedId}
+          slotRole={slotRole}
+          currentSvg={currentSvg}
+          onApplied={(svg) => {
+            single.set({ src: svgToDataUri(svg) });
+            // 프롬프트로 편집한 결과는 "내 도형"에 자동 저장(재사용 가능하게).
+            void saveShapeToMyShapes(host, svg, "prompt_edit", t, { silent: true });
+          }}
+          editsUsed={usage?.svgUsed}
+          editLimit={usage?.svgLimit}
+          unlimited={usage?.unlimited}
+          onUsage={(used, limit) => ai.applyUsage?.("svg", used, limit)}
+          onBuyMore={ai.onBuyCredits}
+        />
+      </div>
+    );
+  }
+
+  if (single.type === "group") {
+    // 그룹 편집 요청 items + id→요소 매핑(svg는 디코드 가능한 마크업이 있을 때만).
+    const items: DetailPageGroupEditItem[] = [];
+    const byId = new Map<string, ElementLike>();
+    for (const el of collectEditableDescendants(single)) {
+      const custom = (el.custom ?? {}) as Record<string, unknown>;
+      const role = typeof custom.leviosaSlot === "string" ? custom.leviosaSlot : "";
+      if (el.type === "text") {
+        items.push({
+          id: el.id,
+          kind: "text",
+          current_text: str(el.text),
+          slot_role: role,
+          render_kind:
+            typeof custom.leviosaSlotKind === "string"
+              ? custom.leviosaSlotKind
+              : undefined,
+        });
+        byId.set(el.id, el);
+      } else if (el.type === "svg") {
+        const svg = decodeSvgDataUri(str(el.src));
+        if (svg) {
+          items.push({ id: el.id, kind: "svg", current_svg: svg, slot_role: role });
+          byId.set(el.id, el);
+        }
+      }
+    }
+    if (!items.length) return null;
+
+    const applyResults = (results: DetailPageGroupEditResultItem[]) => {
+      for (const r of results) {
+        const el = byId.get(r.id);
+        if (!el) continue;
+        if (r.kind === "text" && typeof r.text === "string") {
+          el.set({ text: r.text });
+        } else if (r.kind === "svg" && typeof r.svg === "string") {
+          el.set({ src: svgToDataUri(r.svg) });
+          void saveShapeToMyShapes(host, r.svg, "prompt_edit", t, { silent: true });
+        }
+      }
+    };
+
+    const hasText = items.some((item) => item.kind === "text");
+    const hasSvg = items.some((item) => item.kind === "svg");
+
+    return (
+      <div className="px-3 py-3">
+        <h4 className="mb-1 flex items-center gap-1.5 px-1 text-[11px] font-dpe-semibold uppercase tracking-[0.06em] text-dpe-ink-400">
+          <Sparkles size={13} className="text-dpe-ai" />
+          {t("detailPage.groupEdit.title")}
+        </h4>
+        <p className="mb-2 px-1 text-xs text-dpe-ink-400">
+          {hasText && hasSvg
+            ? t("detailPage.groupEdit.both")
+            : hasSvg
+              ? t("detailPage.groupEdit.shapes")
+              : t("detailPage.groupEdit.texts")}
+        </p>
+        <GroupPromptEditPanel
+          generatedId={generatedId}
+          items={items}
+          onApplied={applyResults}
+          textUsed={usage?.textUsed}
+          textLimit={usage?.textLimit}
+          svgUsed={usage?.svgUsed}
+          svgLimit={usage?.svgLimit}
+          unlimited={usage?.unlimited}
+          onUsage={ai.applyUsage}
+          onBuyMore={ai.onBuyCredits}
+        />
+      </div>
+    );
+  }
+
+  return null;
+});
+ElementAiEditPanel.displayName = "ElementAiEditPanel";
+
 function InspectorHeader({ els }: { els: ElementLike[] }) {
   const { t } = useTranslation("branding");
   let icon = <Layers aria-hidden="true" size={16} />;
@@ -2477,34 +2451,17 @@ export const DetailPageProperties = observer(function DetailPageProperties({
   store,
   generatedId,
   onBuyEditCredits,
-  imageCreditCost,
-  imageCreditBalance,
-  imageCostByTier,
-  onGenerateGif,
-  gifCreditCost,
   onGenerateTextGif,
   textGifCreditCost,
   onGenerateImageGif,
   imageGifCreditCost,
   onGenerateDataGif,
   dataGifCreditCost,
-  onRemoveBackground,
-  bgRemoveCreditCost,
 }: {
   store: unknown;
   generatedId?: string;
   /** 편집 한도 소진 시 "편집 크레딧 추가하기" 목적지(레비오사 결제면). 미지정이면 CTA 비활성. */
   onBuyEditCredits?: () => void;
-  /** 우측 AI 이미지 편집 1회 비용(크레딧). 0/미지정이면 크레딧 UI 숨김. */
-  imageCreditCost?: number;
-  /** 현재 보유 크레딧 잔액(1.5× 안전 마진 게이트용). */
-  imageCreditBalance?: number;
-  /** 티어별(basic/pro/max) 크레딧 단가. 모델 드롭다운의 각 항목 비용에 쓴다. */
-  imageCostByTier?: Partial<Record<ImageTier, number>>;
-  /** 선택 이미지를 참조로 GIF 생성(우측 패널 GIF 토글). 미지정이면 토글 숨김. */
-  onGenerateGif?: GenerateGifFn;
-  /** GIF 1회 비용(크레딧). */
-  gifCreditCost?: number;
   /** 텍스트 인스펙터 '텍스트를 GIF로' 콜백. 미지정이면 섹션 숨김. */
   onGenerateTextGif?: GenerateTextGifFn;
   /** 텍스트 GIF 1회 비용(크레딧). */
@@ -2517,13 +2474,16 @@ export const DetailPageProperties = observer(function DetailPageProperties({
   onGenerateDataGif?: GenerateDataGifFn;
   /** 수치 GIF 1회 비용(크레딧). */
   dataGifCreditCost?: number;
-  /** 이미지 인스펙터 '배경 지우기' 콜백. 미지정이면 섹션 숨김. */
-  onRemoveBackground?: RemoveBackgroundFn;
-  /** 배경 제거 1회 비용(크레딧). */
-  bgRemoveCreditCost?: number;
 }) {
   const s = store as StoreLike;
-  const { usage, applyUsage } = useDetailPageEditUsage(generatedId);
+  // 프롬프트 편집(글·사진·도형·그룹)과 배경 지우기는 캔버스 위 띠로 옮겼다. 여기 남는
+  // 것은 표·차트의 스펙 편집이라, 사용량은 **띠와 같은 자리**에서 읽어야 한 쪽이 쓴 횟수를
+  // 다른 쪽이 모르는 일이 없다. 컨텍스트가 안 꽂혀 있으면(단독으로 띄운 화면) 직접 조회한다.
+  const ai = useEditorAi();
+  const shared = Boolean(ai.applyUsage);
+  const own = useDetailPageEditUsage(shared ? undefined : generatedId);
+  const usage = shared ? ai.usage : own.usage;
+  const applyUsage = ai.applyUsage ?? own.applyUsage;
   // Resolve through selectedElementsIds so a GROUP CHILD picked in the layers
   // tree is editable here — the stock editor's selectedElements getter only sees
   // top-level page children and would report "선택 없음".
@@ -2570,10 +2530,6 @@ export const DetailPageProperties = observer(function DetailPageProperties({
               <TextInspector
                 store={s}
                 els={els}
-                generatedId={generatedId}
-                usage={usage}
-                onUsage={(used, limit) => applyUsage("text", used, limit)}
-                onBuyMore={onBuyEditCredits}
                 onGenerateTextGif={onGenerateTextGif}
                 textGifCreditCost={textGifCreditCost}
                 onGenerateDataGif={onGenerateDataGif}
@@ -2583,27 +2539,14 @@ export const DetailPageProperties = observer(function DetailPageProperties({
               <ImageInspector
                 store={s}
                 els={els}
-                generatedId={generatedId}
                 isGif={singleGif}
-                imageCreditCost={imageCreditCost}
-                imageCreditBalance={imageCreditBalance}
-                imageCostByTier={imageCostByTier}
-                onBuyMore={onBuyEditCredits}
-                onGenerateGif={onGenerateGif}
-                gifCreditCost={gifCreditCost}
                 onGenerateImageGif={onGenerateImageGif}
                 imageGifCreditCost={imageGifCreditCost}
-                onRemoveBackground={onRemoveBackground}
-                bgRemoveCreditCost={bgRemoveCreditCost}
               />
             ) : singleSvg ? (
               <SvgInspector
                 store={s}
                 els={els}
-                generatedId={generatedId}
-                usage={usage}
-                onUsage={(used, limit) => applyUsage("svg", used, limit)}
-                onBuyMore={onBuyEditCredits}
                 onGenerateImageGif={onGenerateImageGif}
                 imageGifCreditCost={imageGifCreditCost}
               />
@@ -2658,10 +2601,6 @@ export const DetailPageProperties = observer(function DetailPageProperties({
               <GroupInspector
                 store={s}
                 els={els}
-                generatedId={generatedId}
-                usage={usage}
-                applyUsage={applyUsage}
-                onBuyMore={onBuyEditCredits}
                 onGenerateTextGif={onGenerateTextGif}
                 textGifCreditCost={textGifCreditCost}
               />

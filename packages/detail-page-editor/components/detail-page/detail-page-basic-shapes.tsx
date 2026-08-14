@@ -41,12 +41,12 @@ type StoreLike = { activePage?: PageLike; pages: PageLike[] };
 export function insertFigure(
   store: unknown,
   patch: Record<string, unknown>,
-): void {
+): unknown {
   const s = store as StoreLike;
   const page = s.activePage ?? s.pages[0];
-  if (!page) return;
+  if (!page) return null;
   const size = Math.round(Math.min(page.computedWidth * 0.28, 260));
-  page.addElement({
+  return page.addElement({
     type: "figure",
     subType: "rect",
     fill: SHAPE_FILL,
@@ -58,7 +58,8 @@ export function insertFigure(
   });
 }
 
-const FIGURE_PATCH: Record<string, Record<string, unknown>> = {
+/** 네이티브 도형 id → 삽입 속성. 좌측 패널과 캔버스 아래 삽입 띠가 같이 쓴다. */
+export const FIGURE_PATCH: Record<string, Record<string, unknown>> = {
   rect: {},
   rounded: { cornerRadius: 24 },
   circle: { subType: "circle" },

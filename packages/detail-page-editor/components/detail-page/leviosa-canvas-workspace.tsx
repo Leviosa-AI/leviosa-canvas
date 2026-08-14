@@ -27,7 +27,9 @@ import {
 
 import { BubbleTailOverlay } from "./bubble-tail-overlay";
 import { CanvasContextMenu } from "./canvas-context-menu";
+import { CanvasInsertToolbar } from "./canvas-insert-toolbar";
 import { CanvasOverlayHost } from "./canvas-overlay-host";
+import { CanvasSelectionTools } from "./canvas-selection-tools";
 import { DetailPagePageToolbar } from "./detail-page-page-toolbar";
 import { detailPageThumbnailBus } from "./detail-page-thumbnail-bus";
 import { GifAnimator } from "./gif-animator";
@@ -273,6 +275,12 @@ export function LeviosaCanvasWorkspace({
           선택 상자와 크기 손잡이는 엔진이 직접 그린다(그룹 안 요소까지). */}
       <BubbleTailOverlay store={store} containerRef={outerRef} />
       <CanvasContextMenu store={store} containerRef={outerRef} />
+      {/* 고른 것 위에 뜨는 띠(자르기·배경 지우기·프롬프트 편집·더보기)와 자르기 층. */}
+      <CanvasSelectionTools
+        store={store}
+        containerRef={outerRef}
+        scrollRef={innerRef}
+      />
       <HoverHighlightOverlay
         store={store}
         containerRef={outerRef}
@@ -290,6 +298,21 @@ export function LeviosaCanvasWorkspace({
       />
 
       {children}
+
+      {/* 삽입 띠 — 글상자·기본 도형을 좌측 패널까지 가지 않고 넣는다. 화면 아래 가운데는
+          피그마·캔바가 모두 쓰는 자리라 손이 먼저 간다(배율은 오른쪽 아래로 비켰다). */}
+      <div
+        data-dp-insert-dock=""
+        style={{
+          position: "absolute",
+          left: "50%",
+          bottom: 16,
+          transform: "translateX(-50%)",
+          zIndex: 30,
+        }}
+      >
+        <CanvasInsertToolbar store={store} />
+      </div>
 
       {store.activePage ? (
         <div

@@ -28,17 +28,17 @@ export function insertShape(
   store: unknown,
   markup: string,
   viewBox = "0 0 24 24",
-): void {
+): unknown {
   const s = store as StoreLike;
   const page = s.activePage ?? s.pages[0];
-  if (!page || !markup) return;
+  if (!page || !markup) return null;
 
   const aspect = aspectFromViewBox(viewBox);
   // 아이콘/장식이라 페이지 폭의 ~18%(상한 200px)로 얌전하게.
   const width = Math.round(Math.min(page.computedWidth * 0.18, 200));
   const height = Math.round(width / (aspect || 1));
 
-  page.addElement({
+  return page.addElement({
     type: "svg",
     src: encodeSvgDataUri(markup),
     x: Math.round((page.computedWidth - width) / 2),

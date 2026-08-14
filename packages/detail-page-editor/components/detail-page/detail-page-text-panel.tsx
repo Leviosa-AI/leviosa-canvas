@@ -38,7 +38,8 @@ type Preset = {
   previewSize: number;
 };
 
-const PRESETS: Preset[] = [
+/** 크기별 글상자. 좌측 패널과 캔버스 아래 삽입 띠가 같은 목록을 쓴다. */
+export const TEXT_SIZE_PRESETS: Preset[] = [
   { key: "heading", fontSize: 48, fontWeight: 700, previewSize: 22 },
   { key: "subheading", fontSize: 28, fontWeight: 600, previewSize: 17 },
   { key: "body", fontSize: 18, fontWeight: 400, previewSize: 14 },
@@ -52,14 +53,14 @@ export function insertText(
   store: unknown,
   text: string,
   { fontSize, fontWeight }: { fontSize: number; fontWeight: number },
-): void {
+): unknown {
   const s = store as { activePage?: PageLike; pages: PageLike[] };
   const page = s.activePage ?? s.pages[0];
-  if (!page) return;
+  if (!page) return null;
   const width = Math.round(page.computedWidth * 0.7);
   // 한 줄 높이는 폰트 크기의 1.3배 — 넣자마자 상자가 글자를 자르지 않게.
   const height = Math.round(fontSize * 1.3);
-  page.addElement({
+  return page.addElement({
     type: "text",
     text,
     fontFamily: "Pretendard",
@@ -123,7 +124,7 @@ export function DetailPageTextPanel({ store }: { store: unknown }) {
 
   return (
     <div className="flex h-full flex-col gap-2 overflow-y-auto p-3">
-      {PRESETS.map((preset) => {
+      {TEXT_SIZE_PRESETS.map((preset) => {
         const label = t(`detailPage.text.${preset.key}`);
         return (
           <button
