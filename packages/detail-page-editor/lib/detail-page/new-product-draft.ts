@@ -68,6 +68,15 @@ export interface NewProductDraftReference {
    * 0 은 못 쟀다는 뜻이다.
    */
   inputTokens: number;
+  /**
+   * 줄인 뒤의 가로세로. 세로로 긴 캡쳐는 서버가 조각내 싣고 그 조각 수가 **몇 장을
+   * 붙였는지**에 따라 달라져서, 굳혀 둔 토큰 수 하나로는 값을 낼 수 없다.
+   *
+   * 이 필드가 없던 시절의 초안도 그대로 열려야 하므로 선택이다 — 그때는 위
+   * ``inputTokens`` 로 떨어진다(세로로 긴 장이면 값을 낮게 잡는다).
+   */
+  width?: number;
+  height?: number;
 }
 
 export interface NewProductDraft {
@@ -169,6 +178,8 @@ function references(value: unknown): NewProductDraftReference[] {
         uri,
         aspects,
         inputTokens: typeof item.inputTokens === "number" ? item.inputTokens : 0,
+        ...(typeof item.width === "number" ? { width: item.width } : {}),
+        ...(typeof item.height === "number" ? { height: item.height } : {}),
       },
     ];
   });

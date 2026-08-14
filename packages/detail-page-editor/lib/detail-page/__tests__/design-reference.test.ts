@@ -13,9 +13,13 @@ import {
   MAX_DESIGN_REFERENCES,
   MAX_REFERENCE_FILE_BYTES,
   UNKNOWN_IMAGE_TOKENS,
+  bandBudgetFor,
   dataUriByteLength,
   estimateBriefCredits,
   estimateImageInputTokens,
+  estimateReferenceInputTokens,
+  planBands,
+  planReferenceTokens,
   referenceFileRejection,
   referenceOrdinal,
 } from "../design-reference";
@@ -130,5 +134,63 @@ describe("판독 크레딧", () => {
   it("흔한 한 장은 그대로 1크레딧이다", () => {
     // 정액 1cr 이던 자리를 공식으로 바꿨다 — 흔한 한 장의 값이 바뀌면 그건 인상이다.
     expect(estimateBriefCredits([estimateImageInputTokens(1024, 1024)])).toBe(1);
+  });
+});
+
+/**
+ * 세로로 긴 캡쳐의 값 — 서버가 조각내 싣는다는 사실을 화면도 알아야 한다.
+ *
+ * 이 값들은 서버 테스트(``tests/test_detail_page_design_reference.py``)와 **같은 수**를
+ * 내야 한다. 한쪽만 고치면 화면이 "1크레딧"이라 써 놓고 8을 받는다.
+ */
+describe("tall capture banding", () => {
+  // 실측 사고와 같은 크기다(job e538ce45, 2026-08-14).
+  const TALL = { width: 900, height: 39418 };
+
+  it("조각 예산은 총량을 장수로 나눈 값이다", () => {
+    expect(bandBudgetFor(1)).toBe(60);
+    expect(bandBudgetFor(6)).toBe(10);
+    // 장수가 늘어도 바닥 아래로는 안 내려간다 — 8조각이면 구조는 읽힌다.
+    expect(bandBudgetFor(60)).toBe(8);
+  });
+
+  it("상세페이지 전체 캡쳐 한 장은 28조각이 된다", () => {
+    const plan = planBands(TALL.width, TALL.height, bandBudgetFor(1));
+    expect(plan.tops).toHaveLength(28);
+    // 폭은 원본 그대로다 — 없는 해상도를 만들지 않는다.
+    expect(plan.width).toBe(900);
+  });
+
+  it("조각은 페이지 끝까지 덮는다", () => {
+    // 뒤쪽을 버리면 하단 섹션이 통째로 사라진다.
+    const plan = planBands(TALL.width, TALL.height, bandBudgetFor(1));
+    const last = plan.tops[plan.tops.length - 1];
+    expect(last + 1536).toBeGreaterThanOrEqual(plan.height);
+  });
+
+  it("휴대폰 스크린샷은 안 나눈다", () => {
+    // 1:2.16 은 애초에 안 뭉개진다. 갑자기 두 장이 되면 값만 뛴다.
+    expect(planBands(1170, 2532, bandBudgetFor(1)).tops).toEqual([]);
+  });
+
+  it("세로로 긴 캡쳐의 값이 예전 한 장 값보다 크다", () => {
+    // 예전에는 긴 변 상한이 이 캡쳐를 36×1568 로 만들고 765토큰으로 셌다.
+    const banded = estimateReferenceInputTokens(TALL.width, TALL.height, bandBudgetFor(1));
+    expect(estimateReferenceInputTokens(TALL.width, TALL.height)).toBe(765);
+    expect(banded).toBe(28 * 1105);
+    expect(estimateBriefCredits([banded])).toBeGreaterThan(estimateBriefCredits([765]));
+  });
+
+  it("여러 장을 붙이면 장당 조각이 줄어 값도 장수에 비례하지 않는다", () => {
+    // 예산이 장수로 나뉘므로 같은 캡쳐도 혼자일 때와 여섯 장일 때 값이 다르다.
+    const alone = planReferenceTokens([TALL]);
+    const crowded = planReferenceTokens(Array(6).fill(TALL));
+    expect(alone[0]).toBeGreaterThan(crowded[0]);
+    expect(crowded).toHaveLength(6);
+  });
+
+  it("크기를 못 잰 옛 임시저장은 들고 있던 토큰 수로 떨어진다", () => {
+    expect(planReferenceTokens([{ inputTokens: 1105 }])).toEqual([1105]);
+    expect(planReferenceTokens([{}])).toEqual([UNKNOWN_IMAGE_TOKENS]);
   });
 });

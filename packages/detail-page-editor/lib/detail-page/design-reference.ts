@@ -130,14 +130,20 @@ export async function readReferenceFile(file: File): Promise<string> {
  * 번 더 잰다 — 줄이기가 못 돈 큰 그림이 그대로 서버까지 가서 422 로 돌아오면, 유저는
  * 붙이는 자리가 아니라 제출 자리에서 실패를 본다.
  *
- * 크기(``inputTokens``)도 여기서 함께 잰다. 판독 값이 그 크기로 정해지는데, 재는 자리를
- * 따로 두면 그림을 한 번 더 디코딩하게 된다. 못 쟀으면 0 이고, 값은 비싼 쪽으로 잡힌다.
+ * 크기도 여기서 함께 잰다. 판독 값이 그 크기로 정해지는데, 재는 자리를 따로 두면 그림을
+ * 한 번 더 디코딩하게 된다. 못 쟀으면 0 이고, 값은 비싼 쪽으로 잡힌다.
+ *
+ * **가로세로를 그대로 함께 돌려준다.** 세로로 긴 캡쳐는 서버가 조각내 싣기 때문에
+ * ``inputTokens`` 한 수로는 값을 못 낸다 — 조각 수가 **몇 장을 붙였는지**에 따라 달라져서,
+ * 붙이는 시점에는 아직 정할 수 없다({@link planReferenceTokens}).
  *
  * @returns 줄인 data URI, 또는 그래도 상한을 넘겼으면 이유.
  */
 export async function finalizeReferenceDataUri(
   original: string,
-): Promise<{ uri: string; inputTokens: number } | { error: string }> {
+): Promise<
+  { uri: string; inputTokens: number; width: number; height: number } | { error: string }
+> {
   const shrunk = await shrinkReferenceDataUri(original);
   const cap = shrunk.tall
     ? MAX_TALL_REFERENCE_UPLOAD_BYTES
@@ -151,6 +157,8 @@ export async function finalizeReferenceDataUri(
   return {
     uri: shrunk.uri,
     inputTokens: estimateImageInputTokens(shrunk.width, shrunk.height),
+    width: shrunk.width,
+    height: shrunk.height,
   };
 }
 
@@ -237,11 +245,146 @@ export function estimateImageInputTokens(width: number, height: number): number 
   return IMAGE_TOKENS_BASE + IMAGE_TOKENS_PER_TILE * tiles;
 }
 
+/* ---- 세로로 긴 캡쳐의 조각내기 ---------------------------------------------- *
+ *
+ * 상세페이지 전체 캡쳐는 긴 변이 **세로**라, 한 장으로 실으면 폭이 뭉개진다(실측
+ * 900×39418 → 36×1568). 그래서 서버가 위에서 아래로 조각내 여러 장으로 싣는다
+ * (``app/services/detail_page/design_reference.py`` 의 ``plan_bands``).
+ *
+ * 그 산수를 여기 옮겨 두는 이유는 **판독이 선차감**이기 때문이다. 조각이 늘면 입력
+ * 토큰도 그만큼 늘어나는데, 화면이 그것을 모르면 "1크레딧"이라고 써 놓고 8을 받는다.
+ * 서버가 그림을 열어 재는 것과 달리 여기서는 열 수 없으므로, **크기만으로 정해지는**
+ * 계획을 양쪽이 나눠 갖는다. 상수 하나라도 갈라지면 값이 어긋난다.
+ */
+
+/** 조각내기를 시작하는 종횡비(세로/가로). 서버의 ``BAND_TRIGGER_RATIO``. */
+const BAND_TRIGGER_RATIO = 2.5;
+/** 조각 한 장의 폭 상한. 원본이 이보다 좁으면 키우지 않는다. */
+const BAND_WIDTH_PX = 1024;
+/** 조각 한 장의 높이. 폭 상한과 짝지어 2×3 타일이 되는 값이다. */
+const BAND_HEIGHT_PX = 1536;
+/** 조각끼리 겹치는 비율. 경계에 걸친 섹션이 반쪽씩만 보이면 두 블록으로 읽힌다. */
+const BAND_OVERLAP = 0.08;
+/** 한 요청에 실을 조각 총량. 장수로 나눠 쓴다. */
+const MAX_REFERENCE_BANDS = 60;
+/** 장당 최소 조각 수. 총량을 장수로 나눌 때의 바닥이다. */
+const MIN_BANDS_PER_REFERENCE = 8;
+/** 안 나뉘는 장의 긴 변 상한. 서버가 여기까지 줄인 **뒤** 토큰을 센다. */
+const MAX_REFERENCE_EDGE_PX = 1568;
+
+/**
+ * 이 요청에서 한 장에 허용되는 조각 수. 서버의 ``band_budget_for``.
+ *
+ * 총량을 장수로 나눈다 — 한 장이 예산을 다 쓰면 뒤 장이 굶는다. 그래서 **같은 그림도
+ * 몇 장을 함께 붙였는지에 따라 값이 달라진다.**
+ */
+export function bandBudgetFor(referenceCount: number): number {
+  const n = Math.max(1, Math.floor(Number(referenceCount) || 1));
+  return Math.max(MIN_BANDS_PER_REFERENCE, Math.floor(MAX_REFERENCE_BANDS / n));
+}
+
+/** 조각 계획. ``tops`` 가 비어 있으면 안 나눈다는 뜻이다. */
+export type BandPlan = { width: number; height: number; tops: number[] };
+
+/**
+ * 세로로 긴 한 장을 어떻게 나눌지 — 서버의 ``plan_bands`` 를 그대로 옮긴 것.
+ *
+ * 픽셀을 안 만지므로 그림을 열지 않고도 답이 나온다. 반올림을 ``Math.round`` 로 두는
+ * 것이 계약이다: 파이썬 기본 ``round`` 는 0.5 를 짝수로 붙여서, 서버 쪽이 그 자리에서만
+ * 따로 반올림을 맞춰 두었다.
+ */
+export function planBands(width: number, height: number, bandBudget: number): BandPlan {
+  const w = Math.max(0, Math.floor(Number(width) || 0));
+  const h = Math.max(0, Math.floor(Number(height) || 0));
+  if (bandBudget <= 1 || w <= 0 || h <= 0) return { width: w, height: h, tops: [] };
+  if (h < w * BAND_TRIGGER_RATIO) return { width: w, height: h, tops: [] };
+
+  const step = BAND_HEIGHT_PX * (1 - BAND_OVERLAP);
+  // 예산만큼의 조각으로 덮을 수 있는 세로 길이. 첫 장은 통째로 쓰고 그 뒤는 겹치는
+  // 만큼 덜 나간다.
+  const coverable = (bandBudget - 1) * step + BAND_HEIGHT_PX;
+  const scale = Math.min(1, BAND_WIDTH_PX / w, coverable / h);
+  const targetW = Math.max(1, Math.round(w * scale));
+  const targetH = Math.max(1, Math.round(h * scale));
+  if (targetH <= BAND_HEIGHT_PX) return { width: w, height: h, tops: [] };
+
+  const tops: number[] = [];
+  let top = 0;
+  for (;;) {
+    const cut = Math.round(top);
+    tops.push(cut);
+    if (cut + BAND_HEIGHT_PX >= targetH || tops.length >= bandBudget) break;
+    top += step;
+  }
+  return { width: targetW, height: targetH, tops };
+}
+
+/**
+ * 레퍼런스 한 장이 **실제로 실릴 때** 차지하는 입력 토큰. 서버의
+ * ``estimate_reference_input_tokens``.
+ *
+ * {@link estimateImageInputTokens} 와 갈리는 지점은 정규화를 반영한다는 것이다: 세로로
+ * 긴 캡쳐는 조각 수만큼 곱해지고, 안 나뉘는 장은 서버가 줄인 뒤의 크기로 센다.
+ */
+export function estimateReferenceInputTokens(
+  width: number,
+  height: number,
+  bandBudget = 1,
+): number {
+  const plan = planBands(width, height, bandBudget);
+  if (plan.tops.length) {
+    return plan.tops.reduce(
+      (sum, top) =>
+        sum +
+        estimateImageInputTokens(
+          plan.width,
+          Math.min(plan.height, top + BAND_HEIGHT_PX) - top,
+        ),
+      0,
+    );
+  }
+
+  let w = Math.max(0, Math.floor(Number(width) || 0));
+  let h = Math.max(0, Math.floor(Number(height) || 0));
+  if (w <= 0 || h <= 0) return UNKNOWN_IMAGE_TOKENS;
+  const longest = Math.max(w, h);
+  if (longest > MAX_REFERENCE_EDGE_PX) {
+    const scale = MAX_REFERENCE_EDGE_PX / longest;
+    w = Math.max(1, Math.round(w * scale));
+    h = Math.max(1, Math.round(h * scale));
+  }
+  return estimateImageInputTokens(w, h);
+}
+
+/**
+ * 붙여 둔 레퍼런스들의 장별 입력 토큰. {@link estimateBriefCredits} 에 그대로 넣는다.
+ *
+ * 장수를 여기서 알아야 하는 이유는 조각 예산이 장수로 나뉘기 때문이다 — 같은 캡쳐도
+ * 혼자면 28조각, 여섯 장이면 10조각이다. 그래서 붙이는 시점이 아니라 **값을 말하는
+ * 시점**에 센다.
+ *
+ * 크기를 못 잰 장(옛 임시저장 등)은 그 장이 들고 있던 ``inputTokens`` 를 쓰고, 그것도
+ * 없으면 비싼 쪽으로 잡는다.
+ */
+export function planReferenceTokens(
+  items: readonly { width?: number; height?: number; inputTokens?: number }[],
+): number[] {
+  const budget = bandBudgetFor(items.length);
+  return items.map((item) => {
+    const w = Math.floor(Number(item.width) || 0);
+    const h = Math.floor(Number(item.height) || 0);
+    if (w > 0 && h > 0) return estimateReferenceInputTokens(w, h, budget);
+    const known = Math.floor(Number(item.inputTokens) || 0);
+    return known > 0 ? known : UNKNOWN_IMAGE_TOKENS;
+  });
+}
+
 /**
  * 붙여 둔 레퍼런스를 읽는 데 드는 크레딧. 서버의 ``estimate_brief_credits`` 와 같은 값을
  * 낸다 — 다르면 화면이 말한 값과 청구가 어긋난다.
  *
- * @param imageTokens 장별 입력 토큰. 못 잰 장은 0 으로 넣으면 비싼 쪽으로 잡는다.
+ * @param imageTokens 장별 입력 토큰. 세로로 긴 캡쳐가 섞일 수 있으면
+ *   {@link planReferenceTokens} 가 낸 값을 넣는다 — 조각내기를 안 세면 값이 모자란다.
  */
 export function estimateBriefCredits(imageTokens: number[]): number {
   if (!imageTokens.length) return 0;
