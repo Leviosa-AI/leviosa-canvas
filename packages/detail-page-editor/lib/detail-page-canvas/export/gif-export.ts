@@ -45,7 +45,7 @@ export const MAX_GIF_WIDTH = 512;
 /**
  * MP4 gets a wider cap than GIF/WebP. That 512 is a *transfer* limit: GIF pays
  * for every pixel in a palette-coded frame, and WebP frames travel to the server
- * as PNG under an upload cap. MP4 is encoded right here by a hardware H.264
+ * one by one under an upload cap. MP4 is encoded right here by a hardware H.264
  * encoder that eats resolution cheaply, so holding it at 512 would only make the
  * video soft on a ~860px-wide detail page for no gain.
  */
@@ -131,12 +131,35 @@ function buildGlobalPalette(frames: HTMLCanvasElement[]): number[][] {
 /** Output format for an animated section. WebP is the default. */
 export type AnimationFormat = "webp" | "gif" | "mp4";
 
-/** Turn a canvas into a PNG Blob — the wire format for server-side encoding. */
-function canvasToPngBlob(canvas: HTMLCanvasElement): Promise<Blob> {
+/**
+ * Wire format for the frames that travel to the server for WebP encoding.
+ *
+ * They used to go as lossless PNG. That is what a section costs when nothing is
+ * thrown away: a 512×2644 composed frame is ~1.4MB as PNG, and a section is up
+ * to ``GIF_MAX_FRAMES`` of them — ~56MB of request body, which no edge in front
+ * of the API accepts (nginx answers 413 before the app sees a byte).
+ *
+ * The same frame is ~220KB as quality-92 WebP. Nothing visible is lost on the
+ * way: the server's animated WebP is itself encoded at quality 80, so a
+ * near-lossless intermediate is already below the floor the output sits on.
+ */
+const FRAME_WIRE_TYPE = "image/webp";
+const FRAME_WIRE_QUALITY = 0.92;
+
+/**
+ * Turn a canvas into the Blob that goes over the wire.
+ *
+ * A browser that cannot encode WebP falls back to PNG on its own — ``toBlob``
+ * is specified to use ``image/png`` for a type it does not support — and the
+ * server sniffs the bytes rather than trusting the name, so that path still
+ * encodes. It just pays the old size.
+ */
+export function canvasToFrameBlob(canvas: HTMLCanvasElement): Promise<Blob> {
   return new Promise((resolve, reject) => {
     canvas.toBlob(
       (blob) => (blob ? resolve(blob) : reject(new Error("canvas toBlob failed"))),
-      "image/png",
+      FRAME_WIRE_TYPE,
+      FRAME_WIRE_QUALITY,
     );
   });
 }
@@ -161,8 +184,8 @@ function encodeFramesAsGif(frames: HTMLCanvasElement[], delayMs: number): Blob {
  * Encode composed frames as an animated WebP.
  *
  * The round trip is not an optimisation choice — no browser can encode animated
- * WebP, so the frames have to leave the page. They go as lossless PNG so the
- * server compresses the original pixels once rather than compounding losses.
+ * WebP, so the frames have to leave the page. See ``FRAME_WIRE_TYPE`` for why
+ * they leave as WebP rather than as the PNG they are composed in.
  */
 async function encodeFramesAsWebp(
   host: DetailPageHost,
@@ -170,7 +193,7 @@ async function encodeFramesAsWebp(
   delayMs: number,
   signal?: AbortSignal,
 ): Promise<Blob> {
-  const payload = await Promise.all(frames.map(canvasToPngBlob));
+  const payload = await Promise.all(frames.map(canvasToFrameBlob));
   const fps = Math.max(1, Math.round(1000 / Math.max(1, delayMs)));
   return host.api.encodeDetailPageAnimation(payload, { fps, format: "webp" }, signal);
 }
