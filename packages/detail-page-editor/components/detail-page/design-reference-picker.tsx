@@ -9,6 +9,7 @@ import {
   REFERENCE_ACCEPT_ATTR,
   estimateBriefCredits,
   finalizeReferenceDataUri,
+  planReferenceTokens,
   readReferenceFile,
   referenceOrdinal,
   type DesignReferenceAspect,
@@ -46,6 +47,9 @@ type Picked = {
   aspects: DesignReferenceAspect[];
   /** 이 장의 비전 입력 토큰. 0 은 "아직 못 쟀다" — 값은 비싼 쪽으로 잡힌다. */
   inputTokens: number;
+  /** 이 장의 가로세로. 0 이면 아직 못 쟀다 — 세로로 긴 캡쳐의 값은 이 크기로 정해진다. */
+  width: number;
+  height: number;
 };
 
 export function DesignReferencePicker({
@@ -70,6 +74,9 @@ export function DesignReferencePicker({
     aspects: DesignReferenceAspect[];
     /** 앞 화면에서 이미 잰 크기. 0 이면 여기서도 비싼 쪽으로 잡는다. */
     inputTokens: number;
+    /** 앞 화면에서 잰 가로세로. 옛 임시저장에는 없어서 선택이다. */
+    width?: number;
+    height?: number;
   }[];
   disabled?: boolean;
 }) {
@@ -82,6 +89,8 @@ export function DesignReferencePicker({
         uri: entry.uri,
         aspects: [...entry.aspects],
         inputTokens: entry.inputTokens,
+        width: entry.width ?? 0,
+        height: entry.height ?? 0,
       })),
   );
   const [instruction, setInstruction] = useState("");
@@ -106,6 +115,8 @@ export function DesignReferencePicker({
             uri: await readReferenceFile(file),
             aspects: [],
             inputTokens: 0,
+            width: 0,
+            height: 0,
           });
         } catch (err) {
           setError(err instanceof Error ? err.message : "참고 사진을 붙이지 못했어요.");
@@ -128,7 +139,13 @@ export function DesignReferencePicker({
           setItems((prev) =>
             prev.map((entry) =>
               entry.id === item.id
-                ? { ...entry, uri: result.uri, inputTokens: result.inputTokens }
+                ? {
+                    ...entry,
+                    uri: result.uri,
+                    inputTokens: result.inputTokens,
+                    width: result.width,
+                    height: result.height,
+                  }
                 : entry,
             ),
           );
@@ -168,7 +185,10 @@ export function DesignReferencePicker({
 
   // 값은 장수가 아니라 **붙인 그림의 크기**로 정해진다. 서버와 같은 공식이라 여기 뜬 수가
   // 곧 청구될 수다(선차감이라 미리 맞아야 한다).
-  const credits = estimateBriefCredits(items.map((item) => item.inputTokens));
+  //
+  // 크기를 그대로 넘기는 이유는 세로로 긴 캡쳐 때문이다 — 서버가 조각내 싣고, 조각 수는
+  // **몇 장을 붙였는지**에 따라 달라진다. 장마다 미리 굳혀 둔 토큰 수로는 못 센다.
+  const credits = estimateBriefCredits(planReferenceTokens(items));
 
   const analyze = useCallback(async () => {
     if (!items.length || busy) return;
