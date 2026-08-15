@@ -1,0 +1,42 @@
+name: DPNext CI
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/dpnext-ci.yml"
+      - "apps/detail-page-next-lab/**"
+      - "packages/detail-document-next/**"
+      - "packages/detail-dom-editor-next/**"
+      - "packages/detail-dom-renderer-next/**"
+      - "vitest.dpnext.config.mts"
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/dpnext-ci.yml"
+      - "apps/detail-page-next-lab/**"
+      - "packages/detail-document-next/**"
+      - "packages/detail-dom-editor-next/**"
+      - "packages/detail-dom-renderer-next/**"
+      - "vitest.dpnext.config.mts"
+
+permissions:
+  contents: read
+
+jobs:
+  check-dpnext:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+
+      - run: npm ci
+
+      - run: npm exec vitest run -- --config vitest.dpnext.config.mts
+
+      - run: bash apps/detail-page-next-lab/check-isolation.sh
+
+      - run: npm run typecheck

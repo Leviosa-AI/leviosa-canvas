@@ -5,6 +5,7 @@ import type {
   DpnextPatchOperation,
   DpnextScalar,
 } from "../../detail-document-next/src";
+import { validateSvgMarkup } from "../../detail-document-next/src";
 
 export function patchFor(
   document: DetailDocumentV2,
@@ -70,10 +71,17 @@ export const cropImage = (
   sha: string,
   nodeId: string,
   objectPosition: string,
-) => setStyle(document, sha, nodeId, { objectFit: "cover", objectPosition });
+) => {
+  if (!/^(-?\d+(?:\.\d+)?%|\b(?:left|center|right)\b)(\s+(-?\d+(?:\.\d+)?%|\b(?:top|center|bottom)\b))?$/.test(objectPosition)) {
+    throw new Error("invalid crop objectPosition");
+  }
+  return setStyle(document, sha, nodeId, { objectFit: "cover", objectPosition });
+};
 
-export const replaceSvg = (document: DetailDocumentV2, sha: string, nodeId: string, svg: string) =>
-  patchFor(document, sha, { op: "replace_svg", node_id: nodeId, value: svg }, "replace svg");
+export const replaceSvg = (document: DetailDocumentV2, sha: string, nodeId: string, svg: string) => {
+  validateSvgMarkup(svg);
+  return patchFor(document, sha, { op: "replace_svg", node_id: nodeId, value: svg }, "replace svg");
+};
 
 export const insertNode = (
   document: DetailDocumentV2,

@@ -10,7 +10,7 @@ export default defineConfig({
       "packages/detail-document-next/test/dpnext-*.spec.ts",
       "packages/detail-dom-renderer-next/test/dpnext-*.spec.tsx",
       "packages/detail-dom-editor-next/test/dpnext-*.spec.{ts,tsx}",
-      "apps/detail-page-next-lab/test/dpnext-*.spec.ts",
+      "apps/detail-page-next-lab/test/dpnext-*.spec.{ts,tsx}",
     ],
     pool: "forks",
   },

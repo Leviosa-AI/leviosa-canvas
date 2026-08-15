@@ -2,11 +2,15 @@
 set -euo pipefail
 
 repo_root="$(git rev-parse --show-toplevel)"
-base_sha="9320c08"
+base_sha="${DPNEXT_ISOLATION_BASE_SHA:-}"
+if [[ -z "$base_sha" ]] && git -C "$repo_root" show-ref --verify --quiet refs/remotes/origin/main; then
+  base_sha="$(git -C "$repo_root" merge-base HEAD refs/remotes/origin/main)"
+fi
+base_sha="${base_sha:-9320c08}"
 
 is_allowed() {
   case "$1" in
-    packages/detail-document-next/*|packages/detail-dom-renderer-next/*|packages/detail-dom-editor-next/*|apps/detail-page-next-lab/*|vitest.dpnext.config.mts) return 0 ;;
+    packages/detail-document-next/*|packages/detail-dom-renderer-next/*|packages/detail-dom-editor-next/*|apps/detail-page-next-lab/*|vitest.dpnext.config.mts|.github/workflows/dpnext-ci.yml) return 0 ;;
     *) return 1 ;;
   esac
 }

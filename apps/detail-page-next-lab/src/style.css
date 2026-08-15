@@ -8,8 +8,8 @@
 * { box-sizing: border-box; }
 body { margin: 0; }
 .dpnext-capture-surface { width: fit-content; min-width: 1px; background: transparent; }
-button, input, textarea { font: inherit; }
-button:focus-visible, input:focus-visible, textarea:focus-visible {
+button, input, select, textarea { font: inherit; }
+button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible {
   outline: 3px solid #6da68a;
   outline-offset: 2px;
 }
@@ -54,7 +54,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible {
 .lab-inspector__body { display: grid; gap: 18px; padding: 18px; }
 .lab-node-meta { margin: 0; color: #68746f; font: 11px ui-monospace, monospace; overflow-wrap: anywhere; }
 .lab-inspector label { display: grid; gap: 7px; color: #34423c; font-size: 11px; font-weight: 700; }
-.lab-inspector textarea, .lab-inspector input {
+.lab-inspector textarea, .lab-inspector input, .lab-inspector select {
   width: 100%;
   border: 1px solid #b9c3bd;
   border-radius: 4px;
@@ -62,7 +62,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible {
   background: white;
 }
 .lab-inspector textarea { resize: vertical; min-height: 80px; padding: 9px; line-height: 1.5; }
-.lab-inspector input { height: 34px; padding: 0 8px; }
+.lab-inspector input, .lab-inspector select { height: 34px; padding: 0 8px; }
 .lab-inspector button {
   min-height: 36px;
   border: 1px solid #203d31;
@@ -94,6 +94,14 @@ button:focus-visible, input:focus-visible, textarea:focus-visible {
 }
 [data-dpnext-node-id="txt_title"] { white-space: pre-line; }
 [data-dpnext-editor-surface] { position: relative; }
+[data-dpnext-transform-overlay] { position: absolute; inset: 0; pointer-events: none; }
+[data-dpnext-transform-overlay] [role="button"] { pointer-events: auto; }
+[contenteditable][role="textbox"] {
+  min-height: 32px;
+  padding: 6px 8px;
+  color: #17251f;
+  white-space: pre-wrap;
+}
 [aria-label="선택된 레이어"] {
   position: fixed;
   right: 20px;

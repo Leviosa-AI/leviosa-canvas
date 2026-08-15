@@ -1,5 +1,5 @@
 import type { DetailDocumentPatchV1, DetailDocumentV2, DpnextNode } from "./types";
-import { validateDocument } from "./validate";
+import { validateDocument, validatePatch } from "./validate";
 
 export class DpnextRevisionConflict extends Error {}
 
@@ -40,6 +40,7 @@ export function applyPatch(
   if (patch.document_id !== document.document_id) {
     throw new DpnextRevisionConflict("patch targets another DetailDocument");
   }
+  validatePatch(patch);
   const next = structuredClone(document);
   for (const operation of patch.operations) {
     if (!PATCH_OPERATIONS.has(operation.op)) {

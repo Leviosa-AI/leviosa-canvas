@@ -14,6 +14,24 @@ export class History<T> {
     this.future = [];
   }
 
+  replace(next: T): void {
+    this.present = this.clone(next);
+    this.past = [];
+    this.future = [];
+  }
+
+  replacePresent(next: T): void {
+    this.present = this.clone(next);
+  }
+
+  canUndo(): boolean {
+    return this.past.length > 0;
+  }
+
+  canRedo(): boolean {
+    return this.future.length > 0;
+  }
+
   undo(): T {
     const previous = this.past.pop();
     if (!previous) return this.current();
