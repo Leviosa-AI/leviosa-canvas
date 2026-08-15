@@ -12,7 +12,7 @@ const NODE_TYPES = new Set([
   "particles",
   "divider",
 ]);
-const FORBIDDEN_SVG = /<\s*script\b|<\s*foreignObject\b|\son[a-z]+\s*=|javascript:|(?:href|xlink:href)\s*=\s*["']\s*(?:https?:|\/\/|data:)|url\(\s*["']?\s*(?:https?:|\/\/|javascript:|data:)/i;
+const FORBIDDEN_SVG = /<\s*script\b|<\s*foreignObject\b|\son[a-z]+\s*=|javascript:|(?:href|xlink:href)\s*=\s*["']\s*(?:https?:|\/\/|data:)/i;
 const FORBIDDEN_STYLE_VALUE = /(?:url|image-set)\s*\(|expression\s*\(|javascript:|@import/i;
 const SHA256 = /^[0-9a-f]{64}$/;
 
@@ -37,12 +37,38 @@ export class DpnextValidationError extends Error {
   }
 }
 
+function containsUnsafeSvgUrl(svg: string): boolean {
+  const normalized = svg.toLowerCase();
+  let searchFrom = 0;
+  while (searchFrom < normalized.length) {
+    const urlStart = normalized.indexOf("url(", searchFrom);
+    if (urlStart === -1) return false;
+    let cursor = urlStart + 4;
+    while (cursor < normalized.length && /\s/u.test(normalized[cursor])) cursor += 1;
+    if (normalized[cursor] === '"' || normalized[cursor] === "'") {
+      cursor += 1;
+      while (cursor < normalized.length && /\s/u.test(normalized[cursor])) cursor += 1;
+    }
+    if (
+      normalized.startsWith("http:", cursor)
+      || normalized.startsWith("https:", cursor)
+      || normalized.startsWith("//", cursor)
+      || normalized.startsWith("javascript:", cursor)
+      || normalized.startsWith("data:", cursor)
+    ) {
+      return true;
+    }
+    searchFrom = urlStart + 4;
+  }
+  return false;
+}
+
 function fail(code: string, path: string, message: string): never {
   throw new DpnextValidationError(code, path, message);
 }
 
 export function validateSvgMarkup(svg: string, path = "$.svg"): void {
-  if (!svg.startsWith("<svg") || FORBIDDEN_SVG.test(svg)) {
+  if (!svg.startsWith("<svg") || FORBIDDEN_SVG.test(svg) || containsUnsafeSvgUrl(svg)) {
     fail("DPNEXT-SVG-002", path, "unsafe SVG");
   }
 }

@@ -10,7 +10,7 @@ base_sha="${base_sha:-9320c08}"
 
 is_allowed() {
   case "$1" in
-    packages/detail-document-next/*|packages/detail-dom-renderer-next/*|packages/detail-dom-editor-next/*|apps/detail-page-next-lab/*|vitest.dpnext.config.mts) return 0 ;;
+    packages/detail-document-next/*|packages/detail-dom-renderer-next/*|packages/detail-dom-editor-next/*|apps/detail-page-next-lab/*|vitest.dpnext.config.mts|.github/workflows/dpnext-ci.yml) return 0 ;;
     *) return 1 ;;
   esac
 }

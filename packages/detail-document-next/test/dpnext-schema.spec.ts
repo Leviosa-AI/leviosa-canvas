@@ -55,4 +55,15 @@ describe("dpnext document schema", () => {
     };
     expect(() => validateDocument(externalCss)).toThrow(/DPNEXT-STYLE-002/);
   });
+
+  it("rejects SVG URLs with long attacker-controlled whitespace without regex backtracking", () => {
+    const malicious = structuredClone(document);
+    malicious.sections[0].children = [{
+      id: "svg_url_whitespace",
+      type: "svg",
+      svg: `<svg><rect style="fill:url(${" ".repeat(100_000)}'https://example.com/tracker.svg')" /></svg>`,
+    }] as never;
+
+    expect(() => validateDocument(malicious)).toThrow(/DPNEXT-SVG-002/);
+  });
 });
