@@ -71,9 +71,22 @@ type Resolved = {
   assets: Required<DetailPageEditorAssets>;
 };
 
+/**
+ * 뒤 슬래시를 뗀다.
+ *
+ * `replace(/\/+$/, "")` 가 아닌 이유: 그 정규식은 슬래시만 잔뜩 들어온 문자열에서
+ * 역추적으로 느려진다(CodeQL `js/polynomial-redos`). 여기 오는 값은 개발자가 적는
+ * 설정이라 공격면은 아니지만, 자르는 일에 정규식이 필요하지도 않다.
+ */
+function trimTrailingSlashes(value: string): string {
+  let end = value.length;
+  while (end > 0 && value[end - 1] === "/") end -= 1;
+  return value.slice(0, end);
+}
+
 /** 뒤 슬래시를 떼고 앞 슬래시를 붙인다. `""` 는 그대로 둔다(기본값이 그것이다). */
 function normalizeBase(value: string): string {
-  const trimmed = value.trim().replace(/\/+$/, "");
+  const trimmed = trimTrailingSlashes(value.trim());
   if (!trimmed) return "";
   if (/^[a-z]+:\/\//i.test(trimmed)) return trimmed;
   return trimmed.startsWith("/") ? trimmed : `/${trimmed}`;
@@ -149,5 +162,5 @@ export function fontBundleAbsoluteUrl(
   const base = current.assets.fontBundle;
   if (/^https?:\/\//i.test(base)) return `${base}${path}`;
   if (!/^https:\/\//i.test(origin)) return null;
-  return `${origin.replace(/\/+$/, "")}${base}${path}`;
+  return `${trimTrailingSlashes(origin)}${base}${path}`;
 }

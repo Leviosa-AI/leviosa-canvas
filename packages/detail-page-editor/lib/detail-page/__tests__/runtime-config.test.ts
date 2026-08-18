@@ -47,6 +47,12 @@ describe("basePath", () => {
     expect(editorEndpoint("icons")).toBe("/agency/api/icons");
   });
 
+  /** 슬래시만 잔뜩 와도 즉시 끝난다(예전 정규식은 여기서 역추적으로 느려졌다). */
+  it("슬래시가 아무리 많아도 다 뗀다", () => {
+    configureDetailPageEditor({ basePath: `/agency${"/".repeat(50_000)}` });
+    expect(editorEndpoint("icons")).toBe("/agency/api/icons");
+  });
+
   it("두 번 불러도 마지막 것이 이긴다", () => {
     configureDetailPageEditor({ basePath: "/a" });
     configureDetailPageEditor({ basePath: "/b" });
