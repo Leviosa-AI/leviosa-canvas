@@ -19,12 +19,20 @@ const PKG = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
  *
  * 키를 새로 부르면서 번들에 안 넣으면 여기서 죽는다. 단, `defaultValue` 를 단 자리는
  * 봐준다 — 그건 "번역 없이도 글자가 나온다"는 선언이다.
+ *
+ * **`t(` 만 훑지 않는다.** 예전에는 그랬고, 그래서 상수 테이블에 적힌 키가 통째로
+ * 빠져나갔다 — `{ id: "shapes", labelKey: "detailPage.sidebar.shapes" }` 같은 자리는
+ * 호출이 아니라 데이터라 정규식 밖이었다. 첫 소비자(leviosa-frontend)는 자기
+ * `public/locales` 에 같은 키를 들고 있어서 아무 일도 안 났고, 두 번째 소비자
+ * (leviosa-agency)에서 좌측 레일이 통째로 키로 나오고서야 드러났다. 73개였다.
+ *
+ * 그래서 이제 **소스에 적힌 `detailPage.…` 문자열 전부**를 센다.
  */
 function callSites(): Array<{ key: string; hasDefault: boolean; dynamic: boolean }> {
   // 한 줄로는 안 잡힌다. t("...", { \n defaultValue: ... }) 가 흔해서 파일 전체를 본다.
   const files = execFileSync(
     "grep",
-    ["-rl", "-E", "\\bt\\(", PKG, "--exclude-dir=__tests__", "--exclude-dir=i18n"],
+    ["-rl", "-E", "detailPage\\.", PKG, "--exclude-dir=__tests__", "--exclude-dir=i18n"],
     { encoding: "utf8" },
   )
     .split("\n")
@@ -34,9 +42,10 @@ function callSites(): Array<{ key: string; hasDefault: boolean; dynamic: boolean
   for (const file of files) {
     const text = readFileSync(file, "utf8");
     // 키 뒤 400자 안에 defaultValue 가 있으면 기본값을 단 자리로 본다.
-    const re = /\bt\(\s*([`"])([a-zA-Z0-9_.]+)/g;
+    const re = /(["`])(detailPage\.[a-zA-Z0-9_.]+)\1?/g;
     let match: RegExpExecArray | null;
     while ((match = re.exec(text))) {
+      // 백틱이면 뒤에 `${...}` 가 붙는 동적 키다(`detailPage.properties.weight${w}`).
       const dynamic = match[1] === "`";
       const window = text.slice(match.index, match.index + 400);
       out.push({

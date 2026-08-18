@@ -21,6 +21,7 @@ import {
   resolveDetailPageFontStyle,
 } from "./font-catalog";
 import { closestEditorFontWeight, getEditorFont } from "./editor-fonts";
+import { fontBundleAbsoluteUrl } from "../detail-page/runtime-config";
 
 export type GifWebFont = {
   family: string;
@@ -72,18 +73,19 @@ export function resolveGifWebFonts(
     }
 
     // 번들 폰트는 우리 오리진에서 서빙된다 — 서버가 받아갈 수 있는 절대 주소로만 보낸다.
-    if (!/^https:\/\//i.test(origin)) continue;
     const slug = slugifyFamily(family);
     if (!slug) continue;
     const weight = closestEditorFontWeight(editorFont, face.weight);
+    const url = fontBundleAbsoluteUrl(
+      origin,
+      `/family-css/${slug}-${weight}.css?v=${LEVIOSA_KONVA_VERSION}`,
+    );
+    // 번들이 상대 경로로 설정돼 있고 오리진도 http 면 서버가 못 받아간다 — 건너뛴다.
+    if (!url) continue;
     const key = `${family}\n${weight}`;
     if (seen.has(key)) continue;
     seen.add(key);
-    out.push({
-      family,
-      weight,
-      url: `${origin}/render-fonts/family-css/${slug}-${weight}.css?v=${LEVIOSA_KONVA_VERSION}`,
-    });
+    out.push({ family, weight, url });
   }
 
   return out.slice(0, 8);

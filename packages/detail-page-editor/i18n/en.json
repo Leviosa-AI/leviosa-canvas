@@ -143,7 +143,29 @@
         "weight600": "Semi bold",
         "weight700": "Bold",
         "weight800": "Extra bold",
-        "weight900": "Black"
+        "weight900": "Black",
+        "alignInGroup": "Align within group",
+        "alignInSection": "Align within section",
+        "cellGridCols": "Columns",
+        "cellGridGif": "Cell fill GIF",
+        "cellGridGifHint": "Filled cells light up in order, hold 2s, then repeat. Add axis and value labels on the canvas.",
+        "cellGridGifMake": "Make chart GIF",
+        "cellGridInvalid": "Each row needs at least one cell and cannot exceed the column count.",
+        "cellGridRows": "Filled cells per row",
+        "cellGridShape": "Shape",
+        "countUpGif": "Number to count-up",
+        "countUpGifHint": "Counts up from 0 to {{target}}, holds 2s, then repeats. It lands right here.",
+        "countUpGifMake": "Make count-up GIF",
+        "gifShapeUnreadable": "Could not read the shape.",
+        "gifStageDetecting": "Finding the subject…",
+        "gifStageEncoding": "Encoding the GIF…",
+        "gifStagePreparing": "Preparing…",
+        "gifStageRendering": "Rendering",
+        "gifStageUploading": "Saving…",
+        "imageGif": "Image to GIF",
+        "imageGifCancel": "Cancel (the GIF in progress is saved to My images)",
+        "imageGifMake": "Make GIF",
+        "imageGifMaskFallback": "Couldn't isolate the object, so the effect covers the whole image."
       },
       "gifEffects": {
         "text": {
@@ -229,6 +251,10 @@
             "label": "Holographic foil (gold)",
             "hint": "Sweeps a warm gold sheen over it, like gold leaf."
           }
+        },
+        "group": {
+          "object": "Subject in the image",
+          "whole": "Whole image"
         }
       },
       "chart": {
@@ -284,7 +310,25 @@
         "detachHint": "Breaks it into plain shapes and text. After that, values and bars no longer stay in sync.",
         "panelTitle": "Charts",
         "insertHint": "Click to add to the canvas",
-        "panelHint": "Drop one in, then edit the values on the right — the bars follow. You can paste a table from Excel."
+        "panelHint": "Drop one in, then edit the values on the right — the bars follow. You can paste a table from Excel.",
+        "presets": {
+          "barHCompare": "Horizontal · Compare",
+          "barHMinimal": "Minimal bars",
+          "barHPercent": "Horizontal · Percent",
+          "barHRank": "Horizontal · Ranking",
+          "barVAxis": "Bar with axis",
+          "barVCompare": "Vertical · Compare",
+          "barVPlain": "Vertical · Plain",
+          "barVRank": "Ranked columns",
+          "donutShare": "Donut · Share",
+          "donutSingle": "Single-ratio donut",
+          "gaugeRate": "Gauge · Rate",
+          "gaugeScore": "Score gauge",
+          "lineCompare": "Comparison line",
+          "lineTrend": "Line · Trend",
+          "stackMix": "Stacked · Mix",
+          "stackShare": "Composition stack"
+        }
       },
       "table": {
         "typeTable": "Table",
@@ -347,6 +391,19 @@
           "moveColumn": "Drag to reorder column",
           "removeColumn": "Delete column {{column}}",
           "insertColumn": "Insert column at position {{at}}"
+        },
+        "preset": {
+          "gridCheck": "Checkmark comparison",
+          "gridCompare": "Comparison table",
+          "gridHeader": "Header table",
+          "gridPrice": "Price table",
+          "gridZebra": "Zebra comparison",
+          "specAiry": "Airy spec table",
+          "specBoxed": "Boxed spec table",
+          "specCelled": "Celled spec table",
+          "specHairline": "Hairline spec table",
+          "specRight": "Right-aligned values",
+          "typeCentered": "By type"
         }
       },
       "brandAssets": {
@@ -381,7 +438,11 @@
         "notAGif": "Only GIF files can be uploaded.",
         "upload": "Upload GIF",
         "empty": "No GIFs yet. Turn a text, image, or shape into one.",
-        "sectionOther": "Other"
+        "sectionOther": "Other",
+        "sectionImageEffect": "Image GIFs (effect)",
+        "sectionImagePrompt": "Image GIFs (prompt)",
+        "sectionShape": "Shape GIFs",
+        "sectionText": "Text GIFs"
       },
       "text": {
         "heading": "Heading",
@@ -573,7 +634,9 @@
         "next": "Next",
         "replace": "Replace",
         "replaceAll": "Replace all",
-        "chartHint": "Text inside charts is redrawn from the data, so it is skipped."
+        "chartHint": "Text inside charts is redrawn from the data, so it is skipped.",
+        "idle": "Searches the whole document",
+        "none": "No matches"
       },
       "pageToolbar": {
         "aiGenerate": "AI generate",
@@ -744,7 +807,15 @@
         "previewAlt": "Code preview",
         "previewEmpty": "Enter content to see a preview here.",
         "insert": "Add to canvas",
-        "hint": "Codes are generated right in your browser. No credits are used."
+        "hint": "Codes are generated right in your browser. No credits are used.",
+        "eanInvalid": "Enter 12 digits and we'll add the check digit. With 13 digits, the check digit must match.",
+        "eanLabel": "Product barcode number",
+        "eanPlaceholder": "12 or 13 digits",
+        "kindEan": "Barcode",
+        "kindQr": "QR code",
+        "qrInvalid": "The content is too long to encode as a QR code.",
+        "valueLabel": "Link or text",
+        "valuePlaceholder": "https://…"
       },
       "bubbleTail": {
         "handle": "Drag the tail tip to move it (drag inside the body to remove the tail)"
@@ -775,10 +846,18 @@
         "brandShapes": "Brand shapes",
         "brandReferences": "My references",
         "layers": "Layers",
-        "structure": "Structure"
+        "structure": "Structure",
+        "charts": "Charts",
+        "decorations": "Decor",
+        "icons": "Icons",
+        "qr": "QR",
+        "shapes": "Shapes",
+        "tables": "Tables"
       },
       "recents": {
-        "title": "Favorites & recent"
+        "title": "Favorites & recent",
+        "pin": "Add to favorites",
+        "unpin": "Remove from favorites"
       },
       "crop": {
         "title": "Crop",

@@ -20,6 +20,7 @@ import {
   applyTextLineFit,
   clearPlaceholderImageSrc,
 } from "../../lib/detail-page-canvas/custom-props-adapter";
+import { TooltipProvider } from "../ui/tooltip";
 import { CanvasStoreContext } from "./canvas-observer";
 import { LeviosaCanvasWorkspace } from "./leviosa-canvas-workspace";
 import { DetailPagePagesTimeline } from "./detail-page-pages-timeline";
@@ -1018,6 +1019,13 @@ export function DetailPageEditor({
     <CanvasStoreContext.Provider value={store}>
     {/* 캔버스 위 띠가 쓰는 값들. props로 내리면 작업 영역이 통째로 다시 만들어진다. */}
     <EditorAiProvider value={aiValue}>
+    {/* 편집기가 자기 툴팁 프로바이더를 깐다.
+        예전에는 안 깔았다 — 첫 소비자(leviosa-frontend)가 앱 레이아웃에 전역으로 하나
+        갖고 있어서 우연히 서 있었을 뿐이다. 그것이 없는 소비자에서는 AI 생성 패널이
+        열리는 순간 `Tooltip must be used within TooltipProvider` 로 화면이 통째로
+        죽었다. Radix 의 프로바이더는 중첩이 안전하므로(안쪽이 이긴다), 이미 깔아 둔
+        앱에도 해가 없다. */}
+    <TooltipProvider>
     <div
       data-dpe-root=""
       className="flex h-screen min-h-[640px] flex-col bg-dpe-ink-100"
@@ -1046,6 +1054,7 @@ export function DetailPageEditor({
         <slots.PricingModal open={pricingOpen} onOpenChange={setPricingOpen} />
       ) : null}
     </div>
+    </TooltipProvider>
     </EditorAiProvider>
     </CanvasStoreContext.Provider>
   );

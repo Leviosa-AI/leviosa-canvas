@@ -143,7 +143,29 @@
         "weight600": "약간 굵게",
         "weight700": "굵게",
         "weight800": "아주 굵게",
-        "weight900": "가장 굵게"
+        "weight900": "가장 굵게",
+        "alignInGroup": "그룹 내 정렬",
+        "alignInSection": "섹션 정렬",
+        "cellGridCols": "열 수",
+        "cellGridGif": "셀 차오름 GIF",
+        "cellGridGifHint": "채운 칸이 순서대로 켜진 뒤 2초 멈췄다 반복해요. 축·수치 글자는 캔버스에서 위에 얹으세요.",
+        "cellGridGifMake": "차트 GIF 만들기",
+        "cellGridInvalid": "행별 칸 수는 1개 이상이고 열 수를 넘을 수 없어요.",
+        "cellGridRows": "행별 채울 칸",
+        "cellGridShape": "모양",
+        "countUpGif": "숫자를 카운트업으로",
+        "countUpGifHint": "0에서 {{target}}까지 오른 뒤 2초 멈췄다 반복해요. 이 자리에 그대로 들어갑니다.",
+        "countUpGifMake": "카운트업 GIF 만들기",
+        "gifShapeUnreadable": "도형을 읽지 못했어요.",
+        "gifStageDetecting": "물체를 찾는 중…",
+        "gifStageEncoding": "GIF로 굽는 중…",
+        "gifStagePreparing": "준비 중…",
+        "gifStageRendering": "그리는 중",
+        "gifStageUploading": "저장 중…",
+        "imageGif": "이미지를 GIF로",
+        "imageGifCancel": "취소 (만들던 GIF는 '내 이미지'에 저장돼요)",
+        "imageGifMake": "GIF 만들기",
+        "imageGifMaskFallback": "물체를 특정하지 못해 이미지 전체에 적용했어요."
       },
       "gifEffects": {
         "text": {
@@ -229,6 +251,10 @@
             "label": "홀로그램 포일 (골드)",
             "hint": "금박 포일처럼 따뜻한 금색 광택이 훑고 지나갑니다."
           }
+        },
+        "group": {
+          "object": "이미지 속 물체",
+          "whole": "이미지 전체"
         }
       },
       "chart": {
@@ -284,7 +310,25 @@
         "detachHint": "도형과 글자로 풀어 자유롭게 편집합니다. 푼 뒤에는 값과 막대가 따로 놉니다.",
         "panelTitle": "차트",
         "insertHint": "클릭하여 캔버스에 삽입",
-        "panelHint": "놓은 뒤 오른쪽에서 값을 고치면 막대 길이가 따라갑니다. 엑셀에서 복사해 붙여넣을 수도 있어요."
+        "panelHint": "놓은 뒤 오른쪽에서 값을 고치면 막대 길이가 따라갑니다. 엑셀에서 복사해 붙여넣을 수도 있어요.",
+        "presets": {
+          "barHCompare": "가로 막대 · 비교",
+          "barHMinimal": "간결 가로 막대",
+          "barHPercent": "가로 막대 · 퍼센트",
+          "barHRank": "가로 막대 · 순위",
+          "barVAxis": "축 있는 막대",
+          "barVCompare": "세로 막대 · 비교",
+          "barVPlain": "세로 막대 · 기본",
+          "barVRank": "순위 세로 막대",
+          "donutShare": "도넛 · 구성비",
+          "donutSingle": "단일 비율 도넛",
+          "gaugeRate": "게이지 · 달성률",
+          "gaugeScore": "점수 게이지",
+          "lineCompare": "비교 꺾은선",
+          "lineTrend": "꺾은선 · 추이",
+          "stackMix": "누적 · 구성",
+          "stackShare": "구성비 누적"
+        }
       },
       "table": {
         "typeTable": "표",
@@ -347,6 +391,19 @@
           "moveColumn": "끌어서 열 순서 바꾸기",
           "removeColumn": "{{column}}열 삭제",
           "insertColumn": "{{at}}번째 자리에 열 추가"
+        },
+        "preset": {
+          "gridCheck": "체크 비교표",
+          "gridCompare": "비교표",
+          "gridHeader": "머리글 표",
+          "gridPrice": "가격표",
+          "gridZebra": "줄무늬 비교표",
+          "specAiry": "여백형 스펙표",
+          "specBoxed": "상자형 스펙표",
+          "specCelled": "칸 구분 스펙표",
+          "specHairline": "헤어라인 스펙표",
+          "specRight": "값 우측정렬",
+          "typeCentered": "타입별 안내"
         }
       },
       "brandAssets": {
@@ -381,7 +438,11 @@
         "notAGif": "GIF 파일만 올릴 수 있어요.",
         "upload": "GIF 올리기",
         "empty": "아직 GIF가 없어요. 텍스트·이미지·도형을 골라 GIF로 만들어 보세요.",
-        "sectionOther": "기타"
+        "sectionOther": "기타",
+        "sectionImageEffect": "이미지 GIF (이펙트)",
+        "sectionImagePrompt": "이미지 GIF (프롬프트)",
+        "sectionShape": "도형 GIF",
+        "sectionText": "텍스트 GIF"
       },
       "text": {
         "heading": "제목",
@@ -573,7 +634,9 @@
         "next": "다음",
         "replace": "바꾸기",
         "replaceAll": "모두 바꾸기",
-        "chartHint": "차트 안 글자는 값에서 다시 그려지므로 빠집니다."
+        "chartHint": "차트 안 글자는 값에서 다시 그려지므로 빠집니다.",
+        "idle": "문서 전체에서 찾습니다",
+        "none": "없습니다"
       },
       "pageToolbar": {
         "aiGenerate": "AI 생성",
@@ -744,7 +807,15 @@
         "previewAlt": "코드 미리보기",
         "previewEmpty": "내용을 넣으면 여기에 미리보기가 나와요.",
         "insert": "캔버스에 넣기",
-        "hint": "코드는 브라우저에서 바로 만들어져요. 크레딧이 들지 않아요."
+        "hint": "코드는 브라우저에서 바로 만들어져요. 크레딧이 들지 않아요.",
+        "eanInvalid": "12자리를 넣으면 검증번호를 채워 드려요. 13자리면 검증번호가 맞아야 해요.",
+        "eanLabel": "상품 바코드 번호",
+        "eanPlaceholder": "숫자 12자리 또는 13자리",
+        "kindEan": "바코드",
+        "kindQr": "QR 코드",
+        "qrInvalid": "내용이 너무 길어 QR로 만들 수 없어요.",
+        "valueLabel": "링크 또는 텍스트",
+        "valuePlaceholder": "https://…"
       },
       "bubbleTail": {
         "handle": "꼬리 끝을 끌어 위치를 바꿉니다 (몸통 안으로 끌면 꼬리가 사라집니다)"
@@ -775,10 +846,18 @@
         "brandShapes": "브랜드 도형",
         "brandReferences": "내 레퍼런스",
         "layers": "레이어",
-        "structure": "구조"
+        "structure": "구조",
+        "charts": "차트",
+        "decorations": "장식",
+        "icons": "아이콘",
+        "qr": "QR",
+        "shapes": "도형",
+        "tables": "표"
       },
       "recents": {
-        "title": "즐겨찾기 · 최근"
+        "title": "즐겨찾기 · 최근",
+        "pin": "즐겨찾기에 추가",
+        "unpin": "즐겨찾기에서 빼기"
       },
       "crop": {
         "title": "자르기",

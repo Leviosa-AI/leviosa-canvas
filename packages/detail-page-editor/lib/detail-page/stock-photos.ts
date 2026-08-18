@@ -1,11 +1,15 @@
 /**
  * 무료 스톡 사진(Pexels) 검색 — 편집기 "사진" 패널이 쓰는 얇은 층.
  *
- * 검색은 우리 서버(`/api/stock-photos`)를 거친다(키를 브라우저에 안 내린다).
+ * 검색은 우리 서버를 거친다(키를 브라우저에 안 내린다). 그 라우트는 패키지가 들고
+ * 있으므로(`@leviosa-ai/detail-page-editor/server/stock-photos`) 소비자는 한 줄로
+ * 마운트하면 되고, 주소는 `configureDetailPageEditor` 가 정한다.
  * 고른 사진은 **우리 S3로 옮겨 담은 뒤** 캔버스에 얹는다. 남의 주소를 문서에 그대로
  * 박으면 상세페이지가 그 서버의 수명에 묶이고, 나중에 서버가 다시 그릴 때도 그 주소를
  * 다시 받아야 한다. 브랜드 이미지·AI 이미지가 이미 같은 규칙으로 산다.
  */
+
+import { editorEndpoint } from "./runtime-config";
 
 export type StockPhoto = {
   id: string;
@@ -46,9 +50,10 @@ export async function searchStockPhotos({
   if (query.trim()) params.set("q", query.trim());
   if (perPage) params.set("per_page", String(perPage));
 
-  const response = await fetch(`/api/stock-photos?${params.toString()}`, {
-    signal,
-  });
+  const response = await fetch(
+    `${editorEndpoint("stockPhotos")}?${params.toString()}`,
+    { signal },
+  );
   if (!response.ok) throw new Error(`stock-photos ${response.status}`);
   return (await response.json()) as StockPhotoResponse;
 }
