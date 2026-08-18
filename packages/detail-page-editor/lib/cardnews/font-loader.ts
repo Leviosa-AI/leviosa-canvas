@@ -15,6 +15,8 @@ import {
   type CatalogFont,
 } from "@leviosa-ai/konva";
 
+import { editorAssetBase } from "../detail-page/runtime-config";
+
 export type FontOption = CatalogFont;
 
 /**
@@ -77,11 +79,15 @@ const COMMON_HANGUL_SAMPLE =
  * load. Stamping the bundle version into the URL makes each bundle its own cache key,
  * so a deploy can never be shadowed by the previous bundle's stylesheet.
  */
+/**
+ * 번들의 뿌리는 설정에서 온다(`configureDetailPageEditor`). 기본값은 예전과 같은
+ * `/render-fonts` 라, 아무것도 안 부른 소비자에게는 주소가 그대로다.
+ */
 function bundleUrl(path: string): string {
-  return `${path}?v=${LEVIOSA_KONVA_VERSION}`;
+  return `${editorAssetBase("fontBundle")}${path}?v=${LEVIOSA_KONVA_VERSION}`;
 }
 
-const LOCAL_FONT_CSS_URL = bundleUrl("/render-fonts/font-css.css");
+const localFontCssUrl = () => bundleUrl("/font-css.css");
 
 export class FontLoadError extends Error {
   constructor(message: string) {
@@ -139,23 +145,23 @@ function ensureFontFaceStylesheets(
   for (const { family, weight } of requests) {
     const slug = slugifyFamily(family.trim());
     if (!slug || !LOCAL_FONT_FAMILY_SLUGS.has(slug)) {
-      hrefs.push(LOCAL_FONT_CSS_URL);
+      hrefs.push(localFontCssUrl());
       continue;
     }
     const key = `${slug}\n${weight}`;
     if (seen.has(key)) continue;
     seen.add(key);
-    hrefs.push(bundleUrl(`/render-fonts/family-css/${slug}-${weight}.css`));
+    hrefs.push(bundleUrl(`/family-css/${slug}-${weight}.css`));
   }
   return Promise.all(
     hrefs.map((href) =>
       ensureStylesheet(href).catch(() => {
         const slug = href.match(/family-css\/(.+)-\d+\.css\?/)?.[1];
         return slug
-          ? ensureStylesheet(bundleUrl(`/render-fonts/family-css/${slug}.css`)).catch(() =>
-              ensureStylesheet(LOCAL_FONT_CSS_URL),
+          ? ensureStylesheet(bundleUrl(`/family-css/${slug}.css`)).catch(() =>
+              ensureStylesheet(localFontCssUrl()),
             )
-          : ensureStylesheet(LOCAL_FONT_CSS_URL);
+          : ensureStylesheet(localFontCssUrl());
       }),
     ),
   ).then(() => {});
@@ -285,7 +291,7 @@ export function prefetchFontVariants(requests: FontFaceRequest[]): void {
  * loads the font faces it uses through `loadFontFaces`.
  */
 export function loadAllGoogleFonts(): Promise<void> {
-  return ensureStylesheet(LOCAL_FONT_CSS_URL).catch(() => {});
+  return ensureStylesheet(localFontCssUrl()).catch(() => {});
 }
 
 export function loadDefaultCardnewsFonts(): Promise<void> {

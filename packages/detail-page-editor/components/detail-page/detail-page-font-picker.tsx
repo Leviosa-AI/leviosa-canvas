@@ -37,6 +37,10 @@ export function DetailPageFontPicker({
   const [loading, setLoading] = useState<string | null>(null);
   const [error, setError] = useState(false);
   const [tags, setTags] = useState<FontTag[]>([]);
+  /** 404 로 떨어진 미리보기. 한 번 떨어지면 다시 안 부른다. */
+  const [previewsMissing, setPreviewsMissing] = useState<ReadonlySet<string>>(
+    () => new Set(),
+  );
   const selected = getEditorFont(value);
   const catalogFonts = filterFontsByTags(EDITOR_CATALOG_FONTS, tags);
   const bundleFonts = filterFontsByTags(EDITOR_BUNDLE_FONTS, tags);
@@ -68,6 +72,14 @@ export function DetailPageFontPicker({
     }
   };
 
+  /**
+   * 미리보기 WebP 는 소비자 앱의 정적 자산이다(`assets.detailFontPreviews`).
+   *
+   * 그걸 굽는 스크립트를 아직 안 돌린 소비자에서는 이 그림이 통째로 404 다. 예전에는
+   * 그 자리에 깨진 이미지 아이콘과 alt 글자만 남아, 목록이 폰트 이름표만 늘어선 줄이
+   * 됐다 — 무엇을 고르는지 볼 수가 없다. 떨어지면 **이름을 그 폰트로** 그린다.
+   * 완전한 미리보기는 아니지만(가변 자소 몇 자뿐), 고를 수는 있다.
+   */
   const renderFont = (font: EditorFont) => (
     <CommandItem
       key={`${font.source}:${font.id}`}
@@ -77,14 +89,26 @@ export function DetailPageFontPicker({
       className="group min-h-[56px] gap-2 px-2 py-1"
     >
       <span className="flex h-11 min-w-0 flex-1 items-center overflow-hidden">
-        <Image
-          src={font.previewSrc}
-          alt={font.label}
-          width={560}
-          height={88}
-          className="h-auto w-full object-contain object-left"
-          unoptimized
-        />
+        {previewsMissing.has(font.previewSrc) ? (
+          <span
+            className="truncate text-lg leading-none"
+            style={{ fontFamily: `"${font.family}", sans-serif` }}
+          >
+            {font.label}
+          </span>
+        ) : (
+          <Image
+            src={font.previewSrc}
+            alt={font.label}
+            width={560}
+            height={88}
+            className="h-auto w-full object-contain object-left"
+            unoptimized
+            onError={() =>
+              setPreviewsMissing((seen) => new Set(seen).add(font.previewSrc))
+            }
+          />
+        )}
       </span>
       {font.latinOnly ? (
         <span className="shrink-0 rounded border border-dpe-ink-200 px-1 py-0.5 text-[10px] leading-none text-dpe-ink-500">

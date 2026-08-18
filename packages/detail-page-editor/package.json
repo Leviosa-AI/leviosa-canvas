@@ -1,7 +1,7 @@
 {
   "name": "@leviosa-ai/detail-page-editor",
-  "version": "0.6.4",
-  "description": "Leviosa detail-page editor shell. Source-only: consumers compile it through Next transpilePackages. Every app coupling (sourcing server, brand store, cache keys, toast) arrives through the DetailPageHost interface.",
+  "version": "0.7.0",
+  "description": "Leviosa detail-page editor shell. Source-only: consumers compile it through Next transpilePackages. Every app coupling (sourcing server, brand store, cache keys, toast) arrives through the DetailPageHost interface, and every URL it fetches comes from configureDetailPageEditor.",
   "type": "module",
   "license": "UNLICENSED",
   "repository": {
@@ -22,6 +22,9 @@
     "./host": "./components/detail-page/detail-page-host-context.tsx",
     "./types": "./types/detail-page-canvas.ts",
     "./i18n": "./i18n/index.ts",
+    "./server/stock-photos": "./server/stock-photos.ts",
+    "./server/icons": "./server/icons.ts",
+    "./server/route-kit": "./server/route-kit.ts",
     "./api-types": "./types/detail-page-api.ts",
     "./commerce-types": "./types/commerce.ts",
     "./components/canvas-store-facade": "./components/detail-page/canvas-store-facade.ts",
@@ -40,6 +43,7 @@
     "components",
     "config",
     "i18n",
+    "server",
     "lib",
     "types",
     "!**/__tests__"

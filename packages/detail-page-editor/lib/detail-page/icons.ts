@@ -1,13 +1,15 @@
 /**
  * 아이콘 검색 — 편집기 "요소 · 아이콘" 그룹이 쓰는 얇은 층.
  *
- * 검색은 우리 서버(`/api/icons`)를 거친다. 이유는 그 라우트 주석에 있다(라이선스 게이트 ·
- * 한국어 확장 · 마크업 배치).
+ * 검색은 우리 서버를 거친다. 이유는 그 라우트 주석에 있다(라이선스 게이트 · 한국어 확장 ·
+ * 마크업 배치). 라우트는 패키지가 들고 있고(`@leviosa-ai/detail-page-editor/server/icons`)
+ * 주소는 `configureDetailPageEditor` 가 정한다.
  *
  * 사진과 달리 **S3로 옮겨 담지 않는다.** 아이콘은 삽입하는 순간 마크업이 문서 안에
  * 박히므로 저장된 상세페이지가 제공처 수명에 묶이지 않는다.
  */
 
+import { editorEndpoint } from "./runtime-config";
 import type { IconStyle } from "./icon-search";
 
 export type { IconStyle };
@@ -61,7 +63,10 @@ export async function searchIcons({
   if (style) params.set("style", style);
   if (page > 0) params.set("page", String(page));
 
-  const response = await fetch(`/api/icons?${params.toString()}`, { signal });
+  const response = await fetch(
+    `${editorEndpoint("icons")}?${params.toString()}`,
+    { signal },
+  );
   if (!response.ok) throw new Error(`icons ${response.status}`);
   return (await response.json()) as IconSearchResponse;
 }

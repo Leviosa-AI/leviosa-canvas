@@ -22,6 +22,7 @@
  * keeps the picker honest about which bytes the canvas will actually draw.
  */
 
+import { editorAssetBase } from "../detail-page/runtime-config";
 import { ALL_FONT_OPTIONS, loadFontFaces } from "../cardnews/font-loader";
 
 import {
@@ -61,7 +62,7 @@ function fromCatalog(font: (typeof DETAIL_PAGE_FONTS)[number]): EditorFont {
     family: font.family,
     label: font.label,
     labelEn: font.labelEn,
-    previewSrc: `/detail-font-previews/${font.id}.webp`,
+    previewSrc: `${editorAssetBase("detailFontPreviews")}/${font.id}.webp`,
     tags: toFontTags(font.tags),
     weights: getDetailPageFontWeights(font),
     latinOnly: font.latinOnly,
@@ -78,7 +79,7 @@ function fromBundle(font: (typeof ALL_FONT_OPTIONS)[number]): EditorFont {
     family: font.family,
     label: font.label,
     labelEn: font.family,
-    previewSrc: `/cardnews-font-previews/${font.id}.webp`,
+    previewSrc: `${editorAssetBase("cardnewsFontPreviews")}/${font.id}.webp`,
     tags: bundleFontTags(font.id),
     weights: [...font.weights].sort((a, b) => a - b),
     licenseName: font.license.name,

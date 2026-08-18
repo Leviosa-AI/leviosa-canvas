@@ -91,6 +91,7 @@ import {
   type RemoveBackgroundFn,
 } from "./ai-generate-panel";
 import { toHexColor } from "../../lib/detail-page/css-color";
+import { editorAssetBase } from "../../lib/detail-page/runtime-config";
 import { setZ as setElementZ, zOrderOf } from "../../lib/detail-page/z-order";
 import {
   canDistribute,
@@ -959,7 +960,7 @@ function textGifEffects(t: Translate): GifEffectOption[] {
     id,
     label: t(`detailPage.gifEffects.text.${id}.label`),
     hint: t(`detailPage.gifEffects.text.${id}.hint`),
-    previewSrc: `/gif-effect-previews/text-${id}.gif`,
+    previewSrc: `${editorAssetBase("gifEffectPreviews")}/text-${id}.gif`,
   }));
 }
 
@@ -1033,7 +1034,7 @@ function imageGifEffects(t: Translate, shape: boolean): GifEffectOption[] {
     label: t(`detailPage.gifEffects.image.${effect.id}.label`),
     hint: t(`detailPage.gifEffects.image.${effect.id}.hint`),
     group: shape ? undefined : t(IMAGE_GIF_GROUP_KEY[effect.group]),
-    previewSrc: `/gif-effect-previews/image-${effect.id}.gif`,
+    previewSrc: `${editorAssetBase("gifEffectPreviews")}/image-${effect.id}.gif`,
   }));
 }
 

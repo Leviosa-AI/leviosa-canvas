@@ -11,6 +11,16 @@ import en from "./en.json";
  * **번역기(i18next 인스턴스)는 소비자 것이다.** 패키지가 자기 인스턴스를 만들면
  * 언어 전환·네임스페이스 로딩이 두 벌로 갈라지므로, 여기서는 등록만 한다.
  */
+/** 언어 → 네임스페이스 → 중첩 문구. 부분만 주면 준 자리만 바뀐다. */
+export type DetailPageEditorTranslationOverrides = Record<
+  string,
+  Record<string, unknown>
+>;
+
+export type RegisterTranslationsOptions = {
+  overrides?: DetailPageEditorTranslationOverrides;
+};
+
 export type I18nLike = {
   addResourceBundle: (
     lng: string,
@@ -30,14 +40,41 @@ export type I18nLike = {
  *
  * 렌더보다 **먼저** 부르면 된다. 늦게 불러도 i18next 가 다시 그리지만, 그 사이 한 번은
  * 키가 보인다.
+ *
+ * ## 문구를 갈아 끼우고 싶을 때
+ *
+ * 소비자가 이미 자기 로케일 파일에 같은 키를 갖고 있으면 위의 `overwrite=false` 덕에
+ * 저절로 이긴다. 하지만 i18n 라이브러리를 안 쓰는 앱은 그럴 자리가 없다 — 편집기 하나
+ * 때문에 로케일 파일 체계를 새로 세우게 된다. 그래서 여기서 직접 받는다.
+ *
+ * ```ts
+ * registerDetailPageEditorTranslations(i18n, {
+ *   overrides: {
+ *     ko: { branding: { detailPage: { sidebar: { photos: "이미지" } } } },
+ *   },
+ * });
+ * ```
+ *
+ * 부분만 준다. 준 자리만 바뀌고 나머지는 우리 번들 그대로다.
  */
-export function registerDetailPageEditorTranslations(i18n: I18nLike): void {
+export function registerDetailPageEditorTranslations(
+  i18n: I18nLike,
+  options: RegisterTranslationsOptions = {},
+): void {
   for (const [lng, bundle] of [
     ["ko", ko],
     ["en", en],
   ] as const) {
     for (const [ns, resources] of Object.entries(bundle)) {
       i18n.addResourceBundle(lng, ns, resources, true, false);
+    }
+  }
+
+  // 덮어쓸 것을 **나중에** 얹는다. 위와 달리 `overwrite=true` 다 — 소비자가 일부러
+  // 준 문구가 우리 기본값에 지면 준 의미가 없다.
+  for (const [lng, bundle] of Object.entries(options.overrides ?? {})) {
+    for (const [ns, resources] of Object.entries(bundle ?? {})) {
+      i18n.addResourceBundle(lng, ns, resources, true, true);
     }
   }
 }

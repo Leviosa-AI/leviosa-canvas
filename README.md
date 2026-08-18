@@ -6,7 +6,7 @@ Leviosa의 자체 편집기 엔진. Polotno를 대체하려고 직접 만들었�
 | 패키지 | 이름 | 상태 |
 |---|---|---|
 | `packages/canvas` | `@leviosa-ai/canvas` | 엔진. 이 저장소가 정본이다. |
-| `packages/detail-page-editor` | `@leviosa-ai/detail-page-editor` | 편집기 셸. 아직 안 옮겼다 — 앱 결합 77건을 먼저 끊는다. |
+| `packages/detail-page-editor` | `@leviosa-ai/detail-page-editor` | 편집기 셸. 꽂는 법은 `docs/detail-page-editor-integration.md`. |
 
 ## 이 저장소가 있는 이유
 

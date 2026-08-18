@@ -86,9 +86,21 @@ const IMPORT_SPECIFIER = /(?:from|\bimport\s*\()\s*["']([^"']+)["']/g;
 const appImports = new Map<string, string[]>();
 const packageImports = new Map<string, number>();
 
+/**
+ * 주석은 코드가 아니다.
+ *
+ * 라우트 팩토리의 머리말에는 소비자가 붙여 넣을 예제가 들어 있다
+ * (`export { GET } from "@leviosa-ai/detail-page-editor/server/icons"`). 그것까지 세면
+ * 패키지가 자기 자신을 의존한다고 나온다 — 설치 비용은 하나도 안 늘었는데.
+ */
+function stripComments(text: string): string {
+  return text.replace(/\/\*[\s\S]*?\*\//g, "").replace(/(^|[^:])\/\/.*$/gm, "$1");
+}
+
 for (const file of FILES) {
   const relative = file.replace(`${PACKAGE}/`, "");
-  for (const match of readFileSync(file, "utf8").matchAll(IMPORT_SPECIFIER)) {
+  const source = stripComments(readFileSync(file, "utf8"));
+  for (const match of source.matchAll(IMPORT_SPECIFIER)) {
     const specifier = match[1];
     if (specifier.startsWith(".")) continue;
     if (specifier.startsWith("@/")) {
