@@ -1,4 +1,11 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import Konva from "konva";
+
+import {
+  CanvasView,
+  createCanvasStore,
+  type DocumentJson,
+} from "../../../packages/canvas";
 
 import {
   type DetailDocumentPatchV1,
@@ -52,6 +59,7 @@ export function LabApp() {
   const embedded = query.get("mode") === "embed";
   const capture = query.get("mode") === "capture";
   const featureLabel = query.get("fx") || "local";
+  const documentSource = query.get("doc");
   const sessionNonce = useMemo(() => query.get("nonce") || createDpnextSessionNonce(), [query]);
   const controller = useEditorController(fixture);
   const {
@@ -64,7 +72,46 @@ export function LabApp() {
   const { document, sha256, selection } = controller.state;
   const [error, setError] = useState<string | null>(null);
   const [assetUrls, setAssetUrls] = useState<Record<string, string>>(fixtureAssetUrls);
+  const [canvasDocument, setCanvasDocument] = useState<DocumentJson | null>(null);
   const parentOrigin = useRef(window.location.origin);
+
+  useEffect(() => {
+    if (!documentSource) return;
+    void fetch(documentSource)
+      .then(async (response) => {
+        if (!response.ok) throw new Error(`문서를 읽지 못했습니다: ${response.status}`);
+        return response.json() as Promise<DetailDocumentV2 | DocumentJson>;
+      })
+      .then(async (next) => {
+        if ("schema_version" in next) {
+          await loadDocument(next);
+          setAssetUrls(Object.fromEntries(Object.entries(next.assets).map(([id, asset]) => [id, asset.uri])));
+        } else {
+          setCanvasDocument(next);
+        }
+        setError(null);
+      })
+      .catch((cause: unknown) => {
+        setError(cause instanceof Error ? cause.message : "문서를 읽지 못했습니다.");
+      });
+  }, [documentSource, loadDocument]);
+
+  const canvasStore = useMemo(
+    () => canvasDocument ? createCanvasStore(canvasDocument) : null,
+    [canvasDocument],
+  );
+
+  useEffect(() => {
+    if (!canvasStore) return;
+    // 검사 전용: 화면에 붙은 실제 Konva Stage와 그 노드를 읽는다.
+    window.__LEVIOSA_CANVAS_VERIFY__ = async () => {
+      for (const page of canvasStore.pages) await canvasStore.toDataURL({ pageId: page.id });
+      return measureCanvasStages(canvasStore);
+    };
+    return () => {
+      delete window.__LEVIOSA_CANVAS_VERIFY__;
+    };
+  }, [canvasStore]);
 
   useEffect(() => {
     const receive = (event: MessageEvent) => {
@@ -167,6 +214,14 @@ export function LabApp() {
     postToParent(envelope(sessionNonce, { type: "selection", nodeIds }), parentOrigin.current);
   };
 
+  if (canvasStore) {
+    return (
+      <main data-verify-canvas-document>
+        <CanvasView store={canvasStore} />
+      </main>
+    );
+  }
+
   if (capture) {
     return (
       <div className="dpnext-capture-surface">
@@ -266,7 +321,80 @@ function documentRef(): HTMLElement {
 declare global {
   interface Window {
     __LEVIOSA_DPNEXT_MEASURE__?: () => Promise<DpnextDomMeasurementV1>;
+    __LEVIOSA_CANVAS_VERIFY__?: () => Promise<CanvasMeasurement>;
   }
+}
+
+type RectMeasurement = { x: number; y: number; width: number; height: number };
+
+type CanvasMeasurement = {
+  pages: Array<RectMeasurement & { id: string; nodeCount: number }>;
+  textNodes: Array<RectMeasurement & {
+    id: string;
+    fontFamily: string;
+    fontSize: number;
+    fontWeight: string;
+    lineCount: number;
+  }>;
+  imageNodes: Array<RectMeasurement & { id: string; crop: RectMeasurement | null }>;
+};
+
+function rounded(value: number): number {
+  return Math.round(value * 1000) / 1000;
+}
+
+function nodeId(node: Konva.Node): string {
+  let current: Konva.Node | null = node;
+  while (current && !current.id()) current = current.getParent();
+  return current?.id() ?? "";
+}
+
+function rect(node: Konva.Node): RectMeasurement {
+  const value = node.getClientRect({ skipShadow: true, skipStroke: true });
+  return {
+    x: rounded(value.x),
+    y: rounded(value.y),
+    width: rounded(value.width),
+    height: rounded(value.height),
+  };
+}
+
+function measureCanvasStages(store: ReturnType<typeof createCanvasStore>): CanvasMeasurement {
+  const root = window.document.querySelector("[data-verify-canvas-document]");
+  const stages = Konva.stages.filter((stage) => root?.contains(stage.container()));
+  const textNodes = stages.flatMap((stage) => stage.find("Text")).map((node) => ({
+    id: nodeId(node),
+    fontFamily: String(node.getAttr("fontFamily") ?? ""),
+    fontSize: rounded(Number(node.getAttr("fontSize") ?? 0)),
+    fontWeight: String(node.getAttr("fontStyle") ?? "normal"),
+    lineCount: ((node as Konva.Text & { textArr?: unknown[] }).textArr ?? []).length,
+    ...rect(node),
+  }));
+  const imageNodes = stages.flatMap((stage) => stage.find("Image")).map((node) => {
+    const crop = (node as Konva.Image).crop();
+    return {
+      id: nodeId(node),
+      crop: crop.width || crop.height ? {
+        x: rounded(crop.x),
+        y: rounded(crop.y),
+        width: rounded(crop.width),
+        height: rounded(crop.height),
+      } : null,
+      ...rect(node),
+    };
+  });
+  return {
+    pages: stages.map((stage, index) => ({
+      id: store.pages[index]?.id ?? String(index),
+      width: rounded(stage.width()),
+      height: rounded(stage.height()),
+      x: 0,
+      y: 0,
+      nodeCount: new Set(stage.find(".lc-element").map((node) => node.id())).size,
+    })),
+    textNodes,
+    imageNodes,
+  };
 }
 
 function NodeInspector({
