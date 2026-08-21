@@ -26,6 +26,7 @@ import {
   Ungroup,
   Type as TypeIcon,
   Image as ImageIcon,
+  ImagePlus,
   Film,
   Eraser,
   Square,
@@ -70,6 +71,7 @@ import {
 import { readColorReplace } from "@leviosa-ai/canvas/render/svg-source";
 import { selectedElementsDeep } from "./detail-page-selection";
 import { useEditorAi } from "./editor-ai-context";
+import { parseAuthoringImageSrc } from "../../lib/detail-page/authoring-image-src";
 import { PromptEditPanel } from "./prompt-edit-panel";
 import { SvgPromptEditPanel } from "./svg-prompt-edit-panel";
 import { GroupPromptEditPanel } from "./group-prompt-edit-panel";
@@ -1886,6 +1888,78 @@ async function saveShapeToMyShapes(
   }
 }
 
+/**
+ * 저작 사진을 브랜드 라이브러리에 남기는 버튼.
+ *
+ * 저작 사진은 잡 아래 산다. 고른 잡은 이제 만료하지 않으니 사진이 죽지는 않지만, 그
+ * 사진은 여전히 **그 잡의 것**이라 다음 상품을 만들 때 라이브러리에서 고를 수 없다.
+ * 승격은 한 장을 브랜드 자산으로 복사해 그 벽을 없앤다.
+ *
+ * 전부 자동으로 복사하지 않는 이유는 저작 한 번에 십수 장이 들어와 라이브러리가
+ * 폐기물로 차기 때문이다 — **셀러가 누르는 행위 자체가 신호다.**
+ *
+ * 사진의 `src` 가 저작 주소로 파싱될 때만 뜬다. 셀러가 직접 올린 것, 브랜드에서 가져온
+ * 것, 이미 브랜드에 들어간 AI 이미지는 승격할 이유가 없다.
+ */
+const SaveImageToBrandButton = observer(function SaveImageToBrandButton({
+  src,
+  label,
+}: {
+  src: string;
+  label: string;
+}) {
+  const { t } = useTranslation("branding");
+  const host = useDetailPageHost();
+  const { brand } = host;
+  const [saving, setSaving] = useState(false);
+
+  const ref = parseAuthoringImageSrc(src);
+  const brandId = brand.getStoredActiveBrandId() ?? "";
+  const promote = host.api.promoteAuthoringImageToBrand;
+  // 브랜드가 안 골라져 있으면 넣을 곳이 없다. 버튼을 띄워 놓고 누른 뒤에 알려 주면
+  // 셀러는 저장이 실패했다고 읽는다. 호스트가 승격을 안 붙였을 때도 마찬가지다.
+  if (!ref || !brandId || !promote) return null;
+
+  const save = async () => {
+    if (saving) return;
+    setSaving(true);
+    try {
+      const res = await promote({
+        job_id: ref.jobId,
+        name: ref.name,
+        sig: ref.sig,
+        brand_id: brandId,
+        display_name: label,
+      });
+      host.toast.success(
+        res.reused
+          ? t("detailPage.properties.saveToBrandDuplicate")
+          : t("detailPage.properties.saveToBrandDone"),
+      );
+    } catch {
+      host.toast.error(t("detailPage.properties.saveToBrandFailed"));
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="border-t border-dpe-ink-200 px-4 py-2">
+      <button
+        type="button"
+        disabled={saving}
+        onClick={() => void save()}
+        className="flex w-full items-center justify-center gap-1.5 rounded-dpe-lg border border-dpe-ink-200 py-2 text-xs font-dpe-medium text-dpe-ink-600 hover:border-dpe-ink-400 hover:bg-dpe-ink-50 disabled:opacity-50"
+      >
+        <ImagePlus size={13} />
+        {saving
+          ? t("detailPage.properties.saveToBrandSaving")
+          : t("detailPage.properties.saveToBrand")}
+      </button>
+    </div>
+  );
+});
+
 // svg 도형(벡터 장식)용 인스펙터: 불투명도 + "내 도형에 저장" + 프롬프트 편집(생성
 // ID·디코드 가능한 마크업이 있을 때만) + 삭제. figure 등 마크업이 없는 도형은
 // 저장/프롬프트 편집을 숨긴다.
@@ -2299,6 +2373,10 @@ export const ElementAiEditPanel = observer(function ElementAiEditPanel({
           creditCost={ai.imageCreditCost}
           creditBalance={ai.imageCreditBalance}
           onBuyCredits={ai.onBuyCredits}
+        />
+        <SaveImageToBrandButton
+          src={str(single.src)}
+          label={str(singleCustom.leviosaSlot ?? "")}
         />
       </section>
     );
