@@ -58,10 +58,14 @@ const MOUNT_DEPENDENT = [
  * - `asset-bytes-url.ts` 의 `/api/v1/brands/assets/file/` 는 이미 저장된 문서 안의
  *   주소를 **알아보는 패턴**이다. 우리가 그 주소로 가는 것이 아니라, 문서에 박혀 온
  *   것을 보고 `raw=1` 을 붙인다. 소싱 서버가 정하는 모양이라 우리 설정에 없다.
+ * - `authoring-image-src.ts` 의 `/api/v2/detail-pages/brand-authoring/` 도 같은 부류다.
+ *   저작이 문서에 박아 둔 사진 주소를 보고 (잡, 이름, 서명)을 읽어 낼 뿐, 그 주소로
+ *   가지 않는다. 승격 요청은 호스트가 준 `api` 를 거친다.
  */
 const EXEMPT = new Set([
   "lib/detail-page/runtime-config.ts",
   "lib/detail-page/asset-bytes-url.ts",
+  "lib/detail-page/authoring-image-src.ts",
 ]);
 
 describe("셸은 자기가 어디에 마운트됐는지 모른다", () => {
