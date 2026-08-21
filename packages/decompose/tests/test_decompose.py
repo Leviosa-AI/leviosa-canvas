@@ -168,6 +168,9 @@ def _image_element(**overrides):
         "phBg": "",
         "phBgImage": 'url("assets/cica_leaf.jpg")',
         "objectFit": "cover",
+        "objectPosition": "50% 50%",
+        "naturalWidth": 1024,
+        "naturalHeight": 1536,
         "radius": 999,
         "slot": True,
         "tag": "img",
@@ -201,6 +204,21 @@ def test_square_image_has_no_corner_radius():
 
     el = proto._canvas_element(_image_element(radius=0), "img-3")
     assert "cornerRadius" not in el
+
+
+def test_cover_object_position_maps_to_final_box_ratio_crop():
+    image = proto._canvas_element(
+        _image_element(
+            box=_box(0, 0, 1080, 860),
+            objectPosition="50% 28%",
+        ),
+        "img-4",
+    )
+
+    assert image["cropX"] == 0
+    assert image["cropY"] == pytest.approx(0.13136, abs=0.00001)
+    assert image["cropWidth"] == 1
+    assert image["cropHeight"] == pytest.approx(0.53086, abs=0.00001)
 
 
 def _border_box(borders, **overrides):
