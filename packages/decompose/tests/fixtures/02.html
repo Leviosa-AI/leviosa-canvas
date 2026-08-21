@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  html, body { background:#fff; }
+  .plate {
+    position:relative; width:1080px; height:1350px; overflow:hidden;
+    background:#F6E3DA;
+    font-family:'Pretendard','Apple SD Gothic Neo',sans-serif;
+  }
+  .shot { position:absolute; left:0; top:0; width:1080px; height:976px; overflow:hidden; }
+  .shot img { width:100%; height:100%; object-fit:cover; }
+  .shot .wash {
+    position:absolute; inset:0;
+    background:linear-gradient(180deg, rgba(246,222,211,.42) 0%, rgba(246,222,211,0) 34%);
+  }
+
+  .brand-r {
+    position:absolute; right:70px; top:32px;
+    font-family:'Jost',sans-serif; font-weight:300; font-size:44px;
+    letter-spacing:.01em; color:#4A3330;
+  }
+  .kicker {
+    position:absolute; left:73px; top:44px;
+    font-size:29px; font-weight:800; letter-spacing:.055em; color:#5A4038;
+  }
+
+  .band {
+    position:absolute; left:0; bottom:0; width:1080px; height:374px;
+    background:linear-gradient(180deg, #F2DACD 0%, #EBCBBB 100%);
+  }
+  .row { position:absolute; left:52px; right:52px; top:74px; display:flex; }
+  .cell { flex:1; position:relative; height:230px; }
+  .cell svg { position:absolute; left:50%; top:0; transform:translateX(-50%); }
+  .cell .lab {
+    position:absolute; left:0; right:0; top:150px; text-align:center;
+    font-family:'Jost',sans-serif; font-weight:600; font-size:32px;
+    letter-spacing:.03em; color:#5A4038;
+  }
+  .cell .nm {
+    position:absolute; left:0; right:0; top:190px; text-align:center;
+    font-size:23px; font-weight:500; line-height:1.25; color:#7A5B4E;
+    letter-spacing:-.01em;
+  }
+</style>
+</head>
+<body>
+<div class="plate" data-role="body" data-skeleton="photo-band">
+  <div class="shot">
+    <img data-block="photo" src="/Users/leviosaai/leviosa/scratchpad/harness/photos/shoot_tint/tint_row.png" alt="">
+    <div class="wash"></div>
+  </div>
+
+  <div class="kicker" data-block="text">FULL LINE UP</div>
+
+  <div class="band">
+    <div class="row">
+      <div class="cell">
+        <svg width="118" height="132" viewBox="0 0 118 132" xmlns="http://www.w3.org/2000/svg">
+          <path d="M22 18C42 4 82 2 100 20c16 16 12 52 4 74-8 22-34 34-56 28C24 116 6 96 6 70 6 46 10 26 22 18Z" fill="#C98E74"/>
+        </svg>
+        <div class="lab" data-block="text">01</div>
+        <div class="nm" data-block="text">멜트<br>베이지</div>
+      </div>
+      <div class="cell">
+        <svg width="118" height="132" viewBox="0 0 118 132" xmlns="http://www.w3.org/2000/svg">
+          <path d="M18 24C34 6 78 0 98 16c20 16 16 50 8 72-8 22-32 36-54 30C28 112 4 94 4 68 4 46 8 34 18 24Z" fill="#D89A8C"/>
+        </svg>
+        <div class="lab" data-block="text">02</div>
+        <div class="nm" data-block="text">핑크<br>오트</div>
+      </div>
+      <div class="cell">
+        <svg width="118" height="132" viewBox="0 0 118 132" xmlns="http://www.w3.org/2000/svg">
+          <path d="M24 14C46 2 86 6 102 26c14 18 8 50 0 70-8 20-36 30-58 24C20 114 4 92 6 66 8 42 12 22 24 14Z" fill="#E0705C"/>
+        </svg>
+        <div class="lab" data-block="text">03</div>
+        <div class="nm" data-block="text">하트<br>바이트</div>
+      </div>
+      <div class="cell">
+        <svg width="118" height="132" viewBox="0 0 118 132" xmlns="http://www.w3.org/2000/svg">
+          <path d="M20 20C40 2 80 4 100 22c18 18 10 52 2 72-8 20-34 32-56 26C22 114 4 90 6 64 8 42 10 30 20 20Z" fill="#B9614F"/>
+        </svg>
+        <div class="lab" data-block="text">04</div>
+        <div class="nm" data-block="text">로즈<br>스프레드</div>
+      </div>
+      <div class="cell">
+        <svg width="118" height="132" viewBox="0 0 118 132" xmlns="http://www.w3.org/2000/svg">
+          <path d="M26 16C48 2 84 8 100 28c16 20 6 50-2 68-8 18-34 30-56 24C18 112 4 88 8 62 12 40 16 24 26 16Z" fill="#C25E6B"/>
+        </svg>
+        <div class="lab" data-block="text">05</div>
+        <div class="nm" data-block="text">푸시아<br>머랭</div>
+      </div>
+      <div class="cell">
+        <svg width="118" height="132" viewBox="0 0 118 132" xmlns="http://www.w3.org/2000/svg">
+          <path d="M22 22C42 4 82 0 100 18c18 18 14 52 6 72-8 20-32 34-56 28C24 112 6 92 6 66 6 44 12 32 22 22Z" fill="#9E5A5E"/>
+        </svg>
+        <div class="lab" data-block="text">06</div>
+        <div class="nm" data-block="text">모브<br>멜로우</div>
+      </div>
+    </div>
+  </div>
+</div>
+</body>
+</html>
