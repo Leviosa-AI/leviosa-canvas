@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  html, body { background:#fff; }
+  .plate {
+    position:relative; width:1080px; height:1350px; overflow:hidden;
+    background:#F3E0D4;
+    font-family:'Pretendard','Apple SD Gothic Neo',sans-serif;
+  }
+  .bg { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; }
+  .wash {
+    position:absolute; inset:0;
+    background:linear-gradient(180deg, rgba(251,240,233,.80) 0%, rgba(251,240,233,.18) 30%, rgba(251,240,233,0) 60%);
+  }
+  .head { position:absolute; left:73px; top:66px; right:73px; }
+  .kick {
+    font-family:'Jost',sans-serif; font-weight:600; font-size:28px;
+    letter-spacing:.14em; color:#A2624C; margin-bottom:18px;
+  }
+  .line {
+    font-size:58px; font-weight:700; line-height:1.34; letter-spacing:-.02em; color:#4A3330;
+  }
+  .line em { font-style:normal; color:#D96A52; }
+  .cap {
+    position:absolute; left:73px; bottom:44px; text-align:left;
+    font-size:27px; font-weight:500; letter-spacing:-.01em; color:#4A3330;
+  }
+  .cap b { font-family:'Jost',sans-serif; font-weight:600; letter-spacing:.04em; }
+</style>
+</head>
+<body>
+<div class="plate" data-role="body" data-skeleton="photo-caption">
+  <img class="bg" data-block="photo" src="/Users/leviosaai/leviosa/scratchpad/harness/photos/shoot_tint/tint_swatches.png" alt="">
+  <div class="wash"></div>
+
+  <div class="head">
+    <div class="kick" data-block="text">SWATCH</div>
+    <div class="line" data-block="text"><em>여섯 컬러</em>를<br>한 줄로 그어봤어요</div>
+  </div>
+
+  <div class="cap" data-block="text"><b>01 – 06</b> 전 컬러 스와치</div>
+</div>
+</body>
+</html>

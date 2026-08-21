@@ -14,5 +14,5 @@
     "types": ["vitest/globals", "node"]
   },
   "include": ["packages/**/*.ts", "packages/**/*.tsx", "test/**/*.ts"],
-  "exclude": ["node_modules"]
+  "exclude": ["node_modules", "packages/decompose"]
 }

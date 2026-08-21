@@ -1,0 +1,17 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "leviosa-decompose"
+version = "0.1.0"
+description = "HTML to editable Leviosa canvas document decomposer"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+  "pillow>=10,<12",
+  "playwright>=1.48,<2",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
