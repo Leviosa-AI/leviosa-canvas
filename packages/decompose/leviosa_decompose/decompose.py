@@ -48,7 +48,7 @@ SKIP_TEMPLATES = {"00 Components.html"}
 CANVAS = 750
 
 EXTRACT = r"""
-({label, sliceBy, placeholderClass}) => {
+({label, sliceBy, placeholderClass, splitSvgParts}) => {
   // The screen is the temporary wrapper built by WRAP_JS: it holds the labeled
   // header PLUS every following unlabeled sibling up to the next labeled screen.
   // Many templates put data-screen-label on a tiny header div (.sh) and keep the
@@ -381,7 +381,8 @@ EXTRACT = r"""
       indentTo: Math.round(opts.indentTo||0), opacity: op,
       color:s.color, fontSize:px(s.fontSize), fontWeight:s.fontWeight,
       fontFamily:s.fontFamily,
-      lineHeight:s.lineHeight, textAlign:opts.alignStart ? 'left' : s.textAlign,
+      lineHeight:s.lineHeight,
+      textAlign:(opts.run || opts.alignStart) ? 'left' : s.textAlign,
       letterSpacing:s.letterSpacing, display:s.display,
       // Korean typography commonly pairs word-break:keep-all with
       // overflow-wrap:anywhere so a long no-space token (e.g. "3000~6500K")
@@ -637,12 +638,17 @@ EXTRACT = r"""
       const fw=weightNum(cs.fontWeight);
       return elPainted(cs)
         || (cs.color!==blockColor && hasText)
+        || (cs.fontFamily!==st.fontFamily && hasText)
         // An inline <b>/<strong> (same colour/size, heavier weight) must split so
         // each run keeps its own weight — Konva renders one weight per text
         // element, so a flattened paragraph would drop the bold entirely. The
         // wrapsBadly guard (below) still keeps a multi-line emphasis as one block.
         || (fw-baseFw>=200 && hasText)
-        || (baseFs>0 && fs>0 && Math.abs(fs-baseFs)/baseFs>0.3 && hasText);
+        || (baseFs>0 && fs>0 && hasText && (
+          Math.abs(fs-baseFs)/baseFs>0.3
+          || (/flex/.test(st.display) && /column/.test(st.flexDirection||'')
+              && Math.abs(fs-baseFs)/baseFs>=0.25)
+        ));
     });
   };
   // True if a descendant carries a MARKEDLY different font-size (a deliberately
@@ -722,7 +728,22 @@ EXTRACT = r"""
       try{ rg.setStart(textNode,a); rg.setEnd(textNode,b); }catch(_){ return; }
       const r=rg.getBoundingClientRect(); if(r.width<1) return;
       const txt=clean(raw.slice(a,b)); if(!txt) return;
-      pushText({x:r.left-srect.left, y:r.top-srect.top, width:r.width, height:r.height, rotation:0},
+      let y=r.top-srect.top;
+      let block=sourceEl;
+      if(cs.verticalAlign==='middle')
+        y+=Math.max(0, (r.height-(parseFloat(cs.fontSize)||0))/2);
+      if(/flex/.test(cs.display) && /column/.test(cs.flexDirection||'')
+          && textNode.parentElement===sourceEl)
+        y+=Math.max(0, lhPx(cs)-(parseFloat(cs.fontSize)||0));
+      while(block!==section && /^inline/.test(getComputedStyle(block).display))
+        block=block.parentElement;
+      const bs=getComputedStyle(block);
+      if(bs.lineHeight!=='normal' && !/(flex|grid)/.test(bs.display)
+          && Math.abs((parseFloat(cs.fontSize)||0)-(parseFloat(bs.fontSize)||0))<0.1){
+        const br=block.getBoundingClientRect(), lh=lhPx(bs);
+        if(lh>0) y=br.top-srect.top + Math.round((r.top-br.top)/lh)*lh;
+      }
+      pushText({x:r.left-srect.left, y:y, width:r.width, height:r.height, rotation:0},
         txt.replace(/\n/g,' '), cs, {run:true, el:textNode.parentElement});
     };
     const full=document.createRange();
@@ -1030,7 +1051,7 @@ EXTRACT = r"""
         const _svgStart=out.elements.length;
         // Graphics: one element per top-level shape when the svg is a composite,
         // otherwise the whole svg as before.
-        if(!pushSvgParts(el, g, svgColor, allCentred)){
+        if(!splitSvgParts || !pushSvgParts(el, g, svgColor, allCentred)){
           const bg=el.cloneNode(true);
           if(allCentred) bg.querySelectorAll('text').forEach(t=>t.remove());
           // data-bubble: 말풍선의 생성 파라미터(몸통 크기·라운드·꼬리 끝점). 편집기가
@@ -1101,6 +1122,7 @@ EXTRACT = r"""
       out.elements.push({kind:'image', box:g, slot:true, tag:'img',
         contractSlot: slotOf(el),
         src:el.currentSrc||el.getAttribute('src')||'', ph:cap,
+        naturalWidth:el.naturalWidth||0, naturalHeight:el.naturalHeight||0,
         // The blueprint grid / diagonal hatch / warm tint lives in the .ph
         // background (color + layered gradients); capture it so the placeholder
         // is the real textured box, not a flat grey rectangle.
@@ -1111,7 +1133,8 @@ EXTRACT = r"""
         phBorderC: s.borderTopColor, phBorderS: s.borderTopStyle,
         // radiusOf resolves a "50%"/"999px" mask (a circular photo disc like the
         // 5D CICA leaf) against the box, so a round-cropped image stays round.
-        radius:radiusOf(s, g.width, g.height), objectFit:s.objectFit});
+        radius:radiusOf(s, g.width, g.height), objectFit:s.objectFit,
+        objectPosition:s.objectPosition});
       stampGroup(_grpStart);
       return;
     }
@@ -1599,6 +1622,45 @@ def _slot_contain_letterbox(base, e):
     }
 
 
+def _position(value, axis):
+    tokens = str(value or "50% 50%").lower().split()
+    token = tokens[min(axis, len(tokens) - 1)] if tokens else "50%"
+    keywords = (
+        {"left": 0, "center": 0.5, "right": 1},
+        {"top": 0, "center": 0.5, "bottom": 1},
+    )[axis]
+    if token in keywords:
+        return keywords[token], 0
+    try:
+        if token.endswith("%"):
+            return float(token[:-1]) / 100, 0
+        if token.endswith("px"):
+            return 0, float(token[:-2])
+    except ValueError:
+        pass
+    return 0.5, 0
+
+
+def _image_crop(e, base):
+    """Map CSS cover/contain framing to the Canvas document crop contract."""
+    iw, ih = e.get("naturalWidth", 0), e.get("naturalHeight", 0)
+    bw, bh = base["width"], base["height"]
+    if e.get("objectFit") != "cover" or min(iw, ih, bw, bh) <= 0:
+        return {"cropX": 0, "cropY": 0, "cropWidth": 1, "cropHeight": 1}
+    scale = max(bw / iw, bh / ih)
+    cw, ch = bw / scale, bh / scale
+    px, dx = _position(e.get("objectPosition"), 0)
+    py, dy = _position(e.get("objectPosition"), 1)
+    left = min(max(((iw * scale - bw) * px - dx) / scale, 0), iw - cw)
+    top = min(max(((ih * scale - bh) * py - dy) / scale, 0), ih - ch)
+    return {
+        "cropX": left / iw,
+        "cropY": top / ih,
+        "cropWidth": cw / iw,
+        "cropHeight": ch / ih,
+    }
+
+
 def _canvas_element(e, eid):
     """Map one extracted element to an editable Canvas child dict.
 
@@ -1727,6 +1789,7 @@ def _canvas_element(e, eid):
             image_el["cornerRadius"] = min(
                 r, round(min(base["width"], base["height"]) / 2)
             )
+        image_el.update(_image_crop(e, base))
         return image_el
     if e["kind"] == "text":
         # ``indent`` is a first-line indent — the proxy replays it as
@@ -2198,7 +2261,9 @@ def render_proxy(sec):
         elif e["kind"] == "image":
             if e["src"]:
                 img_css = (
-                    f"{pos}object-fit:{e['objectFit']};border-radius:{e['radius']}px;"
+                    f"{pos}object-fit:{e['objectFit']};"
+                    f"object-position:{e.get('objectPosition') or '50% 50%'};"
+                    f"border-radius:{e['radius']}px;"
                 )
                 parts.append(f'<img src="{esc(e["src"])}" style="{esc(img_css)}"/>')
             else:
@@ -2366,7 +2431,6 @@ def render_proxy(sec):
     )
     return (
         '<!doctype html><html><head><meta charset="utf-8">'
-        '<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.css">'
         "<style>*{box-sizing:border-box;margin:0}"
         "body{font-family:'Pretendard Variable',Pretendard,-apple-system,system-ui,sans-serif}</style></head><body>"
         f'<div style="{esc(wrap_css)}">' + "".join(parts) + "</div></body></html>"
@@ -2470,6 +2534,7 @@ async def process_template(
                 f"({RENDER_FONTS_BASE_URL}); refusing to measure against "
                 f"fallback metrics {describe_font_warmup(report)}"
             )
+        print(f"font warm-up: Pretendard {describe_font_warmup(report)}")
         # Flatten sup/sub markers inline so paragraphs with only weight/superscript
         # emphasis stay one un-fragmented text element (see NORMALIZE_JS).
         await page.evaluate(NORMALIZE_JS)
@@ -2497,6 +2562,7 @@ async def process_template(
                         "label": lbl,
                         "sliceBy": profile.slice_by,
                         "placeholderClass": profile.placeholder_class,
+                        "splitSvgParts": profile.split_svg_parts,
                     },
                 )
                 if not sec:
@@ -2538,7 +2604,15 @@ async def process_template(
             )
             await pp.goto(html_path.as_uri(), wait_until="networkidle")
             await pp.set_content(render_proxy(sec), wait_until="networkidle")
-            await pp.evaluate("() => document.fonts.ready")
+            await allow_bundle_font_cors(pp)
+            for _slug in BUNDLE_FONT_FAMILIES:
+                await pp.add_style_tag(url=bundle_font_css_url(_slug))
+            report = await pp.evaluate(FONT_WARMUP_JS, list(BUNDLE_FONT_FAMILY_NAMES))
+            if not (report or {}).get("ok"):
+                raise RuntimeError(
+                    "Pretendard did not resolve in proxy render "
+                    f"{describe_font_warmup(report)}"
+                )
             await pp.wait_for_timeout(400)
             await pp.screenshot(path=str(out_dir / f"{lbl}.proxy.png"), full_page=True)
             await pp.close()
