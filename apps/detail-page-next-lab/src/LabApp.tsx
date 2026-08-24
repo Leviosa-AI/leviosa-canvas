@@ -3,9 +3,13 @@ import Konva from "konva";
 
 import {
   CanvasView,
+  collectFontRequests,
   createCanvasStore,
   type DocumentJson,
+  type FontLoader,
 } from "../../../packages/canvas";
+import { loadEditorFont } from "../../../packages/detail-page-editor/lib/detail-page-canvas/editor-fonts";
+import { configureDetailPageEditor } from "../../../packages/detail-page-editor/lib/detail-page/runtime-config";
 
 import {
   type DetailDocumentPatchV1,
@@ -60,6 +64,8 @@ export function LabApp() {
   const capture = query.get("mode") === "capture";
   const featureLabel = query.get("fx") || "local";
   const documentSource = query.get("doc");
+  const fontBundle = query.get("fontBundle");
+  if (fontBundle) configureDetailPageEditor({ assets: { fontBundle } });
   const sessionNonce = useMemo(() => query.get("nonce") || createDpnextSessionNonce(), [query]);
   const controller = useEditorController(fixture);
   const {
@@ -100,18 +106,53 @@ export function LabApp() {
     () => canvasDocument ? createCanvasStore(canvasDocument) : null,
     [canvasDocument],
   );
+  const canvasFonts = useMemo(() => {
+    if (!canvasStore) return null;
+    const expected = collectFontRequests(canvasStore).length;
+    let settled = 0;
+    const failures: string[] = [];
+    const loadFont: FontLoader = async (request) => {
+      try {
+        await loadEditorFont(request);
+      } catch (cause) {
+        failures.push(
+          `${request.family} ${request.weight}: ${cause instanceof Error ? cause.message : String(cause)}`,
+        );
+        throw cause;
+      } finally {
+        settled += 1;
+      }
+    };
+    const wait = async () => {
+      while (settled < expected) {
+        await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
+      }
+      await window.document.fonts.ready;
+      const failedFaces = [...window.document.fonts]
+        .filter((face) => face.status === "error")
+        .map((face) => `${face.family} ${face.weight}`);
+      if (failures.length || failedFaces.length) {
+        throw new Error(`글꼴 로드 실패: ${[...failures, ...failedFaces].join(", ")}`);
+      }
+      // CanvasView의 폰트 완료 리렌더와 Konva draw를 기다린다.
+      await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
+      await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
+    };
+    return { loadFont, wait };
+  }, [canvasStore]);
 
   useEffect(() => {
-    if (!canvasStore) return;
+    if (!canvasStore || !canvasFonts) return;
     // 검사 전용: 화면에 붙은 실제 Konva Stage와 그 노드를 읽는다.
     window.__LEVIOSA_CANVAS_VERIFY__ = async () => {
+      await canvasFonts.wait();
       for (const page of canvasStore.pages) await canvasStore.toDataURL({ pageId: page.id });
       return measureCanvasStages(canvasStore);
     };
     return () => {
       delete window.__LEVIOSA_CANVAS_VERIFY__;
     };
-  }, [canvasStore]);
+  }, [canvasFonts, canvasStore]);
 
   useEffect(() => {
     const receive = (event: MessageEvent) => {
@@ -217,7 +258,7 @@ export function LabApp() {
   if (canvasStore) {
     return (
       <main data-verify-canvas-document>
-        <CanvasView store={canvasStore} />
+        <CanvasView store={canvasStore} loadFont={canvasFonts?.loadFont} />
       </main>
     );
   }

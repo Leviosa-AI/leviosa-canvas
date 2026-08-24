@@ -20,6 +20,10 @@ import {
 import type { ExportDocument } from "../../lib/detail-page-canvas/export/document-model";
 import { detectGifPages } from "../../lib/detail-page-canvas/export/gif-plan";
 import { isMp4EncodeSupported } from "../../lib/detail-page-canvas/export/mp4-support";
+import {
+  detailPageEditorProfile,
+  type DetailPageEditorFormat,
+} from "../../lib/detail-page/editor-profile";
 
 /**
  * hookable-style 다운로드 팝오버 — 다운로드 버튼 바로 아래에 떠서 파일 형식 / 등록
@@ -62,7 +66,7 @@ const PLATFORMS = [
   { value: "general", label: "일반(범용)" },
 ] as const;
 
-type Format = "png" | "jpeg" | "psd" | "svg" | "ai";
+type Format = DetailPageEditorFormat;
 type Scope = "all" | "current";
 type AnimationFormat = "webp" | "gif" | "mp4";
 
@@ -134,8 +138,9 @@ export const DetailPageDownloadDialog = observer(function DetailPageDownloadDial
   const { t } = useTranslation("branding");
   const host = useDetailPageHost();
   const s = store as ExportStoreLike;
+  const profile = detailPageEditorProfile();
   const [open, setOpen] = useState(false);
-  const [format, setFormat] = useState<Format>("png");
+  const [format, setFormat] = useState<Format>(profile.exports[0]);
   const [platform, setPlatform] = useState<string>("naver");
   const [scope, setScope] = useState<Scope>("all");
   const [single, setSingle] = useState(true);
@@ -366,11 +371,15 @@ export const DetailPageDownloadDialog = observer(function DetailPageDownloadDial
                   </span>
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="png">PNG</SelectItem>
-                  <SelectItem value="jpeg">JPG</SelectItem>
-                  <SelectItem value="psd">{t("editor.formatPsd")}</SelectItem>
-                  <SelectItem value="ai">{t("editor.formatAi")}</SelectItem>
-                  <SelectItem value="svg">{t("editor.formatSvg")}</SelectItem>
+                  {profile.exports.map((value) => (
+                    <SelectItem key={value} value={value}>
+                      {value === "png"
+                        ? "PNG"
+                        : value === "jpeg"
+                          ? "JPG"
+                          : t(`editor.format${value[0].toUpperCase()}${value.slice(1)}`)}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>

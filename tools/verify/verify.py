@@ -18,13 +18,20 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from typing import Any, Iterator
 
+from PIL import Image, ImageChops
+
 
 REPO = Path(__file__).resolve().parents[2]
 DECOMPOSE = REPO / "packages" / "decompose"
 sys.path.insert(0, str(DECOMPOSE))
 
 from leviosa_decompose import CAROUSEL  # noqa: E402
-from leviosa_decompose.decompose import compare_pixels, process_template  # noqa: E402
+from leviosa_decompose.decompose import (  # noqa: E402
+    RENDER_FONTS_BASE_URL,
+    allow_bundle_font_cors,
+    compare_pixels,
+    process_template,
+)
 from playwright.async_api import async_playwright  # noqa: E402
 
 PIXEL_LIMIT = 0.1
@@ -173,13 +180,46 @@ async def decompose_html(html_files: list[Path], work: Path) -> list[tuple[Path,
     return results
 
 
-def baseline_values(folder: Path) -> dict[str, float]:
+def baseline_values(folder: Path) -> tuple[dict[str, float], int]:
     custom = folder / "verify-baseline.json"
     path = custom if custom.exists() else Path(__file__).with_name("carousel-baseline.json")
-    return json.loads(path.read_text()) if path.exists() else {}
+    if not path.exists():
+        return {}, 0
+    value = json.loads(path.read_text())
+    if "baselines" not in value:
+        return value, 0
+    tolerance = value.get("pixelTolerance", 0)
+    if not isinstance(tolerance, int) or not 0 <= tolerance <= 255:
+        raise ValueError(f"pixelTolerance는 0..255 정수여야 합니다: {path}")
+    return value["baselines"], tolerance
 
 
-async def capture(documents: list[tuple[Path, Path | None, float]], out: Path) -> None:
+def compare_stage_pixels(
+    original_path: Path,
+    stage_path: Path,
+    diff_path: Path,
+    baseline_percent: float,
+    pixel_tolerance: int,
+) -> float:
+    original = Image.open(original_path).convert("RGB")
+    stage = Image.open(stage_path).convert("RGB")
+    if original.size != stage.size:
+        raise AssertionError(f"image size differs: original={original.size}, stage={stage.size}")
+    diff = ImageChops.difference(original, stage)
+    different = sum(max(pixel) > pixel_tolerance for pixel in diff.getdata())
+    percent = different / (original.width * original.height) * 100
+    if percent > baseline_percent + PIXEL_LIMIT:
+        diff.point(lambda value: 0 if value <= pixel_tolerance else min(255, value * 4)).save(diff_path)
+    elif diff_path.exists():
+        diff_path.unlink()
+    return percent
+
+
+async def capture(
+    documents: list[tuple[Path, Path | None, float]],
+    out: Path,
+    pixel_tolerance: int,
+) -> None:
     files = Files()
     parity: list[tuple[str, float, float]] = []
     with files.serve() as file_url, lab_server() as lab_url:
@@ -190,12 +230,16 @@ async def capture(documents: list[tuple[Path, Path | None, float]], out: Path) -
             context = await browser.new_context(device_scale_factor=2)
             await context.add_init_script("delete window.IntersectionObserver")
             page = await context.new_page()
+            await allow_bundle_font_cors(page)
             try:
                 for path, original, baseline, url in urls:
                     key = path.stem.removesuffix(".canvas")
-                    await page.goto(f"{lab_url}?doc={urllib.parse.quote(url, safe=':/?=&')}")
+                    query = urllib.parse.urlencode({
+                        "doc": url,
+                        "fontBundle": RENDER_FONTS_BASE_URL,
+                    })
+                    await page.goto(f"{lab_url}?{query}")
                     await page.wait_for_function("window.__LEVIOSA_CANVAS_VERIFY__")
-                    await page.wait_for_timeout(300)
                     measurement = await page.evaluate("window.__LEVIOSA_CANVAS_VERIFY__()")
                     pages = page.locator("[data-lc-page]")
                     count = await pages.count()
@@ -208,9 +252,12 @@ async def capture(documents: list[tuple[Path, Path | None, float]], out: Path) -
                         if original and count == 1:
                             diff = out / "source-diff" / f"{key}.diff.png"
                             diff.parent.mkdir(exist_ok=True)
-                            percent = compare_pixels(original, image, diff, baseline, allowed_drift=PIXEL_LIMIT)
+                            percent = compare_stage_pixels(
+                                original, image, diff, baseline, pixel_tolerance
+                            )
                             measurement["sourcePixelPercent"] = round(percent, 6)
                             measurement["sourcePixelBaseline"] = baseline
+                            measurement["sourcePixelTolerance"] = pixel_tolerance
                             parity.append((key, percent, baseline))
                     write_json(out / f"{key}.metrics.json", measurement)
             finally:
@@ -231,7 +278,7 @@ async def snapshot(folder: Path, out: Path) -> None:
     out.mkdir(parents=True, exist_ok=True)
     json_files = [path for path in sorted(folder.rglob("*.json")) if path.name != "baseline.json"]
     documents: list[tuple[Path, Path | None, float]] = []
-    baselines = baseline_values(folder)
+    baselines, pixel_tolerance = baseline_values(folder)
     for path in json_files:
         try:
             value = json.loads(path.read_text())
@@ -252,7 +299,7 @@ async def snapshot(folder: Path, out: Path) -> None:
                          for doc, original, _ in generated)
     if not documents:
         raise SystemExit(f"검사할 JSON/HTML이 없습니다: {folder}")
-    await capture(documents, out)
+    await capture(documents, out, pixel_tolerance)
     count = len(documents)
     text_count = sum(len(json.loads(path.read_text())["textNodes"])
                      for path in out.glob("*.metrics.json"))

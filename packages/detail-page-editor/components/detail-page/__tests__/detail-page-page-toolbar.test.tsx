@@ -3,6 +3,7 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 
 import { DetailPagePageToolbar } from "../detail-page-page-toolbar";
+import { selectDetailPageEditorProfile } from "../../../lib/detail-page/editor-profile";
 
 /**
  * The toolbar mirrors the stock editor's stock page-controls. We assert each button wires
@@ -31,7 +32,10 @@ function makeStore() {
 }
 
 describe("DetailPagePageToolbar", () => {
-  afterEach(() => vi.restoreAllMocks());
+  afterEach(() => {
+    selectDetailPageEditorProfile({});
+    vi.restoreAllMocks();
+  });
 
   it("moves the page up / down via setZIndex", async () => {
     const user = userEvent.setup();
@@ -62,6 +66,33 @@ describe("DetailPagePageToolbar", () => {
     await user.click(screen.getByLabelText("detailPage.pageToolbar.addBelow"));
     expect(store.addPage).toHaveBeenCalledOnce();
     expect(added.setZIndex).toHaveBeenCalledWith(2);
+  });
+
+  it("캐러셀은 1080×1350 판만 추가하고 10장에서 막는다", async () => {
+    const user = userEvent.setup();
+    selectDetailPageEditorProfile({ kind: "carousel" });
+    const { store } = makeStore();
+    store.pages = Array.from({ length: 9 }, (_, i) => ({
+      ...store.pages[0],
+      id: `p${i}`,
+    }));
+    store.activePage = store.pages[4];
+    const { unmount } = render(
+      <DetailPagePageToolbar store={store} page={store.activePage} />,
+    );
+
+    await user.click(screen.getByLabelText("detailPage.pageToolbar.addBelow"));
+    expect(store.addPage).toHaveBeenCalledWith({
+      bleed: 0,
+      width: 1080,
+      height: 1350,
+    });
+
+    store.pages.push({ ...store.pages[0], id: "p9" });
+    unmount();
+    render(<DetailPagePageToolbar store={store} page={store.activePage} />);
+    expect(screen.getByLabelText("detailPage.pageToolbar.addBelow")).toBeDisabled();
+    expect(screen.getByLabelText("detailPage.pageToolbar.duplicate")).toBeDisabled();
   });
 
   it("deletes the page via store.deletePages", async () => {
