@@ -1084,6 +1084,15 @@ _HARD_BREAK_HEADLINE_HTML = """<!doctype html><html><head><meta charset="utf-8">
 </div></body></html>"""
 
 
+_TEXT_SHADOW_HTML = """<!doctype html><html><head><meta charset="utf-8"><style>
+*{margin:0;box-sizing:border-box}
+.dp{width:750px;font-family:sans-serif}
+.title{font-size:74px;text-shadow:0 2px 12px rgba(0,0,0,.28)}
+</style></head><body><div class="dp"><section data-screen-label="shadow">
+<p class="title">앰플 바르는 순서</p>
+</section></div></body></html>"""
+
+
 def test_hard_break_headline_keeps_each_authored_line(tmp_path):
     """A shrink-to-fit <br> headline gets enough width for its widest hard line."""
 
@@ -1093,6 +1102,12 @@ def test_hard_break_headline_keeps_each_authored_line(tmp_path):
     # The second line is slightly wider than the browser's shrink-to-fit box.
     # Keeping measured headroom prevents Konva/proxy from creating a third line.
     assert text["width"] >= 390
+
+
+def test_text_shadow_survives_into_canvas_text(tmp_path):
+    texts = list(_iter_text(_decompose_html(tmp_path, _TEXT_SHADOW_HTML, "shadow")))
+    title = next(text for text in texts if text.get("text") == "앰플 바르는 순서")
+    assert title["custom"]["shadow"] == "rgba(0, 0, 0, 0.28) 0px 2px 12px"
 
 
 def test_centred_multiline_chip_uses_full_box_width_so_it_never_rewraps(tmp_path):

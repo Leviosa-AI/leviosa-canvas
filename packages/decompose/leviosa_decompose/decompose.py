@@ -424,7 +424,7 @@ EXTRACT = r"""
       // element carries no background of its own.
       bg:'', borders:null, radius:0, borderWidth:0,
       borderColor: s.borderTopColor, borderStyle: s.borderTopStyle,
-      shadow:'none'});
+      shadow:s.textShadow});
   };
   const pushBox=(g, cs, opacity)=>{
     const grad=cs.backgroundImage&&cs.backgroundImage!=='none';
@@ -1853,6 +1853,7 @@ def _canvas_element(e, eid):
             "textTransform": e.get("textTransform", ""),
             "strokeWidth": e.get("strokeWidth", 0),
             "strokeColor": e.get("strokeColor", ""),
+            "shadow": e.get("shadow", "none"),
             # 템플릿이 스스로 선언한 슬롯 이름(``data-slot``). 없으면 빈 문자열.
             "contractSlot": e.get("contractSlot", ""),
         }
@@ -1930,7 +1931,6 @@ def _canvas_element(e, eid):
             # it rides in custom and backgroundColor stays transparent.
             bg = e["bg"]
             is_grad = "gradient" in bg or "url(" in bg
-            custom["shadow"] = e.get("shadow", "none")
             if is_grad:
                 custom["backgroundGradient"] = bg
             text_el.update(
@@ -2451,7 +2451,8 @@ def render_proxy(sec):
                 else ""
             )
             text_css = (
-                f"{pos}{container}{indent}{deco_css}{wrap_props}color:{e['color']};"
+                f"{pos}{container}{indent}{deco_css}{wrap_props}text-shadow:{shadow};"
+                f"color:{e['color']};"
                 f"font-size:{e['fontSize']}px;font-weight:{e['fontWeight']};"
                 f"text-align:{talign};line-height:{e['lineHeight']};"
                 f"letter-spacing:{e['letterSpacing']};font-family:{e['fontFamily']};"
