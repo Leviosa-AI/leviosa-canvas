@@ -15,7 +15,11 @@ import { useTranslation } from "react-i18next";
 import { observer } from "./canvas-observer";
 import { CANVAS_MENU_ICONS } from "./canvas-context-menu";
 import { ImageCropOverlay, type CropElement } from "./image-crop-overlay";
-import { SelectionQuickToolbar, type QuickToolbarItem } from "./selection-quick-toolbar";
+import {
+  SelectionQuickToolbar,
+  useQuickPopoverPlacement,
+  type QuickToolbarItem,
+} from "./selection-quick-toolbar";
 import { selectedElementsDeep, type SelectableElement } from "./detail-page-selection";
 import { useEditorAi } from "./editor-ai-context";
 import {
@@ -39,7 +43,13 @@ type ToolStore = CanvasMenuStore & {
   getElementById?: (id: string) => SelectableElement | undefined;
 };
 
-/** 창 하나. 띠 바로 아래에 붙고, 안에 들어가는 것은 우측 패널이 쓰던 부품 그대로다. */
+/**
+ * 창 하나. 안에 들어가는 것은 우측 패널이 쓰던 부품 그대로다.
+ *
+ * 붙는 자리는 띠가 정한다(`useQuickPopoverPlacement`). 아래가 좁으면 위로 뒤집고,
+ * 높이는 그 자리에 실제로 남은 만큼으로 잘린다 — 넘치는 만큼은 스스로 스크롤한다.
+ * 60vh·520px 상한은 그대로 두되, 남은 자리가 더 좁으면 그쪽이 이긴다.
+ */
 function Popover({
   children,
   width = 360,
@@ -47,11 +57,16 @@ function Popover({
   children: React.ReactNode;
   width?: number;
 }) {
+  const { side, maxHeight } = useQuickPopoverPlacement();
   return (
     <div
       data-dp-quick-popover=""
-      style={{ width, maxHeight: "min(60vh, 520px)" }}
-      className="mt-1.5 overflow-y-auto rounded-dpe-xl border border-dpe-ink-200 bg-dpe-surface shadow-lg"
+      data-dp-quick-popover-side={side}
+      style={{ width, maxHeight: `min(60vh, 520px, ${maxHeight}px)` }}
+      className={[
+        "overflow-y-auto rounded-dpe-xl border border-dpe-ink-200 bg-dpe-surface shadow-lg",
+        side === "above" ? "absolute bottom-full left-0 mb-1.5" : "mt-1.5",
+      ].join(" ")}
     >
       {children}
     </div>
