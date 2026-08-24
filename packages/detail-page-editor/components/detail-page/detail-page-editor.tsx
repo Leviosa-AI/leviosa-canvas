@@ -93,6 +93,14 @@ export type DetailPageEditorProps = {
    */
   imageCostByTier?: Partial<Record<ImageTier, number>>;
   /**
+   * 고르게 할 이미지 티어. 안 주면 셋 다(basic/pro/max).
+   *
+   * 요금표에서 티어를 은퇴시킨 소비자가 쓰는 자리다 — 값이 없는 티어를 드롭다운에
+   * 남겨 두면 누를 수는 있는데 아무도 청구를 못 하고, 그 상태는 화면 어디에도 안
+   * 보인다. 에이전시는 `["pro", "max"]` 를 준다.
+   */
+  imageTiers?: readonly ImageTier[];
+  /**
    * 생성 인스턴스 ID. 주어지면 텍스트 요소 선택 시 우측에 "프롬프트로 편집"이
    * 노출된다(소싱 서버 카피 엔진 호출). dev 하네스는 scratch ID를 주입한다.
    */
@@ -435,6 +443,7 @@ export function DetailPageEditor({
   imageCreditCost = 0,
   imageCreditBalance = 0,
   imageCostByTier,
+  imageTiers,
   generatedId,
   structurePanel,
   productName,
@@ -662,6 +671,7 @@ export function DetailPageEditor({
         imageCreditCost,
         imageCreditBalance,
         imageCostByTier,
+        imageTiers,
         onBuyImageCredits: () => setPricingOpen(true),
         structurePanel,
         generatedId,
@@ -675,6 +685,7 @@ export function DetailPageEditor({
       imageCreditCost,
       imageCreditBalance,
       imageCostByTier,
+      imageTiers,
       structurePanel,
       generatedId,
     ],
@@ -721,6 +732,7 @@ export function DetailPageEditor({
       imageCreditCost,
       imageCreditBalance,
       imageCostByTier,
+      imageTiers,
       onGenerateGif,
       gifCreditCost,
       onRemoveBackground,
@@ -733,6 +745,7 @@ export function DetailPageEditor({
       imageCreditCost,
       imageCreditBalance,
       imageCostByTier,
+      imageTiers,
       onGenerateGif,
       gifCreditCost,
       onRemoveBackground,

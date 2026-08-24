@@ -9,6 +9,8 @@ import {
   imageCreditRequired,
   imageFeatureKey,
   isImageCreditBlocked,
+  resolveDefaultImageTier,
+  resolveImageTiers,
 } from "../image-credit";
 
 describe("imageFeatureKey", () => {
@@ -72,5 +74,33 @@ describe("이미지 티어 메타/대체단가", () => {
     expect(IMAGE_TIER_FALLBACK_COST.pro).toBeLessThan(
       IMAGE_TIER_FALLBACK_COST.max,
     );
+  });
+});
+
+describe("resolveImageTiers", () => {
+  it("소비자가 고른 티어만, 늘 저→고 순서로", () => {
+    expect(resolveImageTiers(["max", "pro"])).toEqual(["pro", "max"]);
+    expect(resolveImageTiers(["pro"])).toEqual(["pro"]);
+  });
+
+  it("안 주면 셋 다 — 지금까지 소비자의 화면이 안 바뀐다", () => {
+    expect(resolveImageTiers()).toEqual(IMAGE_TIERS);
+  });
+
+  it("빈 목록·모르는 이름은 셋 다로 되돌린다", () => {
+    // 빈 드롭다운은 'AI 이미지를 못 만드는 편집기'다. 배열 하나를 잘못 넘겨서
+    // 벌어질 일이 아니다.
+    expect(resolveImageTiers([])).toEqual(IMAGE_TIERS);
+    expect(resolveImageTiers(["nope" as never])).toEqual(IMAGE_TIERS);
+  });
+});
+
+describe("resolveDefaultImageTier", () => {
+  it("목록에 기본값이 있으면 그것", () => {
+    expect(resolveDefaultImageTier(["pro", "max"])).toBe(DEFAULT_IMAGE_TIER);
+  });
+
+  it("기본값이 은퇴한 목록이면 첫 항목", () => {
+    expect(resolveDefaultImageTier(["max"])).toBe("max");
   });
 });
