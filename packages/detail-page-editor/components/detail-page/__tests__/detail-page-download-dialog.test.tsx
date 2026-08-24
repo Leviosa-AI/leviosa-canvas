@@ -3,6 +3,7 @@ import { screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 
 import { DetailPageDownloadDialog } from "../detail-page-download-dialog";
+import { selectDetailPageEditorProfile } from "../../../lib/detail-page/editor-profile";
 
 vi.mock("react-i18next", () => ({
   useTranslation: () => ({
@@ -59,7 +60,10 @@ async function chooseFormat(user: ReturnType<typeof userEvent.setup>, label: str
 }
 
 describe("DetailPageDownloadDialog", () => {
-  afterEach(() => vi.restoreAllMocks());
+  afterEach(() => {
+    selectDetailPageEditorProfile({});
+    vi.restoreAllMocks();
+  });
 
   it("toggles the popover open and closed", async () => {
     const user = userEvent.setup();
@@ -83,6 +87,28 @@ describe("DetailPageDownloadDialog", () => {
     expect(within(dialog).getByText(/editor\.pagesCount:3/)).toBeInTheDocument();
     // 750 wide x (3 * 1000) tall at 1x
     expect(within(dialog).getByText(/750 × 3,000 px/)).toBeInTheDocument();
+  });
+
+  it("캐러셀은 JPG 하나만 보여 주고 그것을 기본으로 내보낸다", async () => {
+    const user = userEvent.setup();
+    const store = makeStore(1);
+    selectDetailPageEditorProfile({ kind: "carousel" });
+    vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(() => {});
+    render(<DetailPageDownloadDialog store={store} />);
+
+    await user.click(screen.getByText("editor.download"));
+    const dialog = screen.getByRole("dialog");
+    await user.click(within(dialog).getAllByRole("combobox")[0]);
+    expect(screen.getAllByRole("option").map((option) => option.textContent)).toEqual([
+      "JPG",
+    ]);
+    await user.click(screen.getByRole("option", { name: "JPG" }));
+    await user.click(within(dialog).getByText("editor.downloadAction"));
+
+    await vi.waitFor(() => expect(store.toDataURL).toHaveBeenCalled());
+    expect(store.toDataURL).toHaveBeenCalledWith(
+      expect.objectContaining({ mimeType: "image/jpeg" }),
+    );
   });
 
   it("exports each page via store.toDataURL and triggers a download", async () => {

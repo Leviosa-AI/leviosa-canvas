@@ -30,6 +30,7 @@ import { collectFontRequests } from "@leviosa-ai/canvas/render/use-document-font
 import { ensureCanvasKey } from "../../lib/detail-page-canvas/canvas-key";
 import { loadEditorFont } from "../../lib/detail-page-canvas/editor-fonts";
 import { normalizeDocumentAssetSrcs } from "../../lib/detail-page/asset-bytes-url";
+import { selectDetailPageEditorProfile } from "../../lib/detail-page/editor-profile";
 import type { DocumentJson } from "@leviosa-ai/canvas/types";
 import { buildDetailPageSections } from "./detail-page-sidebar-sections";
 import { DetailPageProperties } from "./detail-page-properties-panel";
@@ -242,6 +243,7 @@ function buildQaSnapshot(
   document: LeviosaCanvasDocument,
   json: CanvasJson,
 ): TemplateQaSnapshot {
+  const slotBindings = document.slot_bindings ?? {};
   const cleanJson = stripQaOverlayElements(json);
   const pages = asArray(cleanJson.pages) as Array<Record<string, unknown>>;
   const elementById = new Map<string, { element: CanvasJsonElement; pageId?: string }>();
@@ -259,14 +261,14 @@ function buildQaSnapshot(
     }
   });
 
-  for (const [slot, binding] of Object.entries(document.slot_bindings)) {
+  for (const [slot, binding] of Object.entries(slotBindings)) {
     const list = slotByElementId.get(binding.element_id) ?? [];
     list.push(slot);
     slotByElementId.set(binding.element_id, list);
   }
 
   const lint: TemplateLintIssue[] = [];
-  const slots = Object.entries(document.slot_bindings)
+  const slots = Object.entries(slotBindings)
     .sort(([a], [b]) => a.localeCompare(b))
     .map(([slot, binding]) => {
       const target = elementById.get(binding.element_id);
@@ -357,7 +359,7 @@ function buildQaSnapshot(
   }
 
   for (const [slot, target] of slotsFromElements) {
-    if (!document.slot_bindings[slot]) {
+    if (!slotBindings[slot]) {
       lint.push({
         level: "info",
         title: "Unregistered slot marker",
@@ -441,6 +443,7 @@ export function DetailPageEditor({
   onBack,
   headerActions,
 }: DetailPageEditorProps) {
+  selectDetailPageEditorProfile(initialDocument);
   const { t } = useTranslation("branding");
   // 요금제 모달은 호스트가 꽂는다 — 편집기가 열지만 무엇을 얼마에 파는지는 앱이 안다.
   const { slots } = useDetailPageHost();

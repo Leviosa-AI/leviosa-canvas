@@ -162,7 +162,11 @@ export const DetailPagePageToolbar = observer(function DetailPagePageToolbar({
       <IconButton label={t("detailPage.pageToolbar.moveDown")} onClick={() => p.setZIndex(index + 1)} disabled={isLast}>
         <ChevronDown size={17} />
       </IconButton>
-      <IconButton label={t("detailPage.pageToolbar.duplicate")} onClick={() => p.clone()}>
+      <IconButton
+        label={t("detailPage.pageToolbar.duplicate")}
+        onClick={() => p.clone()}
+        disabled={!canAdd}
+      >
         <Copy size={16} />
       </IconButton>
       <IconButton
