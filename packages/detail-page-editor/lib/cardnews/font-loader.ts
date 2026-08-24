@@ -8,12 +8,12 @@
 
 import {
   FONT_CATALOG,
-  LEVIOSA_KONVA_VERSION,
+  LEVIOSA_CANVAS_FONTS_VERSION,
   catalogFont,
   fontLoadSampleForText,
   resolveFontFamily,
   type CatalogFont,
-} from "@leviosa-ai/konva";
+} from "@leviosa-ai/canvas/fonts";
 
 import { editorAssetBase } from "../detail-page/runtime-config";
 
@@ -84,7 +84,7 @@ const COMMON_HANGUL_SAMPLE =
  * `/render-fonts` 라, 아무것도 안 부른 소비자에게는 주소가 그대로다.
  */
 function bundleUrl(path: string): string {
-  return `${editorAssetBase("fontBundle")}${path}?v=${LEVIOSA_KONVA_VERSION}`;
+  return `${editorAssetBase("fontBundle")}${path}?v=${LEVIOSA_CANVAS_FONTS_VERSION}`;
 }
 
 const localFontCssUrl = () => bundleUrl("/font-css.css");

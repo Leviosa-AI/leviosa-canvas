@@ -13,7 +13,7 @@
  * 그냥 비워 보낸다 — 그 경우 서버의 폴백 폰트로 그려진다.
  */
 
-import { LEVIOSA_KONVA_VERSION } from "@leviosa-ai/konva";
+import { LEVIOSA_CANVAS_FONTS_VERSION } from "@leviosa-ai/canvas/fonts";
 
 import {
   closestDetailPageFontWeight,
@@ -78,7 +78,7 @@ export function resolveGifWebFonts(
     const weight = closestEditorFontWeight(editorFont, face.weight);
     const url = fontBundleAbsoluteUrl(
       origin,
-      `/family-css/${slug}-${weight}.css?v=${LEVIOSA_KONVA_VERSION}`,
+      `/family-css/${slug}-${weight}.css?v=${LEVIOSA_CANVAS_FONTS_VERSION}`,
     );
     // 번들이 상대 경로로 설정돼 있고 오리진도 http 면 서버가 못 받아간다 — 건너뛴다.
     if (!url) continue;

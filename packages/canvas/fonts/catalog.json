@@ -1,0 +1,576 @@
+{
+  "version": 2,
+  "note": "SSOT for which fonts exist. freeze-fonts.mjs builds the frozen bundle from this; the picker, the coverage check and the reference-extraction matcher all read it. Adding a font = one entry here + a re-freeze. Never hardcode a family name anywhere else.",
+  "traitVocabulary": {
+    "class": ["gothic", "myeongjo", "handwriting", "display"],
+    "shape": ["neutral", "round", "angular", "narrow", "pixel"]
+  },
+  "fonts": [
+    {
+      "id": "pretendard",
+      "family": "Pretendard",
+      "label": "Pretendard",
+      "category": "sans",
+      "traits": { "class": "gothic", "shape": "neutral" },
+      "weights": [100, 200, 300, 400, 500, 600, 700, 800, 900],
+      "comment": "dynamic-subset, not the whole-file build: Pretendard is the default font and one weight is a single ~750KB file, so the editor paid ~6.7MB to warm all nine. The subset build is the same release split into unicode ranges — metrics verified identical (unitsPerEm/ascent/descent/lineGap and glyph advances), so wrapping does not move. Pinned: an unpinned tag would silently re-freeze different bytes.",
+      "source": { "type": "css", "url": "https://cdn.jsdelivr.net/npm/pretendard@1.3.9/dist/web/static/pretendard-dynamic-subset.css" },
+      "license": { "name": "SIL Open Font License 1.1", "url": "https://github.com/orioncactus/pretendard" },
+      "previewText": "Pretendard 가나다"
+    },
+    {
+      "id": "noto-sans-kr",
+      "family": "Noto Sans KR",
+      "label": "Noto Sans",
+      "category": "sans",
+      "traits": { "class": "gothic", "shape": "neutral" },
+      "weights": [100, 200, 300, 400, 500, 600, 700, 800, 900],
+      "source": { "type": "google" },
+      "license": { "name": "SIL Open Font License 1.1", "url": "https://fonts.google.com/specimen/Noto+Sans+KR/license" },
+      "previewText": "Noto Sans 가나다"
+    },
+    {
+      "id": "gothic-a1",
+      "family": "Gothic A1",
+      "label": "고딕 A1",
+      "category": "sans",
+      "traits": { "class": "gothic", "shape": "neutral" },
+      "weights": [400, 700, 900],
+      "source": { "type": "google" },
+      "license": { "name": "SIL Open Font License 1.1", "url": "https://fonts.google.com/specimen/Gothic+A1/license" },
+      "previewText": "고딕 에이원 Gothic A1"
+    },
+    {
+      "id": "ibm-plex-sans-kr",
+      "family": "IBM Plex Sans KR",
+      "label": "IBM Plex Sans",
+      "category": "sans",
+      "traits": { "class": "gothic", "shape": "neutral" },
+      "weights": [400, 700],
+      "source": { "type": "google" },
+      "license": { "name": "SIL Open Font License 1.1", "url": "https://fonts.google.com/specimen/IBM+Plex+Sans+KR/license" },
+      "previewText": "IBM Plex Sans 가나다"
+    },
+    {
+      "id": "nanum-gothic",
+      "family": "Nanum Gothic",
+      "label": "나눔고딕",
+      "category": "sans",
+      "traits": { "class": "gothic", "shape": "neutral" },
+      "weights": [400, 800],
+      "source": { "type": "google" },
+      "license": { "name": "SIL Open Font License 1.1", "url": "https://fonts.google.com/specimen/Nanum+Gothic/license" },
+      "previewText": "나눔고딕 Nanum Gothic"
+    },
+    {
+      "id": "paperlogy",
+      "family": "Paperozi",
+      "label": "Paperlogy",
+      "category": "sans",
+      "traits": { "class": "gothic", "shape": "angular" },
+      "weights": [400, 700, 900],
+      "source": {
+        "type": "files",
+        "files": [
+          { "weight": 400, "style": "normal", "url": "https://cdn.jsdelivr.net/gh/projectnoonnu/2408-3@1.0/Paperlogy-4Regular.woff2" },
+          { "weight": 700, "style": "normal", "url": "https://cdn.jsdelivr.net/gh/projectnoonnu/2408-3@1.0/Paperlogy-7Bold.woff2" },
+          { "weight": 900, "style": "normal", "url": "https://cdn.jsdelivr.net/gh/projectnoonnu/2408-3@1.0/Paperlogy-9Black.woff2" }
+        ]
+      },
+      "license": { "name": "SIL Open Font License 1.1", "url": "https://noonnu.cc/font_page/1456" },
+      "previewText": "Paperlogy 가나다"
+    },
+    {
+      "id": "freesentation",
+      "family": "Presentation",
+      "label": "Freesentation",
+      "category": "sans",
+      "traits": { "class": "gothic", "shape": "neutral" },
+      "weights": [400, 700, 900],
+      "source": {
+        "type": "files",
+        "files": [
+          { "weight": 400, "style": "normal", "url": "https://cdn.jsdelivr.net/gh/projectnoonnu/2404@1.0/Freesentation-4Regular.woff2" },
+          { "weight": 700, "style": "normal", "url": "https://cdn.jsdelivr.net/gh/projectnoonnu/2404@1.0/Freesentation-7Bold.woff2" },
+          { "weight": 900, "style": "normal", "url": "https://cdn.jsdelivr.net/gh/projectnoonnu/2404@1.0/Freesentation-9Black.woff2" }
+        ]
+      },
+      "license": { "name": "SIL Open Font License 1.1", "url": "https://freesentation.blog/freesentation" },
+      "previewText": "Freesentation 가나다"
+    },
+    {
+      "id": "gowun-dodum",
+      "family": "Gowun Dodum",
+      "label": "고운돋움",
+      "category": "sans",
+      "traits": { "class": "gothic", "shape": "round" },
+      "weights": [400],
+      "source": { "type": "google" },
+      "license": { "name": "SIL Open Font License 1.1", "url": "https://fonts.google.com/specimen/Gowun+Dodum/license" },
+      "previewText": "고운돋움 Gowun Dodum"
+    },
+    {
+      "id": "dongle",
+      "family": "Dongle",
+      "label": "동글",
+      "category": "sans",
+      "traits": { "class": "gothic", "shape": "round" },
+      "weights": [400, 700],
+      "source": { "type": "google" },
+      "license": { "name": "SIL Open Font License 1.1", "url": "https://fonts.google.com/specimen/Dongle/license" },
+      "previewText": "동글 Dongle"
+    },
+    {
+      "id": "noto-serif-kr",
+      "family": "Noto Serif KR",
+      "label": "Noto Serif",
+      "category": "serif",
+      "traits": { "class": "myeongjo", "shape": "neutral" },
+      "weights": [200, 300, 400, 500, 600, 700, 900],
+      "source": { "type": "google" },
+      "license": { "name": "SIL Open Font License 1.1", "url": "https://fonts.google.com/specimen/Noto+Serif+KR/license" },
+      "previewText": "Noto Serif 가나다"
+    },
+    {
+      "id": "nanum-myeongjo",
+      "family": "Nanum Myeongjo",
+      "label": "나눔명조",
+      "category": "serif",
+      "traits": { "class": "myeongjo", "shape": "neutral" },
+      "weights": [400, 700, 800],
+      "source": { "type": "google" },
+      "license": { "name": "SIL Open Font License 1.1", "url": "https://fonts.google.com/specimen/Nanum+Myeongjo/license" },
+      "previewText": "나눔명조 Nanum Myeongjo"
+    },
+    {
+      "id": "hahmlet",
+      "family": "Hahmlet",
+      "label": "Hahmlet",
+      "category": "serif",
+      "traits": { "class": "myeongjo", "shape": "angular" },
+      "weights": [400, 700, 900],
+      "source": { "type": "google" },
+      "license": { "name": "SIL Open Font License 1.1", "url": "https://fonts.google.com/specimen/Hahmlet/license" },
+      "previewText": "Hahmlet 가나다"
+    },
+    {
+      "id": "gowun-batang",
+      "family": "Gowun Batang",
+      "label": "고운바탕",
+      "category": "serif",
+      "traits": { "class": "myeongjo", "shape": "round" },
+      "weights": [400, 700],
+      "source": { "type": "google" },
+      "license": { "name": "SIL Open Font License 1.1", "url": "https://fonts.google.com/specimen/Gowun+Batang/license" },
+      "previewText": "고운바탕 Gowun Batang"
+    },
+    {
+      "id": "song-myung",
+      "family": "Song Myung",
+      "label": "송명",
+      "category": "serif",
+      "traits": { "class": "myeongjo", "shape": "narrow" },
+      "weights": [400],
+      "source": { "type": "google" },
+      "license": { "name": "SIL Open Font License 1.1", "url": "https://fonts.google.com/specimen/Song+Myung/license" },
+      "previewText": "송명 Song Myung"
+    },
+    {
+      "id": "diphylleia",
+      "family": "Diphylleia",
+      "label": "Diphylleia",
+      "category": "serif",
+      "traits": { "class": "myeongjo", "shape": "angular" },
+      "weights": [400],
+      "source": { "type": "google" },
+      "license": { "name": "SIL Open Font License 1.1", "url": "https://fonts.google.com/specimen/Diphylleia/license" },
+      "previewText": "Diphylleia 가나다"
+    },
+    {
+      "id": "black-han-sans",
+      "family": "Black Han Sans",
+      "label": "검은고딕",
+      "category": "display",
+      "traits": { "class": "display", "shape": "angular" },
+      "weights": [400],
+      "source": { "type": "google" },
+      "license": { "name": "SIL Open Font License 1.1", "url": "https://fonts.google.com/specimen/Black+Han+Sans/license" },
+      "previewText": "검은고딕 Black Han Sans"
+    },
+    {
+      "id": "gasoek-one",
+      "family": "Gasoek One",
+      "label": "Gasoek One",
+      "category": "display",
+      "traits": { "class": "display", "shape": "angular" },
+      "weights": [400],
+      "source": { "type": "google" },
+      "license": { "name": "SIL Open Font License 1.1", "url": "https://fonts.google.com/specimen/Gasoek+One/license" },
+      "previewText": "Gasoek One 가나다"
+    },
+    {
+      "id": "do-hyeon",
+      "family": "Do Hyeon",
+      "label": "도현",
+      "category": "display",
+      "traits": { "class": "display", "shape": "neutral" },
+      "weights": [400],
+      "source": { "type": "google" },
+      "license": { "name": "SIL Open Font License 1.1", "url": "https://fonts.google.com/specimen/Do+Hyeon/license" },
+      "previewText": "도현 Do Hyeon"
+    },
+    {
+      "id": "jua",
+      "family": "Jua",
+      "label": "주아",
+      "category": "display",
+      "traits": { "class": "display", "shape": "round" },
+      "weights": [400],
+      "source": { "type": "google" },
+      "license": { "name": "SIL Open Font License 1.1", "url": "https://fonts.google.com/specimen/Jua/license" },
+      "previewText": "주아 Jua"
+    },
+    {
+      "id": "bagel-fat-one",
+      "family": "Bagel Fat One",
+      "label": "Bagel Fat One",
+      "category": "display",
+      "traits": { "class": "display", "shape": "round" },
+      "weights": [400],
+      "source": { "type": "google" },
+      "license": { "name": "SIL Open Font License 1.1", "url": "https://fonts.google.com/specimen/Bagel+Fat+One/license" },
+      "previewText": "Bagel Fat One 가나다"
+    },
+    {
+      "id": "yeon-sung",
+      "family": "Yeon Sung",
+      "label": "연성",
+      "category": "display",
+      "traits": { "class": "display", "shape": "round" },
+      "weights": [400],
+      "source": { "type": "google" },
+      "license": { "name": "SIL Open Font License 1.1", "url": "https://fonts.google.com/specimen/Yeon+Sung/license" },
+      "previewText": "연성 Yeon Sung"
+    },
+    {
+      "id": "moirai-one",
+      "family": "Moirai One",
+      "label": "Moirai One",
+      "category": "display",
+      "traits": { "class": "display", "shape": "angular" },
+      "weights": [400],
+      "source": { "type": "google" },
+      "license": { "name": "SIL Open Font License 1.1", "url": "https://fonts.google.com/specimen/Moirai+One/license" },
+      "previewText": "Moirai One 가나다"
+    },
+    {
+      "id": "kirang-haerang",
+      "family": "Kirang Haerang",
+      "label": "기랑해랑",
+      "category": "display",
+      "traits": { "class": "display", "shape": "round" },
+      "weights": [400],
+      "source": { "type": "google" },
+      "license": { "name": "SIL Open Font License 1.1", "url": "https://fonts.google.com/specimen/Kirang+Haerang/license" },
+      "previewText": "기랑해랑 Kirang Haerang"
+    },
+    {
+      "id": "gugi",
+      "family": "Gugi",
+      "label": "구기",
+      "category": "display",
+      "traits": { "class": "display", "shape": "angular" },
+      "weights": [400],
+      "source": { "type": "google" },
+      "license": { "name": "SIL Open Font License 1.1", "url": "https://fonts.google.com/specimen/Gugi/license" },
+      "previewText": "구기 Gugi"
+    },
+    {
+      "id": "sunflower",
+      "family": "Sunflower",
+      "label": "Sunflower",
+      "category": "display",
+      "traits": { "class": "display", "shape": "neutral" },
+      "weights": [300, 500, 700],
+      "source": { "type": "google" },
+      "license": { "name": "SIL Open Font License 1.1", "url": "https://fonts.google.com/specimen/Sunflower/license" },
+      "previewText": "Sunflower 가나다"
+    },
+    {
+      "id": "nanum-pen-script",
+      "family": "Nanum Pen Script",
+      "label": "나눔손글씨 펜",
+      "category": "handwriting",
+      "traits": { "class": "handwriting", "shape": "narrow" },
+      "weights": [400],
+      "source": { "type": "google" },
+      "license": { "name": "SIL Open Font License 1.1", "url": "https://fonts.google.com/specimen/Nanum+Pen+Script/license" },
+      "previewText": "나눔손글씨 펜 Nanum Pen"
+    },
+    {
+      "id": "nanum-brush-script",
+      "family": "Nanum Brush Script",
+      "label": "나눔손글씨 붓",
+      "category": "handwriting",
+      "traits": { "class": "handwriting", "shape": "angular" },
+      "weights": [400],
+      "source": { "type": "google" },
+      "license": { "name": "SIL Open Font License 1.1", "url": "https://fonts.google.com/specimen/Nanum+Brush+Script/license" },
+      "previewText": "나눔손글씨 붓 Nanum Brush"
+    },
+    {
+      "id": "gaegu",
+      "family": "Gaegu",
+      "label": "개구",
+      "category": "handwriting",
+      "traits": { "class": "handwriting", "shape": "round" },
+      "weights": [300, 400, 700],
+      "source": { "type": "google" },
+      "license": { "name": "SIL Open Font License 1.1", "url": "https://fonts.google.com/specimen/Gaegu/license" },
+      "previewText": "개구 Gaegu"
+    },
+    {
+      "id": "gamja-flower",
+      "family": "Gamja Flower",
+      "label": "감자꽃",
+      "category": "handwriting",
+      "traits": { "class": "handwriting", "shape": "round" },
+      "weights": [400],
+      "source": { "type": "google" },
+      "license": { "name": "SIL Open Font License 1.1", "url": "https://fonts.google.com/specimen/Gamja+Flower/license" },
+      "previewText": "감자꽃 Gamja Flower"
+    },
+    {
+      "id": "hi-melody",
+      "family": "Hi Melody",
+      "label": "Hi Melody",
+      "category": "handwriting",
+      "traits": { "class": "handwriting", "shape": "round" },
+      "weights": [400],
+      "source": { "type": "google" },
+      "license": { "name": "SIL Open Font License 1.1", "url": "https://fonts.google.com/specimen/Hi+Melody/license" },
+      "previewText": "Hi Melody 가나다"
+    },
+    {
+      "id": "dokdo",
+      "family": "Dokdo",
+      "label": "독도",
+      "category": "handwriting",
+      "traits": { "class": "handwriting", "shape": "angular" },
+      "weights": [400],
+      "source": { "type": "google" },
+      "license": { "name": "SIL Open Font License 1.1", "url": "https://fonts.google.com/specimen/Dokdo/license" },
+      "previewText": "독도 Dokdo"
+    },
+    {
+      "id": "east-sea-dokdo",
+      "family": "East Sea Dokdo",
+      "label": "동해독도",
+      "category": "handwriting",
+      "traits": { "class": "handwriting", "shape": "narrow" },
+      "weights": [400],
+      "source": { "type": "google" },
+      "license": { "name": "SIL Open Font License 1.1", "url": "https://fonts.google.com/specimen/East+Sea+Dokdo/license" },
+      "previewText": "동해독도 East Sea Dokdo"
+    },
+    {
+      "id": "suit",
+      "family": "Suit",
+      "label": "SUIT",
+      "category": "sans",
+      "traits": { "class": "gothic", "shape": "neutral" },
+      "weights": [100, 200, 300, 400, 500, 600, 700, 800, 900],
+      "source": {
+        "type": "files",
+        "files": [
+          { "weight": 100, "style": "normal", "url": "https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_suit@1.0/SUIT-Thin.woff2" },
+          { "weight": 200, "style": "normal", "url": "https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_suit@1.0/SUIT-ExtraLight.woff2" },
+          { "weight": 300, "style": "normal", "url": "https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_suit@1.0/SUIT-Light.woff2" },
+          { "weight": 400, "style": "normal", "url": "https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_suit@1.0/SUIT-Regular.woff2" },
+          { "weight": 500, "style": "normal", "url": "https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_suit@1.0/SUIT-Medium.woff2" },
+          { "weight": 600, "style": "normal", "url": "https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_suit@1.0/SUIT-SemiBold.woff2" },
+          { "weight": 700, "style": "normal", "url": "https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_suit@1.0/SUIT-Bold.woff2" },
+          { "weight": 800, "style": "normal", "url": "https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_suit@1.0/SUIT-ExtraBold.woff2" },
+          { "weight": 900, "style": "normal", "url": "https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_suit@1.0/SUIT-Heavy.woff2" }
+        ]
+      },
+      "license": { "name": "SIL Open Font License 1.1", "url": "https://github.com/sun-typeface/SUIT/blob/main/LICENSE" },
+      "previewText": "수트 SUIT"
+    },
+    {
+      "id": "nanum-square-neo",
+      "family": "NanumSquareNeo",
+      "label": "나눔스퀘어 네오",
+      "category": "sans",
+      "traits": { "class": "gothic", "shape": "angular" },
+      "weights": [300, 400, 700, 800, 900],
+      "source": {
+        "type": "files",
+        "files": [
+          { "weight": 300, "style": "normal", "url": "https://raw.githubusercontent.com/eunchurn/NanumSquareNeo/7db97f46a9637d40a76ef08e5f8c9a7bcc1c0764/woff2/NanumSquareNeoTTF-aLt.woff2" },
+          { "weight": 400, "style": "normal", "url": "https://raw.githubusercontent.com/eunchurn/NanumSquareNeo/7db97f46a9637d40a76ef08e5f8c9a7bcc1c0764/woff2/NanumSquareNeoTTF-bRg.woff2" },
+          { "weight": 700, "style": "normal", "url": "https://raw.githubusercontent.com/eunchurn/NanumSquareNeo/7db97f46a9637d40a76ef08e5f8c9a7bcc1c0764/woff2/NanumSquareNeoTTF-cBd.woff2" },
+          { "weight": 800, "style": "normal", "url": "https://raw.githubusercontent.com/eunchurn/NanumSquareNeo/7db97f46a9637d40a76ef08e5f8c9a7bcc1c0764/woff2/NanumSquareNeoTTF-dEb.woff2" },
+          { "weight": 900, "style": "normal", "url": "https://raw.githubusercontent.com/eunchurn/NanumSquareNeo/7db97f46a9637d40a76ef08e5f8c9a7bcc1c0764/woff2/NanumSquareNeoTTF-eHv.woff2" }
+        ]
+      },
+      "license": { "name": "NAVER Nanum Font License", "url": "https://campaign.naver.com/nanumsquare_neo/" },
+      "previewText": "나눔스퀘어 네오 NanumSquare Neo"
+    },
+    {
+      "id": "nanum-square-round",
+      "family": "NanumSquareRound",
+      "label": "나눔스퀘어라운드",
+      "category": "sans",
+      "traits": { "class": "gothic", "shape": "round" },
+      "weights": [300, 400, 700, 800],
+      "source": {
+        "type": "files",
+        "files": [
+          { "weight": 300, "style": "normal", "url": "https://cdn.jsdelivr.net/npm/@kfonts/nanum-square-round@0.2.0/NanumSquareRoundL.woff2" },
+          { "weight": 400, "style": "normal", "url": "https://cdn.jsdelivr.net/npm/@kfonts/nanum-square-round@0.2.0/NanumSquareRoundR.woff2" },
+          { "weight": 700, "style": "normal", "url": "https://cdn.jsdelivr.net/npm/@kfonts/nanum-square-round@0.2.0/NanumSquareRoundB.woff2" },
+          { "weight": 800, "style": "normal", "url": "https://cdn.jsdelivr.net/npm/@kfonts/nanum-square-round@0.2.0/NanumSquareRoundEB.woff2" }
+        ]
+      },
+      "license": { "name": "NAVER Nanum Font License", "url": "https://campaign.naver.com/nanumsquare_neo/" },
+      "previewText": "나눔스퀘어라운드 NanumSquareRound"
+    },
+    {
+      "id": "cafe24-decoline",
+      "family": "Cafe24Decoline",
+      "label": "Cafe24 Decoline",
+      "category": "display",
+      "traits": { "class": "display", "shape": "angular" },
+      "weights": [400],
+      "source": {
+        "type": "files",
+        "files": [
+          { "weight": 400, "style": "normal", "url": "https://cdn.jsdelivr.net/gh/projectnoonnu/2405-3@1.1/Cafe24Decoline.woff2" }
+        ]
+      },
+      "license": { "name": "SIL Open Font License 1.1", "url": "https://fonts.cafe24.com/" },
+      "previewText": "Cafe24 Decoline 24"
+    },
+    {
+      "id": "samlip-hopang-outline",
+      "family": "SandollSamlipHobbangOutline",
+      "label": "삼립호빵체 아웃라인",
+      "category": "display",
+      "traits": { "class": "display", "shape": "round" },
+      "weights": [400],
+      "source": {
+        "type": "files",
+        "files": [
+          { "weight": 400, "style": "normal", "url": "https://raw.githubusercontent.com/fonts-archive/SDSamliphopangcheOutline/f2ba9b8ed062eee8342c10e61d31c18114c4421e/SDSamliphopangcheOutline.ttf", "convert": "woff2" }
+        ]
+      },
+      "license": { "name": "SIL Open Font License 1.1", "url": "https://spcsamlip.co.kr/sandoll-samlip-hopang/" },
+      "previewText": "삼립호빵체 아웃라인"
+    },
+    {
+      "id": "jost",
+      "family": "Jost",
+      "label": "Jost",
+      "category": "sans",
+      "traits": { "class": "gothic", "shape": "round" },
+      "weights": [100, 200, 300, 400, 500, 600, 700, 800, 900],
+      "latinOnly": true,
+      "comment": "Latin display face. The bundle is otherwise Korean-only, so English headlines had no display option and plates fell back to a Korean family's Latin glyphs. latinOnly: putting Hangul in it mixes two typefaces on one line.",
+      "source": { "type": "google" },
+      "license": { "name": "SIL Open Font License 1.1", "url": "https://fonts.google.com/specimen/Jost/license" },
+      "previewText": "Jost 0123 Aa"
+    },
+    {
+      "id": "bebas-neue",
+      "family": "Bebas Neue",
+      "label": "Bebas Neue",
+      "category": "display",
+      "traits": { "class": "display", "shape": "narrow" },
+      "weights": [400],
+      "latinOnly": true,
+      "comment": "Latin display face. The bundle is otherwise Korean-only, so English headlines had no display option and plates fell back to a Korean family's Latin glyphs. latinOnly: putting Hangul in it mixes two typefaces on one line.",
+      "source": { "type": "google" },
+      "license": { "name": "SIL Open Font License 1.1", "url": "https://fonts.google.com/specimen/Bebas+Neue/license" },
+      "previewText": "BEBAS NEUE 0123"
+    },
+    {
+      "id": "anton",
+      "family": "Anton",
+      "label": "Anton",
+      "category": "display",
+      "traits": { "class": "display", "shape": "narrow" },
+      "weights": [400],
+      "latinOnly": true,
+      "comment": "Latin display face. The bundle is otherwise Korean-only, so English headlines had no display option and plates fell back to a Korean family's Latin glyphs. latinOnly: putting Hangul in it mixes two typefaces on one line.",
+      "source": { "type": "google" },
+      "license": { "name": "SIL Open Font License 1.1", "url": "https://fonts.google.com/specimen/Anton/license" },
+      "previewText": "ANTON 0123"
+    },
+    {
+      "id": "archivo-black",
+      "family": "Archivo Black",
+      "label": "Archivo Black",
+      "category": "display",
+      "traits": { "class": "display", "shape": "neutral" },
+      "weights": [400],
+      "latinOnly": true,
+      "comment": "Latin display face. The bundle is otherwise Korean-only, so English headlines had no display option and plates fell back to a Korean family's Latin glyphs. latinOnly: putting Hangul in it mixes two typefaces on one line.",
+      "source": { "type": "google" },
+      "license": { "name": "SIL Open Font License 1.1", "url": "https://fonts.google.com/specimen/Archivo+Black/license" },
+      "previewText": "Archivo Black 0123"
+    },
+    {
+      "id": "oswald",
+      "family": "Oswald",
+      "label": "Oswald",
+      "category": "sans",
+      "traits": { "class": "gothic", "shape": "narrow" },
+      "weights": [200, 300, 400, 500, 600, 700],
+      "latinOnly": true,
+      "comment": "Latin display face. The bundle is otherwise Korean-only, so English headlines had no display option and plates fell back to a Korean family's Latin glyphs. latinOnly: putting Hangul in it mixes two typefaces on one line.",
+      "source": { "type": "google" },
+      "license": { "name": "SIL Open Font License 1.1", "url": "https://fonts.google.com/specimen/Oswald/license" },
+      "previewText": "Oswald 0123 Aa"
+    },
+    {
+      "id": "playfair-display",
+      "family": "Playfair Display",
+      "label": "Playfair Display",
+      "category": "serif",
+      "traits": { "class": "myeongjo", "shape": "angular" },
+      "weights": [400, 500, 600, 700, 800, 900],
+      "latinOnly": true,
+      "comment": "Latin display face. The bundle is otherwise Korean-only, so English headlines had no display option and plates fell back to a Korean family's Latin glyphs. latinOnly: putting Hangul in it mixes two typefaces on one line.",
+      "source": { "type": "google" },
+      "license": { "name": "SIL Open Font License 1.1", "url": "https://fonts.google.com/specimen/Playfair+Display/license" },
+      "previewText": "Playfair Display 0123"
+    },
+    {
+      "id": "eb-garamond",
+      "family": "EB Garamond",
+      "label": "EB Garamond",
+      "category": "serif",
+      "traits": { "class": "myeongjo", "shape": "neutral" },
+      "weights": [400, 500, 600, 700, 800],
+      "latinOnly": true,
+      "comment": "Latin display face. The bundle is otherwise Korean-only, so English headlines had no display option and plates fell back to a Korean family's Latin glyphs. latinOnly: putting Hangul in it mixes two typefaces on one line.",
+      "source": { "type": "google" },
+      "license": { "name": "SIL Open Font License 1.1", "url": "https://fonts.google.com/specimen/EB+Garamond/license" },
+      "previewText": "EB Garamond 0123"
+    },
+    {
+      "id": "parisienne",
+      "family": "Parisienne",
+      "label": "Parisienne",
+      "category": "handwriting",
+      "traits": { "class": "handwriting", "shape": "round" },
+      "weights": [400],
+      "latinOnly": true,
+      "comment": "Latin display face. The bundle is otherwise Korean-only, so English headlines had no display option and plates fell back to a Korean family's Latin glyphs. latinOnly: putting Hangul in it mixes two typefaces on one line.",
+      "source": { "type": "google" },
+      "license": { "name": "SIL Open Font License 1.1", "url": "https://fonts.google.com/specimen/Parisienne/license" },
+      "previewText": "Parisienne 0123"
+    }
+  ]
+}

@@ -31,7 +31,7 @@ describe("resolveGifWebFonts", () => {
   it("재배포 가능한 신규 폰트는 CDN 대신 우리 번들 스타일시트를 준다", () => {
     const [font] = resolveGifWebFonts([{ family: "Suit", weight: 500 }], ORIGIN);
     expect(font.url).toBe(
-      `${ORIGIN}/render-fonts/family-css/suit-500.css?v=0.8.0`,
+      `${ORIGIN}/render-fonts/family-css/suit-500.css?v=0.2.0`,
     );
   });
 
