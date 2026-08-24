@@ -107,6 +107,7 @@
         "saveToMyShapes": "브랜드 도형에 저장",
         "aiShapeEdit": "AI 도형 편집",
         "pageHeight": "섹션 높이",
+        "plateHeight": "판 높이",
         "pageHeightFit": "내용에 맞추기",
         "pageHeightOverflow": "내용이 {{px}}px까지 내려가 화면 아래로 넘칩니다.",
         "pageHeightHint": "캔버스 아래 손잡이를 끌어서도 바꿀 수 있어요.",

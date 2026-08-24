@@ -107,6 +107,7 @@
         "saveToMyShapes": "Save to brand shapes",
         "aiShapeEdit": "AI shape editing",
         "pageHeight": "Section height",
+        "plateHeight": "Plate height",
         "pageHeightFit": "Fit to content",
         "pageHeightOverflow": "Content reaches {{px}}px and overflows the bottom of this section.",
         "pageHeightHint": "You can also drag the handle below the canvas.",

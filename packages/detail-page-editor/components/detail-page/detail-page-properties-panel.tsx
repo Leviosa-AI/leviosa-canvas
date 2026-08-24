@@ -92,6 +92,7 @@ import {
 } from "./ai-generate-panel";
 import { toHexColor } from "../../lib/detail-page/css-color";
 import { editorAssetBase } from "../../lib/detail-page/runtime-config";
+import { detailPageEditorProfile } from "../../lib/detail-page/editor-profile";
 import { setZ as setElementZ, zOrderOf } from "../../lib/detail-page/z-order";
 import {
   canDistribute,
@@ -2099,6 +2100,7 @@ const PageHeightSection = observer(function PageHeightSection({
   page?: PageLike;
 }) {
   const { t } = useTranslation("branding");
+  const profile = detailPageEditorProfile();
   if (!page) return null;
   const height = Math.round(num(page.computedHeight, MIN_SECTION_HEIGHT));
   const contentBottom = sectionContentBottom(page);
@@ -2106,7 +2108,13 @@ const PageHeightSection = observer(function PageHeightSection({
   // "사라진" 것처럼 보인다 — 지운 게 아니라 화면 밖으로 나간 것이다.
   const overflow = contentBottom > height;
   return (
-    <Section title={t("detailPage.properties.pageHeight")}>
+    <Section
+      title={t(
+        profile.wording === "section"
+          ? "detailPage.properties.pageHeight"
+          : "detailPage.properties.plateHeight",
+      )}
+    >
       <div className="flex items-center gap-1.5">
         <div className="min-w-0 flex-1">
           <NumberField
@@ -2148,11 +2156,12 @@ const PageInspector = observer(function PageInspector({
   dataGifCreditCost?: number;
 }) {
   const { t } = useTranslation("branding");
+  const profile = detailPageEditorProfile();
   const page = store.activePage ?? store.pages[0];
   const bg = str(page?.background, "#ffffff");
   return (
     <>
-      <PageHeightSection page={page} />
+      {profile.page.fixed ? null : <PageHeightSection page={page} />}
       <Section title={t("detailPage.properties.pageBackground")}>
         <FillControl value={bg} onChange={(c) => page?.set?.({ background: c })} />
         <p className="mt-2 text-xs text-dpe-ink-400">

@@ -18,6 +18,7 @@ import {
   requestSectionReauthor,
   subscribeSectionReauthorAvailability,
 } from "../../lib/detail-page/section-reauthor-bus";
+import { detailPageEditorProfile } from "../../lib/detail-page/editor-profile";
 
 /**
  * hookable-style per-section (per-page) floating quick toolbar.
@@ -94,17 +95,25 @@ export const DetailPagePageToolbar = observer(function DetailPagePageToolbar({
   );
   const s = store as StoreLike;
   const p = page as PageLike;
+  const profile = detailPageEditorProfile();
   const index = s.pages.findIndex((pg) => pg.id === p.id);
   const isFirst = index <= 0;
   const isLast = index === s.pages.length - 1;
   const canDelete = s.pages.length > 1;
+  const canAdd = s.pages.length < profile.maxPages;
 
   const addAfter = () => {
+    if (!canAdd) return;
     const ref = s.activePage ?? s.pages[index];
     const next = s.addPage({
       bleed: ref?.bleed ?? 0,
-      width: ref?.width ?? "auto",
-      height: ref?.height ?? "auto",
+      width:
+        profile.page.width === "document"
+          ? ref?.width ?? "auto"
+          : profile.page.width,
+      height: profile.page.fixed
+        ? profile.page.height
+        : ref?.height ?? profile.page.height,
     });
     next.setZIndex(index + 1);
   };
@@ -156,7 +165,11 @@ export const DetailPagePageToolbar = observer(function DetailPagePageToolbar({
       <IconButton label={t("detailPage.pageToolbar.duplicate")} onClick={() => p.clone()}>
         <Copy size={16} />
       </IconButton>
-      <IconButton label={t("detailPage.pageToolbar.addBelow")} onClick={addAfter}>
+      <IconButton
+        label={t("detailPage.pageToolbar.addBelow")}
+        onClick={addAfter}
+        disabled={!canAdd}
+      >
         <Plus size={17} />
       </IconButton>
 
