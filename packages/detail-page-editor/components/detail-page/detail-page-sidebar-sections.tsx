@@ -138,6 +138,7 @@ export type BuildSectionsOptions = {
   imageCreditBalance?: number;
   /** 티어별(basic/pro/max) 크레딧 단가. 모델 드롭다운의 각 항목 비용에 쓴다. */
   imageCostByTier?: Partial<Record<ImageTier, number>>;
+  imageTiers?: readonly ImageTier[];
   /** 크레딧 부족 시 "크레딧 추가하기" 목적지(레비오사 pricing). */
   onBuyImageCredits?: () => void;
   /** AI 생성 결과를 현재 브랜드 중앙 에셋에 미러링. */
@@ -167,6 +168,7 @@ export function buildDetailPageSections({
   imageCreditCost,
   imageCreditBalance,
   imageCostByTier,
+  imageTiers,
   onBuyImageCredits,
   structurePanel,
   generatedId,
@@ -225,6 +227,7 @@ export function buildDetailPageSections({
         gifCreditCost={gifCreditCost}
         uploadFile={uploadFile}
         costByTier={imageCostByTier}
+        tiers={imageTiers}
         creditCost={imageCreditCost}
         creditBalance={imageCreditBalance}
         onBuyCredits={onBuyImageCredits}

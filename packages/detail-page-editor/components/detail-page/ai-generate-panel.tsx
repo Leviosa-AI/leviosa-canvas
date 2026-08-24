@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useState, type ChangeEvent } from "react";
+import { useCallback, useMemo, useState, type ChangeEvent } from "react";
 import { ImagePlus, Info, Loader2, Pencil, Sparkles, X } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
@@ -8,11 +8,11 @@ import { AnnotationDialog } from "./annotation-dialog";
 import { toDrawableDataUri } from "../../lib/detail-page/image-data-uri";
 
 import {
-  DEFAULT_IMAGE_TIER,
-  IMAGE_TIERS,
   IMAGE_TIER_META,
   isImageCreditBlocked,
   imageCreditRequired,
+  resolveDefaultImageTier,
+  resolveImageTiers,
   type ImageTier,
 } from "../../lib/detail-page/image-credit";
 import {
@@ -247,6 +247,12 @@ type AiGeneratePanelProps = {
    */
   costByTier?: Partial<Record<ImageTier, number>>;
   /**
+   * 고르게 할 티어. 안 주면 셋 다(`IMAGE_TIERS`). 요금표에서 은퇴한 티어를 가진
+   * 소비자가 드롭다운에서 그 항목을 빼는 자리다 — 값이 없는 티어가 남아 있으면
+   * 누를 수는 있는데 아무도 청구를 못 한다.
+   */
+  tiers?: readonly ImageTier[];
+  /**
    * (레거시) 단일 티어 크레딧. `costByTier` 미주입 시 선택 티어 관계없이 이 값을 쓴다.
    * 0/미지정이면 크레딧 UI 숨김.
    */
@@ -286,6 +292,7 @@ export function AiGeneratePanel({
   uploadFile,
   onResult,
   costByTier,
+  tiers,
   creditCost = 0,
   creditBalance = 0,
   onBuyCredits,
@@ -296,7 +303,17 @@ export function AiGeneratePanel({
     // GIF 생성이 배선된 경우에만 gif 초기값을 존중(미배선이면 토글이 없어 갇힘).
     initialMode === "gif" && onGenerateGif ? "gif" : "image",
   );
-  const [tier, setTier] = useState<ImageTier>(DEFAULT_IMAGE_TIER);
+  // 목록은 props 로 오지만 배열이라 매 렌더 새 참조다. 여기서 한 번 정규화해
+  // 아래 `useMemo`·초기값이 같은 값을 본다.
+  const tierOptions = useMemo(() => resolveImageTiers(tiers), [tiers]);
+  const [tier, setTier] = useState<ImageTier>(() =>
+    resolveDefaultImageTier(resolveImageTiers(tiers)),
+  );
+  // 목록이 좁아졌는데 고른 것이 그 밖이면(소비자가 티어를 은퇴시킨 뒤 열린 패널)
+  // 목록 안으로 되돌린다. 안 그러면 트리거가 빈 채로 뜨고 생성은 사라진 티어로 나간다.
+  const activeTier = tierOptions.includes(tier)
+    ? tier
+    : resolveDefaultImageTier(tierOptions);
   const [transparent, setTransparent] = useState(true);
   const [refUrl, setRefUrl] = useState<string | null>(null);
   const [refUploading, setRefUploading] = useState(false);
@@ -314,7 +331,7 @@ export function AiGeneratePanel({
   );
 
   // 활성 단가: GIF 모드는 단일 gifCreditCost, 이미지 모드는 선택 티어 단가.
-  const tierCost = costByTier?.[tier] ?? creditCost;
+  const tierCost = costByTier?.[activeTier] ?? creditCost;
   const activeCost = isGif ? gifCreditCost : tierCost;
 
   // 잔액이 비용의 1.5배 미만이면 생성 차단(비용 0=미구성이면 게이트 비활성).
@@ -380,7 +397,7 @@ export function AiGeneratePanel({
             prompt: finalPrompt,
             referenceImages,
             mode: refUrl ? "new_reference" : "based_on_existing",
-            tier,
+            tier: activeTier,
             brandId,
             annotatedImage,
           });
@@ -408,7 +425,7 @@ export function AiGeneratePanel({
     } finally {
       setLoading(false);
     }
-  }, [prompt, loading, blocked, isGif, gifMissingRef, transparent, onGenerate, onGenerateGif, refUrl, store, onResult, tier, t]);
+  }, [prompt, loading, blocked, isGif, gifMissingRef, transparent, onGenerate, onGenerateGif, refUrl, store, onResult, activeTier, t]);
 
   const handleGenerate = useCallback(() => {
     void runGenerate();
@@ -529,7 +546,7 @@ export function AiGeneratePanel({
             <TooltipContent side="left" className="max-w-[240px] text-left">
               <p className="mb-1 font-dpe-semibold">{t("detailPage.aiGenerate.modelTooltipTitle")}</p>
               <ul className="space-y-1">
-                {IMAGE_TIERS.map((tk) => (
+                {tierOptions.map((tk) => (
                   <li key={tk}>
                     <span className="font-dpe-medium">{IMAGE_TIER_META[tk].label}</span>
                     <span className="opacity-80"> · {IMAGE_TIER_META[tk].quality}</span>
@@ -539,12 +556,12 @@ export function AiGeneratePanel({
             </TooltipContent>
           </Tooltip>
         </div>
-        <Select value={tier} onValueChange={(v) => setTier(v as ImageTier)}>
+        <Select value={activeTier} onValueChange={(v) => setTier(v as ImageTier)}>
           <SelectTrigger className="h-10 w-full text-sm">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            {IMAGE_TIERS.map((tk) => {
+            {tierOptions.map((tk) => {
               const meta = IMAGE_TIER_META[tk];
               const cost = costByTier?.[tk];
               return (
@@ -573,7 +590,7 @@ export function AiGeneratePanel({
           </SelectContent>
         </Select>
         <p className="mt-1.5 text-[11px] leading-4 text-dpe-ink-500">
-          {IMAGE_TIER_META[tier].description}
+          {IMAGE_TIER_META[activeTier].description}
         </p>
       </div>
 

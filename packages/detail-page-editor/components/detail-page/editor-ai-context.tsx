@@ -29,6 +29,7 @@ export type EditorAiValue = {
   imageCreditCost?: number;
   imageCreditBalance?: number;
   imageCostByTier?: Partial<Record<ImageTier, number>>;
+  imageTiers?: readonly ImageTier[];
   onGenerateGif?: GenerateGifFn;
   gifCreditCost?: number;
   onRemoveBackground?: RemoveBackgroundFn;

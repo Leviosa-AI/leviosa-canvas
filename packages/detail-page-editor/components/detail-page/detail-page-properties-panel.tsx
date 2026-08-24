@@ -2370,6 +2370,7 @@ export const ElementAiEditPanel = observer(function ElementAiEditPanel({
           initialMode={isGif ? "gif" : "image"}
           onResult={(src) => single.set({ src })}
           costByTier={ai.imageCostByTier}
+          tiers={ai.imageTiers}
           creditCost={ai.imageCreditCost}
           creditBalance={ai.imageCreditBalance}
           onBuyCredits={ai.onBuyCredits}
