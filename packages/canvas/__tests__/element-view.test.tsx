@@ -78,7 +78,7 @@ describe("ElementView — 텍스트", () => {
     expect(Number(text.getAttribute("data-lineheight"))).toBeCloseTo(1.1, 5);
     // letterSpacing은 em으로 저장된다 — Konva의 px으로 되돌려 넘긴다.
     expect(Number(text.getAttribute("data-letterspacing"))).toBeCloseTo(0.44, 5);
-    expect(text.getAttribute("data-fontstyle")).toBe("italic bold");
+    expect(text.getAttribute("data-fontstyle")).toBe("italic 600");
     // 한 줄짜리 상자는 접지 않는다(두 번째 줄이 상자 밖으로 잘린다).
     expect(text.getAttribute("data-wrap")).toBe("none");
     expect(text.textContent).toBe("");
@@ -120,7 +120,7 @@ describe("ElementView — 텍스트", () => {
       custom: { fontStyle: "italic" },
     });
     const text = view.container.querySelector('[data-konva="text"]')!;
-    expect(text.getAttribute("data-fontstyle")).toBe("bold");
+    expect(text.getAttribute("data-fontstyle")).toBe("600");
   });
 
   it("본문처럼 키가 큰 상자는 줄바꿈한다", () => {

@@ -58,7 +58,7 @@ export function lineHeightRatio(raw: unknown, fontSize: number): number {
 }
 
 /**
- * Konva의 `fontStyle`은 굵기와 기울기를 한 문자열에 담는다("italic bold").
+ * Konva의 `fontStyle`은 굵기와 기울기를 한 문자열에 담는다("italic 600").
  *
  * 기울기는 **문서의 `fontStyle`만** 본다. 디컴포저가 원본 CSS를 `custom.fontStyle`에도
  * 적어 두지만 그건 기록일 뿐 계약이 아니다 — 지금 팔리는 렌더러(Canvas)는 그 값을
@@ -70,8 +70,14 @@ export function konvaFontStyle(el: Attrs): string {
   const weightRaw = el.fontWeight;
   const weight =
     typeof weightRaw === "number" ? String(weightRaw) : str(el, "fontWeight");
-  const bold = weight === "bold" || (Number(weight) >= 600 && Number(weight) <= 1000);
-  return [italic ? "italic" : "", bold ? "bold" : "normal"]
+  const numericWeight = Number(weight);
+  const canvasWeight =
+    weight === "bold" || weight === "normal"
+      ? weight
+      : Number.isFinite(numericWeight) && numericWeight >= 1 && numericWeight <= 1000
+        ? weight
+        : "normal";
+  return [italic ? "italic" : "", canvasWeight]
     .filter(Boolean)
     .join(" ");
 }

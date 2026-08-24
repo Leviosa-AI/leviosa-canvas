@@ -39,14 +39,14 @@ describe("lineHeightRatio", () => {
 
 describe("konvaFontStyle", () => {
   it("굵기와 기울기를 한 문자열로 합친다", () => {
-    expect(konvaFontStyle({ fontWeight: "700" })).toBe("bold");
-    expect(konvaFontStyle({ fontWeight: 400 })).toBe("normal");
+    expect(konvaFontStyle({ fontWeight: "700" })).toBe("700");
+    expect(konvaFontStyle({ fontWeight: 400 })).toBe("400");
     expect(konvaFontStyle({ fontWeight: "bold" })).toBe("bold");
   });
 
   it("기울기는 문서의 fontStyle만 본다", () => {
     expect(konvaFontStyle({ fontStyle: "italic", fontWeight: "600" })).toBe(
-      "italic bold",
+      "italic 600",
     );
     expect(konvaFontStyle({ fontStyle: "italic" })).toBe("italic normal");
   });
@@ -55,7 +55,7 @@ describe("konvaFontStyle", () => {
     // 디컴포저의 기록일 뿐 계약이 아니다. 읽으면 오늘 팔리는 그림에 없던 기울임이
     // 생긴다(cremolab 표지 Didot). 승격은 문서를 싣는 앱의 몫.
     expect(konvaFontStyle({ fontWeight: "600", custom: { fontStyle: "italic" } })).toBe(
-      "bold",
+      "600",
     );
     expect(konvaFontStyle({ custom: { fontStyle: "italic" } })).toBe("normal");
   });
