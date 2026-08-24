@@ -4,6 +4,8 @@ on:
   push:
     branches: [main]
   pull_request:
+  schedule:
+    - cron: "0 3 * * 1"
 
 # 이 워크플로는 읽기만 한다. 안 적으면 저장소 설정의 기본값을 그대로 받는데,
 # 그건 쓰기까지 열려 있을 수 있다 — 발행은 `publish.yml` 이 따로 한다.
@@ -45,3 +47,13 @@ jobs:
       - name: Record carousel pixel baseline
         continue-on-error: true
         run: python -m pytest packages/decompose/tests/test_pixel_baseline.py
+
+  font-urls:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - run: npm run fonts:check-urls
+        timeout-minutes: 20

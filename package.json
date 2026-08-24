@@ -8,13 +8,16 @@
   "scripts": {
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "fonts:freeze": "node packages/canvas/scripts/freeze-fonts.mjs",
+    "fonts:gen": "node packages/canvas/scripts/gen-font-css.mjs",
+    "fonts:check-urls": "node packages/canvas/scripts/check-font-urls.mjs"
   },
   "devDependencies": {
     "@dnd-kit/core": "^6.3.1",
     "@dnd-kit/sortable": "^10.0.0",
     "@dnd-kit/utilities": "^3.2.2",
-    "@leviosa-ai/canvas": "0.1.1",
+    "@leviosa-ai/canvas": "0.2.0",
     "@leviosa-ai/konva": "0.8.0",
     "@tanstack/react-query": "^5.100.3",
     "@testing-library/jest-dom": "^6.6.3",

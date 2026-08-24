@@ -41,7 +41,7 @@ export type DetailPageEditorEndpoints = {
 
 export type DetailPageEditorAssets = {
   /**
-   * `@leviosa-ai/konva` 의 `leviosa-konva-fonts` 가 구워 두는 폰트 번들의 뿌리.
+   * `@leviosa-ai/canvas` 의 `leviosa-konva-fonts` 가 구워 두는 폰트 번들의 뿌리.
    * 기본 `${basePath}/render-fonts`.
    */
   fontBundle?: string;
