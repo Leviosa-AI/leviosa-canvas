@@ -16,6 +16,7 @@
   "sideEffects": false,
   "exports": {
     ".": "./index.ts",
+    "./decompose": "./decompose/runtime.js",
     "./fonts": "./fonts/index.ts",
     "./package.json": "./package.json",
     "./license": "./license.ts",
@@ -51,6 +52,7 @@
   "files": [
     "*.ts",
     "edit",
+    "decompose",
     "fonts",
     "paint",
     "render",
