@@ -53,6 +53,10 @@ export function TextEditorOverlay({
   useElementVersion(el);
   const ref = useRef<HTMLTextAreaElement | null>(null);
   const composing = useRef(false);
+  const initialCustom = (el.custom ?? {}) as Attrs;
+  const anchorWidth = useRef(
+    num(initialCustom, "textFitAnchorWidth", num(el, "width", 0)),
+  );
 
   const fontSize = num(el, "fontSize", 14);
   const ratio = lineHeightRatio(el.lineHeight, fontSize);
@@ -62,6 +66,14 @@ export function TextEditorOverlay({
   };
   const padding = el.backgroundEnabled === true ? num(el, "backgroundPadding", 0) : 0;
   const layout = measureTextLayout(el);
+  const custom = (el.custom ?? {}) as Attrs;
+  const savedAnchorWidth = num(custom, "textFitAnchorWidth", box.width);
+  const growX =
+    str(el, "align", "left") === "center"
+      ? (savedAnchorWidth - box.width) / 2
+      : ["right", "end"].includes(str(el, "align", "left"))
+        ? savedAnchorWidth - box.width
+        : 0;
   const position = el.absolutePosition;
   const singleLine = isSingleLineBox(el);
   const style = konvaFontStyle(el);
@@ -102,13 +114,20 @@ export function TextEditorOverlay({
           const value = event.currentTarget.value;
           // 조합 중에도 문서에 쓴다 — 캔버스가 조합 글자를 그대로 보여 준다. 되돌려
           // 넣지만 않으면 조합은 안 끊긴다.
-          el.set({ text: value });
-          if (singleLine) return;
-          // 본문 상자는 글이 길어지면 같이 자란다.
           const next = measureTextLayout(el, value);
-          if (next.blockHeight > num(el, "height", 0)) {
-            el.set({ height: next.blockHeight });
+          const patch: Attrs = { text: value };
+          if (singleLine) {
+            const nextWidth = next.blockWidth + padding * 2;
+            if (nextWidth > box.width) {
+              patch.width = nextWidth;
+              patch.custom = {
+                ...custom,
+                textFitAnchorWidth: anchorWidth.current,
+              };
+            }
           }
+          if (next.blockHeight > box.height) patch.height = next.blockHeight;
+          el.set(patch);
         }}
         onCompositionStart={() => {
           composing.current = true;
@@ -133,7 +152,7 @@ export function TextEditorOverlay({
         onBlur={onDone}
         style={{
           position: "absolute",
-          left: padding,
+          left: growX + padding,
           top: layout.offsetY,
           width: Math.max(1, box.width - padding * 2),
           height: Math.max(layout.blockHeight, layout.lineHeight),

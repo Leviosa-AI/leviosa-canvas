@@ -87,6 +87,7 @@ describe("ElementView — 텍스트", () => {
     expect(text.getAttribute("data-fontstyle")).toBe("italic 600");
     // 한 줄짜리 상자는 접지 않는다(두 번째 줄이 상자 밖으로 잘린다).
     expect(text.getAttribute("data-wrap")).toBe("none");
+    expect(text.getAttribute("data-width")).toBeNull();
     expect(text.textContent).toBe("");
     expect(text.getAttribute("data-text")).toBe("T.E.N. Miracle");
   });
@@ -167,6 +168,33 @@ describe("ElementView — 텍스트", () => {
     const text = view.container.querySelector('[data-konva="text"]')!;
     expect(text.getAttribute("data-x")).toBe("8");
     expect(text.getAttribute("data-width")).toBe("84");
+  });
+
+  it("가운데·오른쪽 정렬은 저장된 기준점을 붙잡고 그린다", () => {
+    const position = (align: string) => {
+      const { view } = mount({
+        id: `t-${align}`,
+        type: "text",
+        x: 10,
+        y: 20,
+        width: 200,
+        height: 10,
+        text: "가",
+        fontSize: 10,
+        align,
+        custom: { textFitAnchorWidth: 100 },
+      });
+      const text = view.container.querySelector('[data-konva="text"]')!;
+      const frame = view.container.querySelector('[data-konva="group"]')!;
+      expect(frame.getAttribute("data-x")).toBe("10");
+      return Number(text.getAttribute("data-x"));
+    };
+    const left = position("left");
+    const center = position("center");
+    const right = position("right");
+    expect(left).toBe(0);
+    expect(center * 2).toBeCloseTo(right, 5);
+    expect(right).toBeGreaterThan(left);
   });
 });
 
