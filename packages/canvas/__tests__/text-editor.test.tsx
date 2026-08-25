@@ -161,8 +161,8 @@ describe("TextEditorOverlay — 히스토리", () => {
   });
 });
 
-describe("TextEditorOverlay — 상자 자라기", () => {
-  it("본문 상자는 글이 길어지면 같이 자란다", () => {
+describe("TextEditorOverlay — 상자 맞추기", () => {
+  it("본문 상자는 글에 맞춰 자라고 원래 높이까지 줄어든다", () => {
     const { textarea, el } = mount({
       ...BASE,
       width: 200,
@@ -177,13 +177,16 @@ describe("TextEditorOverlay — 상자 자라기", () => {
       },
     });
     expect(el.height).toBeGreaterThan(before);
+    fireEvent.input(textarea, { target: { value: "짧은 본문" } });
+    expect(el.height).toBe(before);
+    expect((el.custom as Record<string, unknown>).textFitAnchorHeight).toBe(before);
   });
 
   it.each<[string, number]>([
     ["left", 0],
     ["center", 0.5],
     ["right", 1],
-  ])("한 줄 %s 정렬 상자는 기준점을 붙잡고 자란다", (align, expectedLeft) => {
+  ])("한 줄 %s 정렬 상자는 기준점을 붙잡고 자랐다 줄어든다", (align, expectedLeft) => {
     const { textarea, el } = mount({ ...BASE, width: 80, align });
     fireEvent.input(textarea, {
       target: { value: "아주 아주 아주 아주 긴 문장입니다" },
@@ -198,6 +201,18 @@ describe("TextEditorOverlay — 상자 자라기", () => {
       -grown * expectedLeft,
       3,
     );
+    fireEvent.input(textarea, { target: { value: "조금 긴 문장" } });
+    const shrunk = Number(el.width);
+    expect(shrunk).toBeGreaterThan(before);
+    expect(shrunk).toBeLessThan(before + grown);
+    expect(parseFloat(textarea.style.left)).toBeCloseTo(
+      -(shrunk - before) * expectedLeft,
+      3,
+    );
+    fireEvent.input(textarea, { target: { value: "" } });
+    expect(el.width).toBe(before);
+    expect(el.height).toBe(48);
+    expect(parseFloat(textarea.style.left)).toBe(0);
   });
 
   it("늘어난 width·height가 문서 JSON과 undo에 남는다", () => {

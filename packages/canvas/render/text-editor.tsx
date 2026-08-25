@@ -57,6 +57,9 @@ export function TextEditorOverlay({
   const anchorWidth = useRef(
     num(initialCustom, "textFitAnchorWidth", num(el, "width", 0)),
   );
+  const anchorHeight = useRef(
+    num(initialCustom, "textFitAnchorHeight", num(el, "height", 0)),
+  );
 
   const fontSize = num(el, "fontSize", 14);
   const ratio = lineHeightRatio(el.lineHeight, fontSize);
@@ -115,18 +118,21 @@ export function TextEditorOverlay({
           // 조합 중에도 문서에 쓴다 — 캔버스가 조합 글자를 그대로 보여 준다. 되돌려
           // 넣지만 않으면 조합은 안 끊긴다.
           const next = measureTextLayout(el, value);
-          const patch: Attrs = { text: value };
+          const patch: Attrs = {
+            text: value,
+            height: Math.max(anchorHeight.current, next.blockHeight),
+          };
           if (singleLine) {
-            const nextWidth = next.blockWidth + padding * 2;
-            if (nextWidth > box.width) {
-              patch.width = nextWidth;
-              patch.custom = {
-                ...custom,
-                textFitAnchorWidth: anchorWidth.current,
-              };
-            }
+            patch.width = Math.max(
+              anchorWidth.current,
+              next.blockWidth + padding * 2,
+            );
           }
-          if (next.blockHeight > box.height) patch.height = next.blockHeight;
+          patch.custom = {
+            ...custom,
+            textFitAnchorWidth: anchorWidth.current,
+            textFitAnchorHeight: anchorHeight.current,
+          };
           el.set(patch);
         }}
         onCompositionStart={() => {
