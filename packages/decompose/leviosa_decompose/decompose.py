@@ -448,6 +448,7 @@ def _canvas_element(e, eid):
                 # cells). The bridge routes flow groups to a single group-level
                 # slot and row groups to per-cell slots.
                 "lineKind": e.get("lineKind") or "",
+                "filter": e.get("filter") or "none",
             },
             "children": _children_with_borders(
                 e.get("children") or [], lambda j, c: f"{eid}-c{j}"
@@ -562,6 +563,7 @@ def _canvas_element(e, eid):
             "strokeWidth": e.get("strokeWidth", 0),
             "strokeColor": e.get("strokeColor", ""),
             "shadow": e.get("shadow", "none"),
+            "filter": e.get("filter", "none"),
             # 템플릿이 스스로 선언한 슬롯 이름(``data-slot``). 없으면 빈 문자열.
             "contractSlot": e.get("contractSlot", ""),
         }
@@ -788,10 +790,43 @@ def _apply_declared_groups(elements):
             },
             "children": members,
         }
+        chains = [m.get("filterChain") for m in members]
+        if chains[0] and all(chain == chains[0] for chain in chains):
+            group["filterChain"] = chains[0]
         if claim:
             group["claim"] = claim
             group["claimLabel"] = str(members[0].get("groupClaimLabel") or "").strip()
         out.append(group)
+    return out
+
+
+def _apply_filter_groups(elements, depth=0):
+    """Wrap each CSS-filtered container once so its children are composited first."""
+    out = []
+    i = 0
+    while i < len(elements):
+        chain = elements[i].get("filterChain") or []
+        if len(chain) <= depth:
+            out.append(elements[i])
+            i += 1
+            continue
+        info = chain[depth]
+        members = []
+        while i < len(elements):
+            current = elements[i].get("filterChain") or []
+            if len(current) <= depth or current[depth]["key"] != info["key"]:
+                break
+            members.append(elements[i])
+            i += 1
+        out.append(
+            {
+                "kind": "group",
+                "declared": True,
+                "filter": info["value"],
+                "box": info["box"],
+                "children": _apply_filter_groups(members, depth + 1),
+            }
+        )
     return out
 
 
@@ -903,7 +938,7 @@ def to_canvas(sec):
     ]
     children.extend(
         _children_with_borders(
-            _apply_declared_groups(sec["elements"]),
+            _apply_filter_groups(_apply_declared_groups(sec["elements"])),
             lambda i, e: f"{sec['label']}-{e['kind']}-{i}",
         )
     )
@@ -953,12 +988,25 @@ def render_proxy(sec):
         flat = []
         for el in elements:
             if el.get("kind") == "group":
+                if el.get("filter"):
+                    flat.append({"kind": "filter-start", "filter": el["filter"]})
                 flat.extend(_flatten(el.get("children") or []))
+                if el.get("filter"):
+                    flat.append({"kind": "filter-end"})
             else:
                 flat.append(el)
         return flat
 
-    for e in _flatten(sec["elements"]):
+    grouped = _apply_filter_groups(_apply_declared_groups(sec["elements"]))
+    for e in _flatten(grouped):
+        if e["kind"] == "filter-start":
+            parts.append(
+                f'<div style="position:absolute;inset:0;filter:{esc(e["filter"])}">'
+            )
+            continue
+        if e["kind"] == "filter-end":
+            parts.append("</div>")
+            continue
         b = e["box"]
         pos = (
             f"position:absolute;left:{b['x']}px;top:{b['y']}px;"
@@ -1160,6 +1208,7 @@ def render_proxy(sec):
             )
             text_css = (
                 f"{pos}{container}{indent}{deco_css}{wrap_props}text-shadow:{shadow};"
+                f"filter:{e.get('filter') or 'none'};"
                 f"color:{e['color']};"
                 f"font-size:{e['fontSize']}px;font-weight:{e['fontWeight']};"
                 f"text-align:{talign};line-height:{e['lineHeight']};"

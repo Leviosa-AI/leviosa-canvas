@@ -188,6 +188,23 @@ describe("ElementView — 도형·이미지", () => {
     );
   });
 
+  it("텍스트의 CSS filter를 요소 Group에 넘긴다", () => {
+    const { view } = mount({
+      id: "t",
+      type: "text",
+      x: 0,
+      y: 0,
+      width: 100,
+      height: 40,
+      text: "필터",
+      custom: { filter: "drop-shadow(0 8px 12px #0008)" },
+    });
+    const frame = view.container.querySelector('[data-konva="group"]')!;
+    expect(frame.getAttribute("data-filters")).toBe(
+      JSON.stringify(["drop-shadow(0 8px 12px #0008)"]),
+    );
+  });
+
   it("사각형은 그라디언트 fill을 Konva 속성으로 받는다", () => {
     const { view } = mount({
       id: "f",

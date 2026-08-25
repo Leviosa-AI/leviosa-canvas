@@ -159,6 +159,7 @@ export const EXTRACT = ({label, sliceBy, placeholderClass, splitSvgParts}) => {
   // element's group key; a Python pass (`_apply_declared_groups`) wraps runs of
   // the same key into a group and applies the declared alignment.
   let _gk='', _ga='', _gc='', _gcl='', _gidc=0;
+  let _filter='', _filterChain=[], _filterId=0;
   // ``data-claim`` on the same container declares WHAT the unit asserts about the
   // product (a moisture-wicking diagram, a cutaway callout). It rides along to
   // ``custom.claim`` so the bind can drop the whole unit when the bound product
@@ -181,13 +182,38 @@ export const EXTRACT = ({label, sliceBy, placeholderClass, splitSvgParts}) => {
     return {key, al, claim:cl, claimLabel:cll};
   };
   const stampGroup=from=>{
-    if(!_gk) return;
     for(let i=from;i<out.elements.length;i++){
-      if(out.elements[i].groupKey) continue;
-      out.elements[i].groupKey=_gk;
-      if(_ga && (out.elements[i].kind==='text')) out.elements[i].groupAlign=_ga;
-      if(_gc){ out.elements[i].groupClaim=_gc; out.elements[i].groupClaimLabel=_gcl; }
+      if(_gk && !out.elements[i].groupKey){
+        out.elements[i].groupKey=_gk;
+        if(_ga && (out.elements[i].kind==='text')) out.elements[i].groupAlign=_ga;
+        if(_gc){ out.elements[i].groupClaim=_gc; out.elements[i].groupClaimLabel=_gcl; }
+      }
+      if(_filter && !out.elements[i].filter) out.elements[i].filter=_filter;
+      if(_filterChain.length && !out.elements[i].filterChain)
+        out.elements[i].filterChain=_filterChain;
     }
+  };
+  const filterKind=node=>{
+    const tag=node.tagName;
+    if(tag==='IMG' || (!!placeholderClass && node.classList.contains(placeholderClass)))
+      return 'image';
+    if(tag==='SVG' || node.closest('svg')) return 'svg';
+    if((node.textContent||'').trim() && !node.querySelector('img,svg')) return 'text';
+    return 'container';
+  };
+  const filtersOf=el=>{
+    const chain=[];
+    let node=el;
+    while(node && node.nodeType===1){
+      const value=getComputedStyle(node).filter;
+      if(filterKind(node)==='container' && value && value!=='none'){
+        if(!node.__filterId) node.__filterId='filter'+(++_filterId);
+        chain.unshift({key:node.__filterId, value:value, box:geom(node)});
+      }
+      if(node===section) break;
+      node=node.parentElement;
+    }
+    return chain;
   };
   // getComputedStyle returns border-radius percentages verbatim ("50%"), which
   // parseFloat would wrongly read as 50px. Resolve % against the box so a
@@ -988,6 +1014,9 @@ export const EXTRACT = ({label, sliceBy, placeholderClass, splitSvgParts}) => {
     if(handled.has(el))return;
     const _gi=groupInfo(el); _gk=_gi.key; _ga=_gi.al;
     _gc=_gi.claim; _gcl=_gi.claimLabel;
+    const _filterValue=getComputedStyle(el).filter;
+    _filter=filterKind(el)==='text' && _filterValue!=='none' ? _filterValue : '';
+    _filterChain=filtersOf(el);
     const _grpStart=out.elements.length;
     if(el.tagName.toLowerCase()==='svg'){
       // A NESTED <svg> (e.g. an arrow inside a bar-chart svg) is already painted by
