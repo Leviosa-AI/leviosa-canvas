@@ -46,6 +46,20 @@ describe("CanvasStore.toDataURL", () => {
     });
   });
 
+  it("JPEG 품질을 그대로 넘긴다", async () => {
+    // 안 넘기면 브라우저 기본 0.92 로 떨어져 글자 가장자리에 링잉이 남는다 —
+    // 캐러셀 발행에서 실측 3.38% 차이가 1.0 에서 0.25% 로 떨어졌다.
+    const s = store();
+    const surface = fakeSurface(1);
+    s.registerPageSurface("p1", surface);
+
+    await s.toDataURL({ pageId: "p1", mimeType: "image/jpeg", quality: 1 });
+
+    expect(surface.toDataURL).toHaveBeenCalledWith(
+      expect.objectContaining({ mimeType: "image/jpeg", quality: 1 }),
+    );
+  });
+
   it("페이지마다 자기 높이를 쓴다", async () => {
     const s = store();
     const surface = fakeSurface(1);
