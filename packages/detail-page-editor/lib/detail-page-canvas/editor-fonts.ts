@@ -65,7 +65,6 @@ function fromCatalog(font: (typeof DETAIL_PAGE_FONTS)[number]): EditorFont {
     previewSrc: `${editorAssetBase("detailFontPreviews")}/${font.id}.webp`,
     tags: toFontTags(font.tags),
     weights: getDetailPageFontWeights(font),
-    latinOnly: font.latinOnly,
     licenseName: font.licenseName,
     licenseUrl: font.licenseUrl,
     licenseNoteKey: font.licenseNoteKey,
@@ -82,6 +81,7 @@ function fromBundle(font: (typeof ALL_FONT_OPTIONS)[number]): EditorFont {
     previewSrc: `${editorAssetBase("cardnewsFontPreviews")}/${font.id}.webp`,
     tags: bundleFontTags(font.id),
     weights: [...font.weights].sort((a, b) => a - b),
+    latinOnly: (font as { latinOnly?: boolean }).latinOnly,
     licenseName: font.license.name,
     licenseUrl: font.license.url,
   };
