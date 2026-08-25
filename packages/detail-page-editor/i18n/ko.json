@@ -124,6 +124,7 @@
         "typeShape": "도형",
         "selectionCount": "{{count}}개 선택",
         "fontLatinOnly": "영문 전용",
+        "fontLatinOnlyUnavailable": "한글이 포함된 글자에는 영문 전용 글꼴을 쓸 수 없어요.",
         "fontLoading": "글꼴 불러오는 중",
         "chooseFont": "글꼴 선택",
         "fontTagFilter": "글꼴 종류",

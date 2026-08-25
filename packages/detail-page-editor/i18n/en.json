@@ -124,6 +124,7 @@
         "typeShape": "Shape",
         "selectionCount": "{{count}} selected",
         "fontLatinOnly": "Latin only",
+        "fontLatinOnlyUnavailable": "Latin-only fonts cannot be used for text containing Korean.",
         "fontLoading": "Loading font",
         "chooseFont": "Choose font",
         "fontTagFilter": "Font style",

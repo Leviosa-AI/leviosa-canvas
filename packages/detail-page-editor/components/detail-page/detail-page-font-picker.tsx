@@ -25,10 +25,12 @@ import { FONT_TAGS, type FontTag } from "../../lib/detail-page-canvas/font-tags"
 
 export function DetailPageFontPicker({
   value,
+  text,
   documentFamilies,
   onSelect,
 }: {
   value: string;
+  text: string;
   documentFamilies: string[];
   onSelect: (family: string) => Promise<void>;
 }) {
@@ -37,6 +39,7 @@ export function DetailPageFontPicker({
   const [loading, setLoading] = useState<string | null>(null);
   const [error, setError] = useState(false);
   const [tags, setTags] = useState<FontTag[]>([]);
+  const hasHangul = /\p{Script=Hangul}/u.test(text);
   /** 404 로 떨어진 미리보기. 한 번 떨어지면 다시 안 부른다. */
   const [previewsMissing, setPreviewsMissing] = useState<ReadonlySet<string>>(
     () => new Set(),
@@ -85,7 +88,7 @@ export function DetailPageFontPicker({
       key={`${font.source}:${font.id}`}
       value={`${font.label} ${font.labelEn} ${font.family}`}
       onSelect={() => void select(font.family)}
-      disabled={loading !== null}
+      disabled={loading !== null || (hasHangul && font.latinOnly)}
       className="group min-h-[56px] gap-2 px-2 py-1"
     >
       <span className="flex h-11 min-w-0 flex-1 items-center overflow-hidden">
@@ -225,6 +228,11 @@ export function DetailPageFontPicker({
               ) : null}
             </CommandList>
           </Command>
+          {hasHangul ? (
+            <p className="border-t border-dpe-ink-100 px-3 py-2 text-xs text-dpe-ink-500">
+              {t("detailPage.properties.fontLatinOnlyUnavailable")}
+            </p>
+          ) : null}
           {error ? (
             <p role="alert" className="border-t border-dpe-danger-100 bg-dpe-danger-50 px-3 py-2 text-xs text-dpe-danger-600">
               {t("detailPage.properties.fontLoadFailed")}

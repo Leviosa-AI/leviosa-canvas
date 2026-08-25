@@ -790,6 +790,7 @@ const TextInspector = observer(function TextInspector({
         <div className="grid grid-cols-[1fr_84px] gap-2">
           <DetailPageFontPicker
             value={fontFamily}
+            text={str(ref.text)}
             documentFamilies={fonts}
             onSelect={applyFontFamily}
           />

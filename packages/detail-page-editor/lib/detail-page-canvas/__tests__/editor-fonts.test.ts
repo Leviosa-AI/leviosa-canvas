@@ -58,6 +58,10 @@ describe("editor font list", () => {
     }
   });
 
+  it("keeps the catalog's eight Latin-only flags", () => {
+    expect(EDITOR_FONTS.filter((font) => font.latinOnly)).toHaveLength(8);
+  });
+
   it("가중치는 정렬돼 있고 라이선스 주소가 있다", () => {
     for (const font of EDITOR_FONTS) {
       expect(font.weights.length).toBeGreaterThan(0);
