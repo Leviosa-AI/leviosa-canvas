@@ -169,6 +169,7 @@ def _image_element(**overrides):
         "phBgImage": 'url("assets/cica_leaf.jpg")',
         "objectFit": "cover",
         "objectPosition": "50% 50%",
+        "filter": "none",
         "naturalWidth": 1024,
         "naturalHeight": 1536,
         "radius": 999,
@@ -177,6 +178,33 @@ def _image_element(**overrides):
     }
     element.update(overrides)
     return element
+
+
+def test_image_css_filter_survives_canvas_mapping():
+    node = proto._canvas_element(
+        _image_element(filter="brightness(1.28) saturate(0.8)"), "photo"
+    )
+    assert node["custom"]["filter"] == "brightness(1.28) saturate(0.8)"
+
+
+def test_image_opacity_survives_canvas_mapping():
+    node = proto._canvas_element(_image_element(opacity=0.42), "photo")
+    assert node["opacity"] == 0.42
+
+
+def test_image_keeps_fractional_measured_box():
+    node = proto._canvas_element(
+        _image_element(
+            box=_box(92.023, 120.5, 895.953, 660.25), fractionalBox=True
+        ),
+        "photo",
+    )
+    assert (node["x"], node["y"], node["width"], node["height"]) == (
+        92.023,
+        120.5,
+        895.953,
+        660.25,
+    )
 
 
 def test_round_image_mask_maps_to_corner_radius():
@@ -1044,6 +1072,42 @@ _MULTILINE_CHIP_HTML = """<!doctype html><html><head><meta charset="utf-8"><styl
   style="background:#cdeccd;padding:14px 26px;border-radius:12px;font-size:19px;"
   >아침에 사용 시 기초 마지막 단계에서<br/>자외선 차단제를 발라주어 피부를 보호해주세요.</span></div>
 </section></div></body></html>"""
+
+
+_HARD_BREAK_HEADLINE_HTML = """<!doctype html><html><head><meta charset="utf-8"><style>
+*{margin:0;box-sizing:border-box}
+.dp{position:relative;width:750px;height:500px;font-family:sans-serif}
+.head{position:absolute;left:40px;bottom:40px;font-size:52px;font-weight:800;
+  line-height:1.3;letter-spacing:-.02em}
+</style></head><body><div class="dp" data-screen-label="hard-break">
+<p class="head" data-block="text">딱 한 벌로 완성되는<br>늦여름, 세 가지면 끝</p>
+</div></body></html>"""
+
+
+_TEXT_SHADOW_HTML = """<!doctype html><html><head><meta charset="utf-8"><style>
+*{margin:0;box-sizing:border-box}
+.dp{width:750px;font-family:sans-serif}
+.title{font-size:74px;text-shadow:0 2px 12px rgba(0,0,0,.28)}
+</style></head><body><div class="dp"><section data-screen-label="shadow">
+<p class="title">앰플 바르는 순서</p>
+</section></div></body></html>"""
+
+
+def test_hard_break_headline_keeps_each_authored_line(tmp_path):
+    """A shrink-to-fit <br> headline gets enough width for its widest hard line."""
+
+    nodes = _decompose_html(tmp_path, _HARD_BREAK_HEADLINE_HTML, "hard-break")
+    text = next(n for n in nodes if n.get("type") == "text" and "늦여름" in n["text"])
+    assert text["text"].count("\n") == 1
+    # The second line is slightly wider than the browser's shrink-to-fit box.
+    # Keeping measured headroom prevents Konva/proxy from creating a third line.
+    assert text["width"] >= 390
+
+
+def test_text_shadow_survives_into_canvas_text(tmp_path):
+    texts = list(_iter_text(_decompose_html(tmp_path, _TEXT_SHADOW_HTML, "shadow")))
+    title = next(text for text in texts if text.get("text") == "앰플 바르는 순서")
+    assert title["custom"]["shadow"] == "rgba(0, 0, 0, 0.28) 0px 2px 12px"
 
 
 def test_centred_multiline_chip_uses_full_box_width_so_it_never_rewraps(tmp_path):

@@ -7,6 +7,12 @@ vi.mock("konva/lib/shapes/Image", () => ({}));
 vi.mock("konva/lib/shapes/Path", () => ({}));
 vi.mock("konva/lib/shapes/Rect", () => ({}));
 vi.mock("konva/lib/shapes/Text", () => ({}));
+vi.mock("../render/use-image", () => ({
+  useImage: (src: string) =>
+    src && !src.startsWith("data:image/svg+xml")
+      ? { naturalWidth: 100, naturalHeight: 100 }
+      : null,
+}));
 
 /** Konva 노드를 속성이 보이는 div로 바꿔 둔다 — jsdom에는 캔버스가 없다. */
 vi.mock("react-konva/es/ReactKonvaCore", () => {
@@ -165,6 +171,23 @@ describe("ElementView — 텍스트", () => {
 });
 
 describe("ElementView — 도형·이미지", () => {
+  it("이미지의 CSS filter를 Konva 네이티브 필터로 넘긴다", () => {
+    const { view } = mount({
+      id: "i",
+      type: "image",
+      x: 0,
+      y: 0,
+      width: 100,
+      height: 100,
+      src: "data:image/png;base64,iVBORw0KGgo=",
+      custom: { filter: "brightness(1.28) saturate(0.8)" },
+    });
+    const image = view.container.querySelector('[data-konva="image"]')!;
+    expect(image.getAttribute("data-filters")).toBe(
+      JSON.stringify(["brightness(1.28) saturate(0.8)"]),
+    );
+  });
+
   it("사각형은 그라디언트 fill을 Konva 속성으로 받는다", () => {
     const { view } = mount({
       id: "f",

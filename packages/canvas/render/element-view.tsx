@@ -19,7 +19,8 @@ import "konva/lib/shapes/Path";
 import "konva/lib/shapes/Rect";
 import "konva/lib/shapes/Text";
 
-import { useRef, type ReactNode } from "react";
+import type Konva from "konva";
+import { useEffect, useRef, type ReactNode } from "react";
 import {
   Ellipse,
   Group,
@@ -243,6 +244,21 @@ function FigureBody({ el }: { el: CanvasElement }) {
 function ImageBody({ el, src }: { el: CanvasElement; src?: string }) {
   const box = boxOf(el);
   const image = useImage(src ?? imageSrc(el));
+  const imageRef = useRef<Konva.Image | null>(null);
+  const filter = str((el.custom ?? {}) as Attrs, "filter");
+
+  useEffect(() => {
+    const node = imageRef.current;
+    if (!node || !image || !filter || filter === "none") return;
+    // Konva 10 accepts native CSS filter strings, but filters only run on a
+    // cached node. ponytail: 64px covers today's shadows; parse their bounds if
+    // an authored drop-shadow ever exceeds it.
+    node.cache({ pixelRatio: window.devicePixelRatio, offset: 64 });
+    node.getLayer()?.batchDraw();
+    return () => {
+      node.clearCache();
+    };
+  }, [filter, image]);
 
   if (!image) {
     // 빈 슬롯 자리표시. 투명하게 두면 "깨진 것"으로 읽힌다.
@@ -266,6 +282,7 @@ function ImageBody({ el, src }: { el: CanvasElement; src?: string }) {
 
   return (
     <KonvaImage
+      ref={imageRef}
       {...shadowProps(el)}
       x={dest.x}
       y={dest.y}
@@ -274,6 +291,7 @@ function ImageBody({ el, src }: { el: CanvasElement; src?: string }) {
       height={dest.height}
       crop={crop}
       cornerRadius={cornerRadius(el)}
+      filters={filter && filter !== "none" ? [filter] : undefined}
     />
   );
 }

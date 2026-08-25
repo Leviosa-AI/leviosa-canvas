@@ -157,11 +157,17 @@ EXTRACT = r"""
   // element is not stretched to its axis-aligned bounding box.
   const geom = el => {
     const r=el.getBoundingClientRect();
-    const w=el.offsetWidth>0 ? el.offsetWidth : r.width;
-    const h=el.offsetHeight>0 ? el.offsetHeight : r.height;
+    const rotation=rotationDeg(getComputedStyle(el));
+    // A pure translate does not change size. Keep Chromium's fractional painted
+    // size instead of replacing it with integer offsetWidth/offsetHeight; doing
+    // that resamples object-fit images and moves translateX(-50%) by about 1px.
+    // Rotated elements still need their unrotated layout box because r is then
+    // the larger axis-aligned bounding rectangle.
+    const w=rotation ? (el.offsetWidth>0 ? el.offsetWidth : r.width) : r.width;
+    const h=rotation ? (el.offsetHeight>0 ? el.offsetHeight : r.height) : r.height;
     const cx=r.left + r.width/2 - srect.left;
     const cy=r.top + r.height/2 - srect.top;
-    return {x:cx-w/2, y:cy-h/2, width:w, height:h, rotation:rotationDeg(getComputedStyle(el))};
+    return {x:cx-w/2, y:cy-h/2, width:w, height:h, rotation:rotation};
   };
   // Effective screen background: templates frequently paint the page background
   // on an ancestor (the .dp page wrapper / body), not on the section itself, so
@@ -367,6 +373,21 @@ EXTRACT = r"""
         : {x:g.x+padL, y:g.y, width:Math.max(1, g.width-padL-padR),
            height:g.height, rotation:g.rotation};
     }
+    // A shrink-to-fit absolute heading can report a box a few pixels narrower
+    // than its widest authored <br> line. The source lets that hard line paint
+    // through the fractional edge, while a reconstructed fixed-width box wraps
+    // its last word onto a silent third line. Give plain hard-break text its
+    // measured widest-line width, preserving the source alignment anchor.
+    if(!hasChip && text.includes('\n')){
+      const hardW=Math.ceil(measureLineW(text, s))+1;
+      if(hardW>textBox.width){
+        const extra=hardW-textBox.width;
+        const a=s.textAlign||'start';
+        const dx=/center/.test(a) ? extra/2 : /right|end/.test(a) ? extra : 0;
+        textBox={x:textBox.x-dx, y:textBox.y, width:hardW,
+          height:textBox.height, rotation:textBox.rotation};
+      }
+    }
     // Does the copy actually spill onto more than one visual line inside its box?
     // (natural width, in our narrower fallback font, already exceeds the box width
     // -> it wraps in the wider editor font too). A wrapper must not be pinned to a
@@ -403,7 +424,7 @@ EXTRACT = r"""
       // element carries no background of its own.
       bg:'', borders:null, radius:0, borderWidth:0,
       borderColor: s.borderTopColor, borderStyle: s.borderTopStyle,
-      shadow:'none'});
+      shadow:s.textShadow});
   };
   const pushBox=(g, cs, opacity)=>{
     const grad=cs.backgroundImage&&cs.backgroundImage!=='none';
@@ -1134,7 +1155,8 @@ EXTRACT = r"""
         // radiusOf resolves a "50%"/"999px" mask (a circular photo disc like the
         // 5D CICA leaf) against the box, so a round-cropped image stays round.
         radius:radiusOf(s, g.width, g.height), objectFit:s.objectFit,
-        objectPosition:s.objectPosition});
+        objectPosition:s.objectPosition, filter:s.filter,
+        opacity:Number(s.opacity||1), fractionalBox:s.transform!=='none'});
       stampGroup(_grpStart);
       return;
     }
@@ -1763,6 +1785,15 @@ def _canvas_element(e, eid):
                 pass
         return {**base, "type": "svg", "src": data, "custom": custom}
     if e["kind"] == "image":
+        # Images are the one element where a fractional CSS box changes every
+        # raster pixel. Keep Chromium's measured fractions through to Konva.
+        if e.get("fractionalBox"):
+            base.update(
+                x=round(b["x"], 3),
+                y=round(b["y"], 3),
+                width=round(b["width"], 3),
+                height=round(b["height"], 3),
+            )
         base = _slot_contain_letterbox(base, e)
         image_el = {
             **base,
@@ -1773,6 +1804,7 @@ def _canvas_element(e, eid):
                 "placeholderBg": e.get("phBg", ""),
                 "placeholderBgImage": e.get("phBgImage", ""),
                 "objectFit": e["objectFit"],
+                "filter": e.get("filter", "none"),
                 "tag": e.get("tag", ""),
                 "slotCandidate": bool(e.get("slot")),
                 # 템플릿이 스스로 선언한 슬롯 이름(``data-slot``). 디컴포저의 이름과
@@ -1821,6 +1853,7 @@ def _canvas_element(e, eid):
             "textTransform": e.get("textTransform", ""),
             "strokeWidth": e.get("strokeWidth", 0),
             "strokeColor": e.get("strokeColor", ""),
+            "shadow": e.get("shadow", "none"),
             # 템플릿이 스스로 선언한 슬롯 이름(``data-slot``). 없으면 빈 문자열.
             "contractSlot": e.get("contractSlot", ""),
         }
@@ -1898,7 +1931,6 @@ def _canvas_element(e, eid):
             # it rides in custom and backgroundColor stays transparent.
             bg = e["bg"]
             is_grad = "gradient" in bg or "url(" in bg
-            custom["shadow"] = e.get("shadow", "none")
             if is_grad:
                 custom["backgroundGradient"] = bg
             text_el.update(
@@ -2263,6 +2295,7 @@ def render_proxy(sec):
                 img_css = (
                     f"{pos}object-fit:{e['objectFit']};"
                     f"object-position:{e.get('objectPosition') or '50% 50%'};"
+                    f"filter:{e.get('filter') or 'none'};"
                     f"border-radius:{e['radius']}px;"
                 )
                 parts.append(f'<img src="{esc(e["src"])}" style="{esc(img_css)}"/>')
@@ -2418,7 +2451,8 @@ def render_proxy(sec):
                 else ""
             )
             text_css = (
-                f"{pos}{container}{indent}{deco_css}{wrap_props}color:{e['color']};"
+                f"{pos}{container}{indent}{deco_css}{wrap_props}text-shadow:{shadow};"
+                f"color:{e['color']};"
                 f"font-size:{e['fontSize']}px;font-weight:{e['fontWeight']};"
                 f"text-align:{talign};line-height:{e['lineHeight']};"
                 f"letter-spacing:{e['letterSpacing']};font-family:{e['fontFamily']};"
