@@ -13,6 +13,27 @@ export type ImageTier = "basic" | "pro" | "max";
 /** 선택 UI에 노출할 티어 순서(저→고 품질). */
 export const IMAGE_TIERS: ImageTier[] = ["basic", "pro", "max"];
 
+/**
+ * 이 편집기가 실제로 고르게 할 티어.
+ *
+ * 소비자마다 파는 것이 다르다. 소싱은 셋을 다 팔지만, 에이전시 요금표는 basic 을
+ * 은퇴시키고 pro 를 기본으로 뒀다 — 값이 없는 티어를 드롭다운에 남겨 두면 사용자는
+ * 고를 수 있는데 아무도 청구를 못 하는 자리가 생긴다.
+ *
+ * 안 주면 지금까지대로 셋 다. 준 값이 비었거나 아는 티어가 하나도 없으면 그것도
+ * 셋 다로 되돌린다 — 빈 드롭다운은 "AI 이미지를 못 만드는 편집기"이고, 그건 소비자가
+ * 배열 하나를 잘못 넘겨서 벌어질 만한 일이 아니다.
+ */
+export function resolveImageTiers(allowed?: readonly ImageTier[]): ImageTier[] {
+  const picked = IMAGE_TIERS.filter((tier) => allowed?.includes(tier));
+  return picked.length > 0 ? picked : IMAGE_TIERS;
+}
+
+/** 목록 안의 기본 티어. 기본값이 빠진 목록이면 그 목록의 첫 항목. */
+export function resolveDefaultImageTier(tiers: readonly ImageTier[]): ImageTier {
+  return tiers.includes(DEFAULT_IMAGE_TIER) ? DEFAULT_IMAGE_TIER : tiers[0];
+}
+
 export const IMAGE_FEATURE_KEYS: Record<ImageTier, string> = {
   basic: "detail_page_image_basic",
   pro: "detail_page_image_pro",

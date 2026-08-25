@@ -26,6 +26,10 @@ import { shrinkReferenceDataUri } from "./reference-image";
  * ``content`` 는 **문구가 아니라 정보 구성**이다 — 어떤 항목을 어떤 순서로 다루는지
  * (성분표 · 사용법 · 비교표 · 후기). 남의 문장을 옮겨 오는 축이 아니라서 설명도 그렇게
  * 적는다. 셀러가 "내용을 참고"를 "문구를 베낀다"로 읽으면 안 된다.
+ *
+ * ``imagery`` 는 **사진 연출**이다 — 레퍼런스에 실린 사진들의 피사체 연출·구도·소품·
+ * 조명·톤을 읽어, 이 상품의 이미지 생성 프롬프트를 그 화법으로 쓰게 한다. 남의 제품·
+ * 인물을 옮겨 그리는 축이 아니다(연출만 가져간다).
  */
 export const DESIGN_REFERENCE_ASPECTS = [
   { key: "palette", label: "색감", hint: "바탕·글자·강조의 색 관계" },
@@ -34,6 +38,7 @@ export const DESIGN_REFERENCE_ASPECTS = [
   { key: "content", label: "내용 구성", hint: "다루는 정보 항목과 순서" },
   { key: "mood", label: "분위기", hint: "여백의 양과 요소 밀도" },
   { key: "decoration", label: "장식", hint: "구분선·도형의 성격" },
+  { key: "imagery", label: "이미지", hint: "사진 연출 — 구도·소품·조명·톤" },
 ] as const;
 
 export type DesignReferenceAspect = (typeof DESIGN_REFERENCE_ASPECTS)[number]["key"];

@@ -13,7 +13,9 @@
  */
 
 import {
+  createContext,
   useCallback,
+  useContext,
   useEffect,
   useLayoutEffect,
   useRef,
@@ -42,6 +44,10 @@ const GAP = 10;
 const EDGE = 8;
 /** 띠의 대략 높이. 실측 전 첫 프레임에만 쓴다. */
 const BAR_HEIGHT = 40;
+/** 띠와 그 아래(또는 위) 창 사이의 여백(px). 클래스의 `mt-1.5`/`mb-1.5`와 같은 값이다. */
+const POPOVER_GAP = 6;
+/** 창이 이보다 낮아지면 접힌 것과 다름없다 — 스스로 스크롤하게 두고 이 높이는 지킨다. */
+const POPOVER_MIN = 200;
 
 /**
  * 띠의 자리. 위가 모자라면 아래로 뒤집고, 좌우는 작업 영역 안으로 민다.
@@ -61,6 +67,40 @@ export function toolbarPosition(
     left: Math.max(EDGE, Math.min(centred, host.width - size.width - EDGE)),
     top: Math.max(EDGE, top),
   };
+}
+
+/**
+ * 창이 띠의 위에 설지 아래에 설지, 그리고 얼마나 높을 수 있는지.
+ *
+ * 자리 계산이 재는 것은 **띠**뿐이라(`size`가 `barRef` 것이다) 창은 지금까지 아무에게도
+ * 안 물어보고 띠 아래로 흘렀다. 상세페이지 사진은 대개 한 섹션을 통째로 덮어서 띠가
+ * 작업 영역 맨 아래에 붙는데, 그러면 창은 통째로 화면 밖에 그려진다 — 열려 있고,
+ * 접근성 트리에도 있고, 눈에는 없다. 그 자리에서는 위로 뒤집는다.
+ */
+export function popoverPlacement(
+  barTop: number,
+  barHeight: number,
+  hostHeight: number,
+): { side: "above" | "below"; maxHeight: number } {
+  const below = hostHeight - (barTop + barHeight) - POPOVER_GAP - EDGE;
+  const above = barTop - POPOVER_GAP - EDGE;
+  const side = below >= above ? "below" : "above";
+  return {
+    side,
+    maxHeight: Math.max(POPOVER_MIN, side === "below" ? below : above),
+  };
+}
+
+export type QuickPopoverPlacement = ReturnType<typeof popoverPlacement>;
+
+const QuickPopoverContext = createContext<QuickPopoverPlacement>({
+  side: "below",
+  maxHeight: 520,
+});
+
+/** 창을 그리는 쪽이 자기 자리를 집는 곳. 띠 밖에서 부르면 기본값(아래)이다. */
+export function useQuickPopoverPlacement(): QuickPopoverPlacement {
+  return useContext(QuickPopoverContext);
 }
 
 export function SelectionQuickToolbar({
@@ -179,6 +219,7 @@ export function SelectionQuickToolbar({
     { width: host.clientWidth, height: host.clientHeight },
     size,
   );
+  const placement = popoverPlacement(top, size.height, host.clientHeight);
 
   return (
     <div
@@ -217,7 +258,9 @@ export function SelectionQuickToolbar({
           </div>
         ))}
       </div>
-      {children}
+      <QuickPopoverContext.Provider value={placement}>
+        {children}
+      </QuickPopoverContext.Provider>
     </div>
   );
 }

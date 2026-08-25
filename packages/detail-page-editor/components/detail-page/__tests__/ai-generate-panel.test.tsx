@@ -171,6 +171,58 @@ describe("AiGeneratePanel 모델 티어", () => {
     );
   });
 
+  it("tiers를 주면 그 티어만 고르게 하고, 기본값도 그 안에서 정한다", async () => {
+    // 은퇴한 티어를 드롭다운에 남겨 두면 누를 수는 있는데 요금표에 값이 없어
+    // 아무도 청구를 못 한다. 에이전시가 basic 을 빼는 자리가 여기다.
+    const onGenerate = vi.fn(async () => ["https://s3/x.jpg"]);
+    render(
+      <AiGeneratePanel
+        store={store}
+        onGenerate={onGenerate}
+        tiers={["pro", "max"]}
+        costByTier={{ pro: 20, max: 70 }}
+        creditBalance={1000}
+      />,
+    );
+
+    // 드롭다운을 열어 항목을 세지는 않는다 — Radix Select 는 jsdom 에 없는
+    // 포인터 캡처를 쓴다. 목록 자체는 `resolveImageTiers` 의 단위 테스트가 재고,
+    // 여기서는 그 목록이 실제 요청에 실리는지를 잰다.
+    await userEvent.type(
+      screen.getByPlaceholderText("detailPage.aiGenerate.promptPlaceholder"),
+      "온천수 무드컷",
+    );
+    await userEvent.click(
+      screen.getByRole("button", { name: /detailPage\.aiGenerate\.generate/ }),
+    );
+    expect(onGenerate).toHaveBeenCalledWith(
+      expect.objectContaining({ tier: "pro" }),
+    );
+  });
+
+  it("기본 티어가 빠진 목록이면 그 목록의 첫 항목으로 생성한다", async () => {
+    const onGenerate = vi.fn(async () => ["https://s3/x.jpg"]);
+    render(
+      <AiGeneratePanel
+        store={store}
+        onGenerate={onGenerate}
+        tiers={["max"]}
+        costByTier={{ max: 70 }}
+        creditBalance={1000}
+      />,
+    );
+    await userEvent.type(
+      screen.getByPlaceholderText("detailPage.aiGenerate.promptPlaceholder"),
+      "온천수 무드컷",
+    );
+    await userEvent.click(
+      screen.getByRole("button", { name: /detailPage\.aiGenerate\.generate/ }),
+    );
+    expect(onGenerate).toHaveBeenCalledWith(
+      expect.objectContaining({ tier: "max" }),
+    );
+  });
+
   it("costByTier 미지정 시 레거시 creditCost로 폴백한다", () => {
     render(
       <AiGeneratePanel

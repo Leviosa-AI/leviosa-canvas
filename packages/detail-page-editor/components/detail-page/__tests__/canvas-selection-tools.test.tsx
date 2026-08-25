@@ -4,7 +4,7 @@ import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 
 import { CanvasSelectionTools } from "../canvas-selection-tools";
-import { toolbarPosition } from "../selection-quick-toolbar";
+import { popoverPlacement, toolbarPosition } from "../selection-quick-toolbar";
 import { EditorAiProvider } from "../editor-ai-context";
 import { withDetailPageHost } from "./host-stub";
 
@@ -115,6 +115,27 @@ describe("toolbarPosition", () => {
       { width: 200, height: 40 },
     );
     expect(at.left).toBe(692);
+  });
+});
+
+describe("popoverPlacement", () => {
+  it("아래가 넉넉하면 아래에 서고, 남은 만큼으로 잘린다", () => {
+    expect(popoverPlacement(120, 40, 700)).toEqual({
+      side: "below",
+      maxHeight: 526,
+    });
+  });
+
+  // 한 섹션을 통째로 덮는 사진을 고르면 띠가 작업 영역 맨 아래에 붙는다. 그 자리에서
+  // 아래로 흘리면 창은 통째로 화면 밖이다 — 이 저장소가 실제로 그랬다.
+  it("띠가 바닥에 붙으면 위로 뒤집는다", () => {
+    const at = popoverPlacement(652, 40, 700);
+    expect(at.side).toBe("above");
+    expect(at.maxHeight).toBe(638);
+  });
+
+  it("양쪽 다 좁아도 최소 높이는 지킨다 — 넘치는 만큼은 스스로 스크롤한다", () => {
+    expect(popoverPlacement(60, 40, 160).maxHeight).toBe(200);
   });
 });
 

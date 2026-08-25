@@ -44,6 +44,7 @@ describe("design reference contract", () => {
       "content",
       "mood",
       "decoration",
+      "imagery",
     ]);
   });
 
