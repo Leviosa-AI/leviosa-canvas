@@ -104,6 +104,19 @@ function ElementFrame({
 }) {
   const box = boxOf(el);
   const draggable = isDraggable(el, edit);
+  const frameRef = useRef<Konva.Group | null>(null);
+  const filter =
+    el.type === "image" ? "" : str((el.custom ?? {}) as Attrs, "filter");
+
+  useEffect(() => {
+    const node = frameRef.current;
+    if (!node || !filter || filter === "none") return;
+    node.cache({ pixelRatio: window.devicePixelRatio, offset: 64 });
+    node.getLayer()?.batchDraw();
+    return () => {
+      node.clearCache();
+    };
+  }, [filter]);
   // ⌥를 누른 채 끌면 복제 — Figma·Canva·미리캔버스가 전부 같은 손버릇이다. 누른 사실은
   // **시작할 때** 잡아 둔다. 놓는 순간에는 이미 손을 뗐을 수 있고, 끄는 도중에 트리를
   // 건드리면 리렌더가 끌고 있는 노드의 좌표를 문서 값으로 되돌려 그림이 튄다.
@@ -111,6 +124,7 @@ function ElementFrame({
 
   return (
     <Group
+      ref={frameRef}
       id={el.id}
       name="lc-element"
       x={box.x}
@@ -121,6 +135,7 @@ function ElementFrame({
       opacity={num(el, "opacity", 1)}
       listening={edit?.interactive ?? false}
       draggable={draggable}
+      filters={filter && filter !== "none" ? [filter] : undefined}
       onDragStart={
         draggable && edit
           ? (event: DragEvent) => {
@@ -249,14 +264,21 @@ function ImageBody({ el, src }: { el: CanvasElement; src?: string }) {
 
   useEffect(() => {
     const node = imageRef.current;
-    if (!node || !image || !filter || filter === "none") return;
-    // Konva 10 accepts native CSS filter strings, but filters only run on a
-    // cached node. ponytail: 64px covers today's shadows; parse their bounds if
-    // an authored drop-shadow ever exceeds it.
-    node.cache({ pixelRatio: window.devicePixelRatio, offset: 64 });
+    if (!node || !image) return;
+    if (filter && filter !== "none") {
+      node.cache({ pixelRatio: window.devicePixelRatio, offset: 64 });
+    }
+    let parent = node.getParent();
+    while (parent) {
+      if (parent.filters()?.length) {
+        parent.clearCache();
+        parent.cache({ pixelRatio: window.devicePixelRatio, offset: 64 });
+      }
+      parent = parent.getParent();
+    }
     node.getLayer()?.batchDraw();
     return () => {
-      node.clearCache();
+      if (filter && filter !== "none") node.clearCache();
     };
   }, [filter, image]);
 

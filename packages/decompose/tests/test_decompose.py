@@ -1092,6 +1092,15 @@ _TEXT_SHADOW_HTML = """<!doctype html><html><head><meta charset="utf-8"><style>
 <p class="title">앰플 바르는 순서</p>
 </section></div></body></html>"""
 
+_FILTER_HTML = """<!doctype html><html><head><meta charset="utf-8"><style>
+*{margin:0;box-sizing:border-box}.dp{width:750px;font-family:sans-serif}
+.container{position:relative;width:240px;height:100px;filter:drop-shadow(0 8px 12px #0008)}
+.label{filter:drop-shadow(0 4px 6px #0006)}
+</style></head><body><div class="dp"><section data-screen-label="filter">
+<div class="container"><p>컨테이너</p><svg width="40" height="40"><circle cx="20" cy="20" r="18"/></svg></div>
+<p class="label" data-block="text">글자</p>
+</section></div></body></html>"""
+
 
 def test_hard_break_headline_keeps_each_authored_line(tmp_path):
     """A shrink-to-fit <br> headline gets enough width for its widest hard line."""
@@ -1108,6 +1117,15 @@ def test_text_shadow_survives_into_canvas_text(tmp_path):
     texts = list(_iter_text(_decompose_html(tmp_path, _TEXT_SHADOW_HTML, "shadow")))
     title = next(text for text in texts if text.get("text") == "앰플 바르는 순서")
     assert title["custom"]["shadow"] == "rgba(0, 0, 0, 0.28) 0px 2px 12px"
+
+
+def test_container_and_text_filters_survive_but_svg_filter_does_not(tmp_path):
+    nodes = _decompose_html(tmp_path, _FILTER_HTML, "filter")
+    group = next(node for node in nodes if node.get("type") == "group")
+    label = next(node for node in nodes if node.get("text") == "글자")
+    assert group["custom"]["filter"] == "drop-shadow(rgba(0, 0, 0, 0.533) 0px 8px 12px)"
+    assert label["custom"]["filter"] == "drop-shadow(rgba(0, 0, 0, 0.4) 0px 4px 6px)"
+    assert all(child.get("custom", {}).get("filter", "none") == "none" for child in group["children"] if child.get("type") == "svg")
 
 
 def test_centred_multiline_chip_uses_full_box_width_so_it_never_rewraps(tmp_path):
