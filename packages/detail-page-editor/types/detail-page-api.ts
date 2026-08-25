@@ -89,6 +89,20 @@ export interface DetailPageGroupPromptEditResult {
   svg_limit: number;
 }
 
+/** 저작 사진을 브랜드 자산으로 승격한 결과. */
+export interface DetailPagePromoteImageResult {
+  asset_id: string;
+  /**
+   * 15분짜리 presigned. **문서에 박으면 안 된다** — 그 시간 뒤에 403 이 된다.
+   * 문서에 남길 주소는 `stable_path` 다.
+   */
+  url?: string;
+  /** 만료가 없는 서명 경로. 브랜드 라이브러리가 이 주소로 이 사진을 연다. */
+  stable_path?: string;
+  /** 같은 바이트가 이미 있어 새로 넣지 않았다는 뜻. */
+  reused?: boolean;
+}
+
 export interface DetailPageImageEditResult {
   success: boolean;
   message?: string;

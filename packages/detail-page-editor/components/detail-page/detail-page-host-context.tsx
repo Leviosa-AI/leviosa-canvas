@@ -40,6 +40,7 @@ import type {
   DetailPageGroupEditItem,
   DetailPageGroupPromptEditResult,
   DetailPageImageEditResult,
+  DetailPagePromoteImageResult,
   DetailPageInsufficientCreditsDetail,
   DetailPagePersonalShapeSaveResult,
   DetailPagePromptEditResult,
@@ -117,6 +118,25 @@ export interface DetailPageHostApi {
     },
     signal?: AbortSignal,
   ) => Promise<DetailPageImageEditResult>;
+  /**
+   * 저작이 만든 사진 한 장을 브랜드 자산으로 승격한다.
+   *
+   * 사진은 문서에 이미 박혀 있는 `job_id`·`name`·`sig` 로 가리킨다 — 서버가 그 서명을
+   * 먼저 검증하므로, 편집기가 임의의 주소를 대신 받아 오게 만들 수 없다.
+   *
+   * 선택 사항이다. 호스트가 안 주면 "브랜드 이미지로 저장" 버튼이 뜨지 않는다 — 이
+   * 편집기를 쓰는 앱이 둘이라, 필수로 두면 한쪽이 늦는 동안 다른 쪽까지 못 올린다.
+   */
+  promoteAuthoringImageToBrand?: (
+    payload: {
+      job_id: string;
+      name: string;
+      sig: string;
+      brand_id: string;
+      display_name?: string;
+    },
+    signal?: AbortSignal,
+  ) => Promise<DetailPagePromoteImageResult>;
   svgPromptEditDetailPage: (
     generatedId: string,
     payload: { slot_role?: string; current_svg: string; instruction: string },
