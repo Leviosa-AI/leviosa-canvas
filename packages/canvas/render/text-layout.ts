@@ -2,14 +2,17 @@
  * 글자가 실제로 몇 줄로 접히고 그 덩어리가 상자 안에서 어디에 앉는가.
  *
  * 편집기(`<textarea>`)와 캔버스(Konva)가 **같은 자리**에 글자를 놓아야 캐럿이 맞다.
- * 줄 나눔은 Konva 자신에게 물어보고(`measureHighlightLines`가 오프스크린 Konva.Text로
- * 재 준다), 세로 정렬 오프셋은 그 결과로 계산한다.
+ * 줄 나눔은 오프스크린 Konva.Text에 물어보고, 세로 정렬 오프셋은 그 결과로 계산한다.
  */
 
-import { measureHighlightLines } from "../paint/text-highlight-bands";
+import Konva from "konva";
 
 import { num, str, type Attrs } from "../types";
-import { isSingleLineBox, lineHeightRatio } from "./attrs";
+import {
+  isSingleLineBox,
+  konvaFontStyle,
+  lineHeightRatio,
+} from "./attrs";
 
 export type TextLayout = {
   /** 접힌 줄 수(최소 1). */
@@ -18,6 +21,8 @@ export type TextLayout = {
   lineHeight: number;
   /** 글자 덩어리 전체 높이. */
   blockHeight: number;
+  /** 가장 긴 줄의 실제 폭. */
+  blockWidth: number;
   /**
    * 상자 위쪽에서 글자 덩어리까지의 거리. `verticalAlign`이 middle/bottom이면 0이 아니다 —
    * 이 값을 안 쓰면 세로 가운데 정렬된 문구를 고칠 때 캐럿이 위로 튄다.
@@ -34,19 +39,22 @@ export function measureTextLayout(el: Attrs, text?: string): TextLayout {
 
   // 한 줄 상자는 접지 않는다(렌더러와 같은 규칙) — 폭 0을 주면 wrap이 꺼진다.
   const wrapWidth = isSingleLineBox(el) ? 0 : boxWidth;
-  const measured = measureHighlightLines({
+  const node = new Konva.Text({
     text: value,
     fontSize,
     fontFamily: str(el, "fontFamily", "Arial"),
-    fontWeight: el.fontWeight,
-    // 그리는 쪽과 같은 규칙 — `custom.fontStyle`은 안 본다(`konvaFontStyle` 참고).
-    fontStyle: str(el, "fontStyle"),
-    boxWidth: wrapWidth,
-    lineHeightRatio: ratio,
+    fontStyle: konvaFontStyle(el),
+    width: wrapWidth > 0 ? wrapWidth : undefined,
+    wrap: wrapWidth > 0 ? "word" : "none",
+    lineHeight: ratio,
+    letterSpacing: num(el, "letterSpacing", 0) * fontSize,
   });
+  const measured = (node.textArr ?? []) as Array<{ text: string; width: number }>;
 
   const lines = Math.max(1, measured.length);
   const blockHeight = lines * lineHeight;
+  const blockWidth = Math.max(0, ...measured.map((line) => line.width));
+  node.destroy();
   const boxHeight = num(el, "height", 0);
   const align = str(el, "verticalAlign", "top");
   const slack = Math.max(0, boxHeight - blockHeight);
@@ -57,5 +65,5 @@ export function measureTextLayout(el: Attrs, text?: string): TextLayout {
         ? slack
         : 0;
 
-  return { lines, lineHeight, blockHeight, offsetY };
+  return { lines, lineHeight, blockHeight, blockWidth, offsetY };
 }

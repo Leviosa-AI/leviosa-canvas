@@ -363,6 +363,24 @@ function TextBody({ el, editing }: { el: CanvasElement; editing: boolean }) {
 
   const backgroundEnabled = el.backgroundEnabled === true;
   const padding = backgroundEnabled ? num(el, "backgroundPadding", 0) : 0;
+  const singleLine = isSingleLineBox(el);
+  const layout = measureTextLayout(el, text);
+  const anchorWidth = num(custom, "textFitAnchorWidth", box.width);
+  const growX =
+    align === "center"
+      ? (anchorWidth - box.width) / 2
+      : align === "right" || align === "end"
+        ? anchorWidth - box.width
+        : 0;
+  const textWidth = Math.max(1, box.width - padding * 2);
+  const textX = singleLine
+    ? growX + padding +
+      (align === "center"
+        ? (textWidth - layout.blockWidth) / 2
+        : align === "right" || align === "end"
+          ? textWidth - layout.blockWidth
+          : 0)
+    : padding;
 
   /*
    * 상자 높이를 Konva에 주지 않는다. 주면 **넘치는 줄을 조용히 버린다**
@@ -374,7 +392,7 @@ function TextBody({ el, editing }: { el: CanvasElement; editing: boolean }) {
    */
   const verticalAlign = str(el, "verticalAlign", "top");
   const offsetY =
-    verticalAlign === "top" ? 0 : measureTextLayout(el, text).offsetY;
+    verticalAlign === "top" ? 0 : layout.offsetY;
 
   return (
     <ClipTo el={el}>
@@ -382,7 +400,7 @@ function TextBody({ el, editing }: { el: CanvasElement; editing: boolean }) {
         bands.map((band, i) => (
           <Rect
             key={i}
-            x={band.x}
+            x={band.x + growX}
             y={band.y}
             width={band.width}
             height={band.height}
@@ -392,7 +410,7 @@ function TextBody({ el, editing }: { el: CanvasElement; editing: boolean }) {
         ))
       ) : backgroundEnabled || backgroundGradient ? (
         <Rect
-          x={0}
+          x={growX}
           y={0}
           width={box.width}
           height={box.height}
@@ -409,9 +427,9 @@ function TextBody({ el, editing }: { el: CanvasElement; editing: boolean }) {
       {/* 편집 중에는 글자를 두 번 그리지 않는다 — textarea가 같은 자리에 있다. */}
       {editing ? null : (
       <Text
-        x={padding}
+        x={textX}
         y={offsetY}
-        width={Math.max(1, box.width - padding * 2)}
+        width={singleLine ? undefined : textWidth}
         text={text}
         fontSize={fontSize}
         fontFamily={fontFamily}
@@ -426,7 +444,7 @@ function TextBody({ el, editing }: { el: CanvasElement; editing: boolean }) {
         // 디컴포저는 보이는 줄마다 요소를 하나씩 뽑고 상자를 그 줄에 맞춘다. 한 줄
         // 높이 상자가 줄바꿈되면 두 번째 줄이 상자 밖으로 밀려 잘린다 — 폰트 메트릭이
         // 디컴포저와 미세하게 다를 수 있으므로, 한 줄 상자는 넘치게 두고 접지 않는다.
-        wrap={isSingleLineBox(el) ? "none" : "word"}
+        wrap={singleLine ? "none" : "word"}
         {...shadowProps(el)}
         {...textStroke(el)}
       />
