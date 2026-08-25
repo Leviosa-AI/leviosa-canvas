@@ -1,5 +1,7 @@
 "use client";
 
+import { detailPageEditorProfile } from "../../lib/detail-page/editor-profile";
+
 import { useCallback, useState, useSyncExternalStore } from "react";
 import { observer } from "./canvas-observer";
 import { useTranslation } from "react-i18next";
@@ -252,10 +254,18 @@ export const DetailPagePagesPanel = observer(function DetailPagePagesPanel({
     [s],
   );
 
-  const totalHeight = Math.round(
-    s.pages.reduce((acc, p) => acc + p.computedHeight, 0),
-  );
+  // 판이 고정 크기면(캐러셀) 높이를 «더하지 않는다». 상세페이지는 세로로 이어진 한 장이라
+  // 합계가 곧 문서 높이지만, 캐러셀은 판이 따로따로라 합계가 아무 뜻이 없다 —
+  // 8판짜리가 1080×10800 으로 보였다.
+  const profile = detailPageEditorProfile();
   const width = Math.round(s.pages[0]?.computedWidth ?? 0);
+  const shownHeight = profile.page.fixed
+    ? Math.round(
+        typeof profile.page.height === "number"
+          ? profile.page.height
+          : s.pages[0]?.computedHeight ?? 0,
+      )
+    : Math.round(s.pages.reduce((acc, p) => acc + p.computedHeight, 0));
 
   return (
     <div className="flex h-full flex-col">
@@ -264,7 +274,7 @@ export const DetailPagePagesPanel = observer(function DetailPagePagesPanel({
           {t("detailPage.pages.totalPages", { count: s.pages.length })}
         </p>
         <p className="text-xs text-dpe-ink-400">
-          {width} × {totalHeight} px
+          {width} × {shownHeight} px
         </p>
       </div>
 
