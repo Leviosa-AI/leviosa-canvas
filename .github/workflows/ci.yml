@@ -42,7 +42,7 @@ jobs:
 
       - run: python -m playwright install --with-deps chromium
 
-      - run: python -m pytest packages/decompose/tests/test_decompose.py
+      - run: python -m pytest packages/decompose/tests/test_decompose.py packages/decompose/tests/test_browser_runtime.py
 
       - name: Record carousel pixel baseline
         continue-on-error: true
