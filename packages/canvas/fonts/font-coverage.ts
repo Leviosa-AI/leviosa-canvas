@@ -13,7 +13,7 @@ const COMMON_TEXT_RANGES: Array<[number, number]> = [
   [0xff01, 0xff60],
 ];
 
-import { FONT_FAMILIES, matchFontFamily, type FontClass, type FontShape } from "./font-catalog.js";
+import { FONT_FAMILIES, matchFontFamily, type FontClass, type FontShape } from "./font-catalog";
 
 const SUPPORTED_FONT_FAMILIES = new Set(FONT_FAMILIES);
 
