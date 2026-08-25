@@ -346,11 +346,47 @@ export function linearGradientKonvaProps(
   };
 }
 
-/** Parse a CSS ``box-shadow`` (color may lead or trail) for Konva. */
+/**
+ * 쉼표로 이어 붙은 겹을 «겹마다» 끊는다.
+ *
+ * 색 함수 안에도 쉼표가 있으므로(`rgba(18, 63, 181, .18)`) 그냥 쪼개면 안 된다.
+ * 괄호 깊이를 세면서 깊이 0 인 쉼표에서만 끊는다.
+ */
+function splitShadowLayers(value: string): string[] {
+  const out: string[] = [];
+  let depth = 0;
+  let start = 0;
+  for (let i = 0; i < value.length; i++) {
+    const c = value[i];
+    if (c === "(") depth++;
+    else if (c === ")") depth--;
+    else if (c === "," && depth === 0) {
+      out.push(value.slice(start, i));
+      start = i + 1;
+    }
+  }
+  out.push(value.slice(start));
+  return out.map((layer) => layer.trim()).filter(Boolean);
+}
+
+/**
+ * CSS ``box-shadow`` 를 Konva 용으로 읽는다 (색은 앞에 와도 뒤에 와도 된다).
+ *
+ * **겹이 여럿이면 «겉그림자 첫 겹»만 쓴다.** Konva 도형은 그림자가 하나뿐이라
+ * 나머지는 못 그린다 — 다만 첫 겹은 «제대로» 그려야 한다. 겹을 안 끊으면
+ * `0px 10px 26px, …` 의 `26px,` 이 「숫자px」 꼴이 아니라서 버려지고 흐림이 0 이 됐다.
+ * 흐림 0 은 그림자가 아니라 색판이 밀려 나온 모양이라 원본과 아주 다르게 보인다.
+ *
+ * `inset` 은 건너뛴다. Konva 에 안쪽 그림자가 없어서 그 값을 겉그림자로 쓰면
+ * 엉뚱한 자리에 그려진다.
+ */
 export function parseCssShadow(value: unknown): ParsedShadow | null {
   if (typeof value !== "string") return null;
-  const trimmed = value.trim();
-  if (!trimmed || trimmed === "none") return null;
+  const raw = value.trim();
+  if (!raw || raw === "none") return null;
+  const outer = splitShadowLayers(raw).filter((layer) => !/\binset\b/.test(layer));
+  const trimmed = outer[0];
+  if (!trimmed) return null;
   // 색 함수 안에 괄호를 허용하지 않는다(`[^()]` ). `[^)]` 이면 `rgb(rgb(rgb(…`
   // 처럼 여는 괄호만 이어지는 값에서 시작점마다 끝까지 훑어 되짚기가 길이의 제곱으로
   // 늘어난다 — 값은 문서에서 그대로 들어온다.

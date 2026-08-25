@@ -107,16 +107,33 @@ function ElementFrame({
   const frameRef = useRef<Konva.Group | null>(null);
   const filter =
     el.type === "image" ? "" : str((el.custom ?? {}) as Attrs, "filter");
+  const version = useElementVersion(el);
+
+  /*
+   * 반투명한 그룹은 «한 장으로 구워서» 투명도를 먹인다 — 디자인 툴이 다 그렇게 한다.
+   *
+   * 안 구우면 Konva가 자식마다 따로 투명도를 먹여서, 겹친 자리가 두 번 깔려 진해진다.
+   * 브라우저는 자식을 다 그린 뒤 그 «한 장»을 반투명하게 하므로 그림이 다르다.
+   *
+   * 자식이 하나뿐이면 겹칠 상대가 없어 결과가 같다 — 굳이 비트맵을 만들지 않는다.
+   * 판이 1080×1350이라 캐시 한 장이 싸지 않다.
+   */
+  const flatten =
+    el.type === "group" &&
+    num(el, "opacity", 1) < 1 &&
+    (el.children?.length ?? 0) > 1;
 
   useEffect(() => {
     const node = frameRef.current;
-    if (!node || !filter || filter === "none") return;
+    const wants = (filter && filter !== "none") || flatten;
+    if (!node || !wants) return;
     node.cache({ pixelRatio: window.devicePixelRatio, offset: 64 });
     node.getLayer()?.batchDraw();
     return () => {
       node.clearCache();
     };
-  }, [filter]);
+    // 자식이 바뀌면 구운 그림도 낡는다 — version 이 바뀔 때 다시 굽는다.
+  }, [filter, flatten, version]);
   // ⌥를 누른 채 끌면 복제 — Figma·Canva·미리캔버스가 전부 같은 손버릇이다. 누른 사실은
   // **시작할 때** 잡아 둔다. 놓는 순간에는 이미 손을 뗐을 수 있고, 끄는 도중에 트리를
   // 건드리면 리렌더가 끌고 있는 노드의 좌표를 문서 값으로 되돌려 그림이 튄다.

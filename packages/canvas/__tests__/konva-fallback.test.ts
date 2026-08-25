@@ -415,8 +415,15 @@ describe("parseCssShadow", () => {
     expect(parseCssShadow(undefined)).toBeNull();
   });
 
-  it("keeps the inset keyword and hex colors readable", () => {
-    expect(parseCssShadow("inset 0px 2px 4px #112233")).toEqual({
+  // 예전에는 inset 을 «겉그림자로» 그렸다. 안쪽 빛을 바깥에 칠하는 셈이라 원본과
+  // 다른 자리에 그림자가 생긴다 — Konva 에 안쪽 그림자가 없으니 안 그리는 쪽이 맞다.
+  // 실측: 상세페이지 템플릿의 box-shadow 188번 중 inset «만» 쓰는 것은 10번.
+  it("inset 만 있으면 그리지 않는다", () => {
+    expect(parseCssShadow("inset 0px 2px 4px #112233")).toBeNull();
+  });
+
+  it("hex 색을 읽는다", () => {
+    expect(parseCssShadow("0px 2px 4px #112233")).toEqual({
       color: "#112233",
       offsetX: 0,
       offsetY: 2,
