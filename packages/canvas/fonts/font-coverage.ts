@@ -13,9 +13,16 @@ const COMMON_TEXT_RANGES: Array<[number, number]> = [
   [0xff01, 0xff60],
 ];
 
-import { FONT_FAMILIES, matchFontFamily, type FontClass, type FontShape } from "./font-catalog";
+import {
+  FONT_FAMILIES,
+  catalogFont,
+  matchFontFamily,
+  type FontClass,
+  type FontShape,
+} from "./font-catalog";
 
 const SUPPORTED_FONT_FAMILIES = new Set(FONT_FAMILIES);
+const LATIN_FONT_SAMPLE_CHAR = /[\p{Script=Latin}\p{Number}]/u;
 
 function isVariationSelector(codePoint: number): boolean {
   return (codePoint >= 0xfe00 && codePoint <= 0xfe0f) ||
@@ -76,13 +83,18 @@ export function fontLoadSampleForText(
 ): string {
   if (!SUPPORTED_FONT_FAMILIES.has(family)) return text.trim() || fallback;
 
+  const latinOnly = (catalogFont(family) as { latinOnly?: boolean } | undefined)?.latinOnly;
   let sample = "";
   for (const char of text) {
     const codePoint = char.codePointAt(0);
     if (codePoint === undefined) continue;
-    if (isSupportedCodePoint(codePoint)) sample += char;
+    if (latinOnly ? LATIN_FONT_SAMPLE_CHAR.test(char) : isSupportedCodePoint(codePoint)) {
+      sample += char;
+    }
   }
-  return sample.trim() || fallback;
+  if (sample.trim()) return sample.trim();
+  if (!latinOnly) return fallback;
+  return [...fallback].filter((char) => LATIN_FONT_SAMPLE_CHAR.test(char)).join("") || "Aa1";
 }
 
 export function findUnsupportedFontCodePoint(
