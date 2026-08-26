@@ -16,6 +16,7 @@
 import "konva/lib/shapes/Ellipse";
 import "konva/lib/shapes/Image";
 import "konva/lib/shapes/Path";
+import "konva/lib/Shape";
 import "konva/lib/shapes/Rect";
 import "konva/lib/shapes/Text";
 
@@ -27,6 +28,7 @@ import {
   Image as KonvaImage,
   Path,
   Rect,
+  Shape,
   Text,
 } from "react-konva/es/ReactKonvaCore";
 
@@ -35,14 +37,19 @@ import {
   readBubbleParams,
 } from "../paint/bubble-path";
 import { roundedRectPath } from "../paint/clip-rect";
-import { parseCssGradient } from "../paint/konva-fallback";
+import { parseCssGradient, parseCssInsetShadows } from "../paint/konva-fallback";
+import {
+  drawInsetShadowEllipse,
+  drawInsetShadowRect,
+} from "../paint/inset-shadow";
 import { computeHighlightBands } from "../paint/text-highlight-bands";
 
 import { CanvasElement } from "../store";
-import { num, str, type Attrs } from "../types";
+import { asRecord, num, str, type Attrs } from "../types";
 import { useElementVersion } from "../use-canvas";
 import {
   boxOf,
+  type Box,
   clipBox,
   cornerRadius,
   displayText,
@@ -262,6 +269,54 @@ function ShadowUnderlays({
   );
 }
 
+/**
+ * 안쪽 그림자 — CSS `inset`. 칠 «위», 내용 «아래»에 그린다(CSS 도 그 순서다).
+ *
+ * 캔버스에 안쪽 그림자가 없어서 직접 그린다(`paint/inset-shadow.ts`).
+ * 겹이 여럿이면 «뒤 겹부터» 깔아 앞 겹이 위에 오게 한다.
+ */
+function InsetShadows({
+  el,
+  box,
+  subType,
+}: {
+  el: CanvasElement;
+  box: Box;
+  subType: string;
+}) {
+  const layers = parseCssInsetShadows(asRecord(el.custom).shadow);
+  if (!layers.length) return null;
+  const round = subType === "ellipse" || subType === "circle";
+  const radius = cornerRadius(el);
+  return (
+    <>
+      {[...layers].reverse().map((shadow, i) => (
+        <Shape
+          key={`inset-${i}`}
+          listening={false}
+          sceneFunc={(context) => {
+            const ctx = (context as unknown as { _context: CanvasRenderingContext2D })
+              ._context;
+            if (!ctx) return;
+            if (round) {
+              drawInsetShadowEllipse(
+                ctx,
+                box.width / 2,
+                box.height / 2,
+                box.width / 2,
+                box.height / 2,
+                shadow,
+              );
+            } else {
+              drawInsetShadowRect(ctx, box.width, box.height, radius, shadow);
+            }
+          }}
+        />
+      ))}
+    </>
+  );
+}
+
 function FigureBody({ el }: { el: CanvasElement }) {
   const box = boxOf(el);
   // 굵기가 0이면 **색까지 같이 떨어뜨린다.** Konva는 strokeWidth를 안 주면 1로 채우므로
@@ -296,6 +351,7 @@ function FigureBody({ el }: { el: CanvasElement }) {
       <>
         <ShadowUnderlays el={el} render={(shadow, key) => ellipse(shadow, key)} />
         {ellipse({})}
+        <InsetShadows el={el} box={box} subType={subType} />
       </>
     );
   }
@@ -316,6 +372,7 @@ function FigureBody({ el }: { el: CanvasElement }) {
     <>
       <ShadowUnderlays el={el} render={(shadow, key) => rect(shadow, key)} />
       {rect({})}
+      <InsetShadows el={el} box={box} subType={subType} />
     </>
   );
 }

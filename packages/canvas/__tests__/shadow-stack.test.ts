@@ -50,3 +50,69 @@ describe("여러 겹 그림자 — 값 펴기", () => {
     expect(list[0]).toMatchObject({ shadowBlur: 8 });
   });
 });
+
+/**
+ * 안쪽 그림자는 캔버스에 «없는» 것이라 만들어 그린다 —
+ * 도형으로 클립을 걸고 「큰 사각형 − 도형」 고리를 채워서, 그 고리의 그림자가
+ * 안쪽으로 번져 들어오게 한다. 여기서는 값 읽기와 그리는 절차를 못 박는다.
+ */
+describe("안쪽 그림자(inset)", () => {
+  it("inset 겹만 골라 읽는다", async () => {
+    const { parseCssInsetShadows } = await import("../paint/konva-fallback");
+    expect(
+      parseCssInsetShadows(
+        "rgba(18, 63, 181, 0.18) 0px 10px 26px, rgba(255, 255, 255, 0.6) 0px 6px 16px inset",
+      ),
+    ).toEqual([{ color: "rgba(255, 255, 255, 0.6)", offsetX: 0, offsetY: 6, blur: 16 }]);
+  });
+
+  it("겉그림자만 있으면 안쪽 그림자는 없다", async () => {
+    const { parseCssInsetShadows } = await import("../paint/konva-fallback");
+    expect(parseCssInsetShadows("rgba(0,0,0,.2) 0px 4px 12px")).toEqual([]);
+  });
+
+  it("클립을 걸고 «even-odd 고리»를 불투명하게 채운다", async () => {
+    const { drawInsetShadowRect } = await import("../paint/inset-shadow");
+    const calls: string[] = [];
+    const ctx = {
+      save: () => calls.push("save"),
+      restore: () => calls.push("restore"),
+      beginPath: () => calls.push("beginPath"),
+      closePath: () => {},
+      clip: () => calls.push("clip"),
+      moveTo: () => {},
+      arcTo: () => {},
+      rect: () => calls.push("rect"),
+      ellipse: () => {},
+      fill: (rule?: string) => calls.push(`fill:${rule}`),
+      shadowColor: "",
+      shadowBlur: 0,
+      shadowOffsetX: 0,
+      shadowOffsetY: 0,
+      fillStyle: "",
+    } as unknown as CanvasRenderingContext2D;
+
+    drawInsetShadowRect(ctx, 100, 60, 12, {
+      color: "rgba(255,255,255,.6)",
+      offsetX: 0,
+      offsetY: 6,
+      blur: 16,
+    });
+
+    expect(calls).toEqual([
+      "save", "beginPath", "clip", "beginPath", "rect", "fill:evenodd", "restore",
+    ]);
+    expect(ctx.shadowColor).toBe("rgba(255,255,255,.6)");
+    expect(ctx.shadowBlur).toBe(16);
+    // 반투명하게 채우면 그림자까지 옅어진다 — 색과 진하기는 shadowColor 가 든다.
+    expect(ctx.fillStyle).toBe("#000000");
+  });
+
+  it("크기가 0 이면 아무것도 안 그린다", async () => {
+    const { drawInsetShadowRect } = await import("../paint/inset-shadow");
+    let touched = false;
+    const ctx = { save: () => { touched = true; } } as unknown as CanvasRenderingContext2D;
+    drawInsetShadowRect(ctx, 0, 60, 0, { color: "#000", offsetX: 0, offsetY: 0, blur: 4 });
+    expect(touched).toBe(false);
+  });
+});

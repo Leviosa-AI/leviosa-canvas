@@ -401,6 +401,23 @@ export function parseCssShadows(value: unknown): ParsedShadow[] {
     .filter((shadow): shadow is ParsedShadow => shadow !== null);
 }
 
+/**
+ * 안쪽 그림자(`inset`)만. 겉그림자와 «반대로» 도형 «안쪽»에 그려진다.
+ *
+ * Konva 에는 안쪽 그림자가 아예 없다 — 그리는 쪽이 도형에 클립을 걸고 «바깥 고리»를
+ * 채워서 그 그림자가 안으로 번지게 한다(`element-view` 의 InsetShadows).
+ * 실측: 상세페이지 템플릿의 box-shadow 188번 중 inset 이 섞인 것이 흔한 유리 카드 형태다.
+ */
+export function parseCssInsetShadows(value: unknown): ParsedShadow[] {
+  if (typeof value !== "string") return [];
+  const raw = value.trim();
+  if (!raw || raw === "none") return [];
+  return splitShadowLayers(raw)
+    .filter((layer) => /\binset\b/.test(layer))
+    .map((layer) => parseOneShadow(layer.replace(/\binset\b/, " ")))
+    .filter((shadow): shadow is ParsedShadow => shadow !== null);
+}
+
 function parseOneShadow(trimmed: string): ParsedShadow | null {
   if (!trimmed) return null;
   // 색 함수 안에 괄호를 허용하지 않는다(`[^()]` ). `[^)]` 이면 `rgb(rgb(rgb(…`
