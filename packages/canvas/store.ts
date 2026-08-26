@@ -1012,6 +1012,8 @@ export class CanvasStore {
     pageId?: string;
     pixelRatio?: number;
     mimeType?: string;
+    /** JPEG 품질(0~1). 안 주면 브라우저 기본 0.92 다 — 글자 가장자리에 링잉이 남는다. */
+    quality?: number;
     timeoutMs?: number;
   }): Promise<string> {
     const page = opts?.pageId
@@ -1031,6 +1033,7 @@ export class CanvasStore {
         height: page.height * scale,
         pixelRatio: (opts?.pixelRatio ?? 1) / scale,
         mimeType: opts?.mimeType,
+        quality: opts?.quality,
       });
     } finally {
       this.uiChange(() => this.forced.delete(page.id));
@@ -1061,6 +1064,7 @@ export type PageSurface = {
     height: number;
     pixelRatio: number;
     mimeType?: string;
+    quality?: number;
   }): string;
 };
 

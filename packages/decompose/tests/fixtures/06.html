@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  html, body { background:#fff; }
+  .plate {
+    position:relative; width:1080px; height:1350px; overflow:hidden;
+    background:#F3E0D4;
+    font-family:'Pretendard','Apple SD Gothic Neo',sans-serif;
+  }
+  .bg { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; }
+  .wash {
+    position:absolute; inset:0;
+    background:linear-gradient(180deg, rgba(255,238,230,.26) 0%, rgba(255,238,230,0) 26%, rgba(90,48,36,.20) 100%);
+  }
+  .cap {
+    position:absolute; right:44px; bottom:38px; text-align:right;
+    font-size:27px; font-weight:500; letter-spacing:-.01em; color:#FFF2EC;
+  }
+  .cap b { font-family:'Jost',sans-serif; font-weight:600; letter-spacing:.04em; }
+</style>
+</head>
+<body>
+<div class="plate" data-role="body" data-skeleton="photo-caption">
+  <img class="bg" data-block="photo" src="/Users/leviosaai/leviosa/scratchpad/harness/photos/shoot_tint/tint_lip_gloss.png" alt="">
+  <div class="wash"></div>
+  <div class="cap" data-block="text"><b>LAYERED</b> 겹칠수록 또렷하게</div>
+</div>
+</body>
+</html>

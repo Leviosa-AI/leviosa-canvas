@@ -1,6 +1,6 @@
 {
   "name": "@leviosa-ai/canvas",
-  "version": "0.1.4",
+  "version": "0.4.0",
   "description": "Leviosa in-house Konva editor engine. Source-only: consumers compile it through Next transpilePackages. Zero runtime dependencies beyond konva/react/react-konva, zero server calls.",
   "type": "module",
   "license": "UNLICENSED",
@@ -16,6 +16,8 @@
   "sideEffects": false,
   "exports": {
     ".": "./index.ts",
+    "./decompose": "./decompose/runtime.js",
+    "./fonts": "./fonts/index.ts",
     "./package.json": "./package.json",
     "./license": "./license.ts",
     "./store": "./store.ts",
@@ -43,11 +45,19 @@
     "./render/text-editor": "./render/text-editor.tsx",
     "./render/use-document-fonts": "./render/use-document-fonts.ts"
   },
+  "bin": {
+    "leviosa-konva-fonts": "scripts/gen-font-css.mjs",
+    "leviosa-konva-check-fonts": "scripts/check-font-urls.mjs"
+  },
   "files": [
     "*.ts",
     "edit",
+    "decompose",
+    "fonts",
     "paint",
     "render",
+    "scripts/gen-font-css.mjs",
+    "scripts/check-font-urls.mjs",
     "shell",
     "!**/__tests__"
   ],

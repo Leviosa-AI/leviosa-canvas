@@ -31,7 +31,6 @@ const ALLOWED_PACKAGES = [
   "@dnd-kit/sortable",
   "@dnd-kit/utilities",
   "@leviosa-ai/canvas",
-  "@leviosa-ai/konva",
   "@tanstack/react-query",
   "ag-psd",
   "class-variance-authority",

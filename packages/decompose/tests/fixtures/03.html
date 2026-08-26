@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  html, body { background:#fff; }
+  .plate {
+    position:relative; width:1080px; height:1350px; overflow:hidden;
+    background:#EAD3C6;
+    font-family:'Pretendard','Apple SD Gothic Neo',sans-serif;
+  }
+  .grid {
+    position:absolute; inset:0; display:grid;
+    grid-template-columns:1fr 1fr; grid-template-rows:1fr 1fr 1fr; gap:6px;
+  }
+  .cell { position:relative; overflow:hidden; background:#FAEDE4; }
+  .cell.alt { background:#F5E2D5; }
+  .cell svg { position:absolute; left:0; top:0; }
+  .cap {
+    position:absolute; right:26px; bottom:22px; text-align:right;
+    font-size:27px; font-weight:500; letter-spacing:-.01em; color:#4A3330;
+  }
+  .cap b { font-family:'Jost',sans-serif; font-weight:600; letter-spacing:.03em; }
+</style>
+</head>
+<body>
+<div class="plate" data-role="body" data-skeleton="swatch-grid">
+  <div class="grid">
+
+    <div class="cell">
+      <svg width="537" height="446" viewBox="0 0 537 446" xmlns="http://www.w3.org/2000/svg">
+        <path d="M78 214c-6-46 22-86 66-104 46-19 104-24 158-18 46 5 96 14 122 44 24 27 26 72 6 102-22 33-66 50-116 58-52 8-112 9-160-8-42-15-72-38-76-74Z" fill="#C98E74"/>
+        <path d="M120 156c34-24 90-34 148-32 46 2 92 10 110 28 12 12 4 26-16 28-40 4-84-6-136-4-52 2-96 16-116 6-14-7-6-18 10-26Z" fill="#DBAE97" opacity="0.45"/>
+      </svg>
+      <div class="cap" data-block="text"><b>01</b> 멜트 베이지</div>
+    </div>
+
+    <div class="cell alt">
+      <svg width="537" height="446" viewBox="0 0 537 446" xmlns="http://www.w3.org/2000/svg">
+        <path d="M84 226c-10-48 18-92 66-110 48-18 108-22 162-14 44 6 88 18 110 46 20 26 18 68-4 96-24 30-70 46-120 52-54 7-114 4-158-14-32-13-52-32-56-56Z" fill="#D89A8C"/>
+        <path d="M126 162c36-22 92-30 150-28 44 2 88 12 104 30 10 12 0 24-20 26-40 4-84-8-136-6-52 2-94 16-112 6-12-7-4-18 14-28Z" fill="#E6B7AC" opacity="0.45"/>
+      </svg>
+      <div class="cap" data-block="text"><b>02</b> 핑크 오트</div>
+    </div>
+
+    <div class="cell alt">
+      <svg width="537" height="446" viewBox="0 0 537 446" xmlns="http://www.w3.org/2000/svg">
+        <path d="M80 210c-4-48 26-88 72-104 48-17 106-21 158-12 44 8 86 22 106 50 18 26 14 66-8 92-26 30-72 44-122 50-54 6-112 2-154-16-30-13-50-34-52-60Z" fill="#E0705C"/>
+        <path d="M122 152c36-22 94-30 152-26 44 2 86 14 100 32 10 12-2 24-22 24-40 2-82-10-134-8-52 2-94 18-112 8-12-7-2-18 16-30Z" fill="#EA9182" opacity="0.45"/>
+      </svg>
+      <div class="cap" data-block="text"><b>03</b> 하트 바이트</div>
+    </div>
+
+    <div class="cell">
+      <svg width="537" height="446" viewBox="0 0 537 446" xmlns="http://www.w3.org/2000/svg">
+        <path d="M86 220c-8-46 20-88 66-106 46-18 106-22 160-14 46 7 90 20 112 48 18 25 14 66-8 92-26 31-72 46-122 52-54 6-114 2-156-16-30-13-50-32-52-56Z" fill="#B9614F"/>
+        <path d="M128 158c36-22 92-30 150-26 44 2 88 14 102 32 10 12-2 24-22 24-40 2-82-10-134-8-52 2-94 18-112 8-12-7-2-18 16-30Z" fill="#CB8271" opacity="0.45"/>
+      </svg>
+      <div class="cap" data-block="text"><b>04</b> 로즈 스프레드</div>
+    </div>
+
+    <div class="cell">
+      <svg width="537" height="446" viewBox="0 0 537 446" xmlns="http://www.w3.org/2000/svg">
+        <path d="M82 216c-6-48 24-90 70-106 48-17 106-21 160-12 44 7 88 20 108 48 18 26 14 68-10 94-26 30-72 44-122 50-54 6-112 2-154-16-30-13-50-34-52-58Z" fill="#C25E6B"/>
+        <path d="M124 156c36-22 94-30 152-26 44 2 86 14 100 32 10 12-2 24-22 24-40 2-82-10-134-8-52 2-94 18-112 8-12-7-2-18 16-30Z" fill="#D2818B" opacity="0.45"/>
+      </svg>
+      <div class="cap" data-block="text"><b>05</b> 푸시아 머랭</div>
+    </div>
+
+    <div class="cell alt">
+      <svg width="537" height="446" viewBox="0 0 537 446" xmlns="http://www.w3.org/2000/svg">
+        <path d="M88 222c-10-48 18-90 66-108 48-18 108-22 162-12 44 8 88 22 108 50 18 26 12 66-10 92-26 30-72 44-122 50-54 6-114 0-156-18-30-13-46-32-48-54Z" fill="#9E5A5E"/>
+        <path d="M130 160c36-22 92-30 150-26 44 2 86 14 100 32 10 12-2 24-22 24-40 2-82-10-134-8-52 2-94 18-112 8-12-7-2-18 18-30Z" fill="#B47E82" opacity="0.45"/>
+      </svg>
+      <div class="cap" data-block="text"><b>06</b> 모브 멜로우</div>
+    </div>
+
+  </div>
+</div>
+</body>
+</html>

@@ -8,12 +8,12 @@
 
 import {
   FONT_CATALOG,
-  LEVIOSA_KONVA_VERSION,
+  LEVIOSA_CANVAS_FONTS_VERSION,
   catalogFont,
   fontLoadSampleForText,
   resolveFontFamily,
   type CatalogFont,
-} from "@leviosa-ai/konva";
+} from "@leviosa-ai/canvas/fonts";
 
 import { editorAssetBase } from "../detail-page/runtime-config";
 
@@ -54,6 +54,7 @@ export function getClosestSupportedFontWeight(
 
 const loadedFontFaces = new Set<string>();
 const loadedFamilyWeights = new Set<string>();
+const warnedFallbackFaces = new Set<string>();
 const stylesheetPromises = new Map<string, Promise<void>>();
 const FONT_LOAD_SAMPLE = "가나다라마바사아자차카타파하 ABCDEFGHIJKLMNOPQRSTUVWXYZ abcdefghijklmnopqrstuvwxyz 0123456789";
 /**
@@ -84,7 +85,7 @@ const COMMON_HANGUL_SAMPLE =
  * `/render-fonts` 라, 아무것도 안 부른 소비자에게는 주소가 그대로다.
  */
 function bundleUrl(path: string): string {
-  return `${editorAssetBase("fontBundle")}${path}?v=${LEVIOSA_KONVA_VERSION}`;
+  return `${editorAssetBase("fontBundle")}${path}?v=${LEVIOSA_CANVAS_FONTS_VERSION}`;
 }
 
 const localFontCssUrl = () => bundleUrl("/font-css.css");
@@ -220,7 +221,12 @@ function loadFontFacesOnce(requests: FontFaceRequest[]): Promise<void> {
         const descriptor = `${request.weight} ${request.size}px "${request.family}"`;
         const faces = await document.fonts.load(descriptor, request.sample);
         if (faces.length === 0) {
-          throw new FontLoadError(`No bundled font face matched: ${descriptor}`);
+          if (!warnedFallbackFaces.has(descriptor)) {
+            warnedFallbackFaces.add(descriptor);
+            // eslint-disable-next-line no-console
+            console.warn(`[leviosa-canvas] ${descriptor}: bundled font did not match; using browser fallback`);
+          }
+          return;
         }
         const unloadedFace = faces.find((face) => face.status !== "loaded");
         if (unloadedFace) {

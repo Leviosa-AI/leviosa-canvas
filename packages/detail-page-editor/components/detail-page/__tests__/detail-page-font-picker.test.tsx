@@ -18,6 +18,7 @@ describe("DetailPageFontPicker", () => {
     render(
       <DetailPageFontPicker
         value="Roboto"
+        text="Hello"
         documentFamilies={["Roboto"]}
         onSelect={onSelect}
       />,
@@ -44,6 +45,7 @@ describe("DetailPageFontPicker", () => {
     render(
       <DetailPageFontPicker
         value="Roboto"
+        text="Hello"
         documentFamilies={["Roboto"]}
         onSelect={onSelect}
       />,
@@ -65,11 +67,12 @@ describe("DetailPageFontPicker", () => {
     expect(onSelect).toHaveBeenCalledWith("Nanum Myeongjo");
   });
 
-  it("flags a Latin-only font so it is not picked for Korean copy", async () => {
+  it("flags a Latin-only font", async () => {
     const user = userEvent.setup();
     render(
       <DetailPageFontPicker
         value="Roboto"
+        text="Hello"
         documentFamilies={["Roboto"]}
         onSelect={vi.fn().mockResolvedValue(undefined)}
       />,
@@ -77,11 +80,51 @@ describe("DetailPageFontPicker", () => {
 
     await user.click(screen.getByRole("button", { name: "detailPage.properties.chooseFont" }));
     expect(
-      screen.getByRole("option", { name: /IM 펠 잉글리시 SC/ }),
+      screen.getByRole("option", { name: /Jost/ }),
     ).toHaveTextContent("detailPage.properties.fontLatinOnly");
     expect(
       screen.getByRole("option", { name: /페이퍼로지/ }),
     ).not.toHaveTextContent("detailPage.properties.fontLatinOnly");
+  });
+
+  it("locks exactly eight Latin-only fonts when the text contains Korean", async () => {
+    const user = userEvent.setup();
+    const onSelect = vi.fn().mockResolvedValue(undefined);
+    render(
+      <DetailPageFontPicker
+        value="Roboto"
+        text="한글 ㅋㅋㅋ"
+        documentFamilies={["Roboto"]}
+        onSelect={onSelect}
+      />,
+    );
+
+    await user.click(screen.getByRole("button", { name: "detailPage.properties.chooseFont" }));
+    const locked = screen
+      .getAllByRole("option")
+      .filter((option) => option.getAttribute("data-disabled") === "true");
+    expect(locked).toHaveLength(8);
+    expect(screen.getByText("detailPage.properties.fontLatinOnlyUnavailable")).toBeInTheDocument();
+
+    await user.click(screen.getByRole("option", { name: /Jost/ }));
+    expect(onSelect).not.toHaveBeenCalled();
+  });
+
+  it("keeps Latin-only fonts selectable for Latin text", async () => {
+    const user = userEvent.setup();
+    const onSelect = vi.fn().mockResolvedValue(undefined);
+    render(
+      <DetailPageFontPicker
+        value="Roboto"
+        text="Summer sale"
+        documentFamilies={["Roboto"]}
+        onSelect={onSelect}
+      />,
+    );
+
+    await user.click(screen.getByRole("button", { name: "detailPage.properties.chooseFont" }));
+    await user.click(screen.getByRole("option", { name: /Jost/ }));
+    expect(onSelect).toHaveBeenCalledWith("Jost");
   });
 
   it("narrows the list to the chosen chips and back", async () => {
@@ -89,6 +132,7 @@ describe("DetailPageFontPicker", () => {
     render(
       <DetailPageFontPicker
         value="Roboto"
+        text="Hello"
         documentFamilies={["Roboto"]}
         onSelect={vi.fn().mockResolvedValue(undefined)}
       />,
@@ -118,6 +162,7 @@ describe("DetailPageFontPicker", () => {
     render(
       <DetailPageFontPicker
         value="Roboto"
+        text="Hello"
         documentFamilies={[]}
         onSelect={vi.fn().mockResolvedValue(undefined)}
       />,
@@ -144,6 +189,7 @@ describe("DetailPageFontPicker", () => {
     render(
       <DetailPageFontPicker
         value="Roboto"
+        text="Hello"
         documentFamilies={["Roboto"]}
         onSelect={vi.fn().mockRejectedValue(new Error("offline"))}
       />,

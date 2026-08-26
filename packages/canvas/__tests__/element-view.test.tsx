@@ -7,6 +7,12 @@ vi.mock("konva/lib/shapes/Image", () => ({}));
 vi.mock("konva/lib/shapes/Path", () => ({}));
 vi.mock("konva/lib/shapes/Rect", () => ({}));
 vi.mock("konva/lib/shapes/Text", () => ({}));
+vi.mock("../render/use-image", () => ({
+  useImage: (src: string) =>
+    src && !src.startsWith("data:image/svg+xml")
+      ? { naturalWidth: 100, naturalHeight: 100 }
+      : null,
+}));
 
 /** Konva 노드를 속성이 보이는 div로 바꿔 둔다 — jsdom에는 캔버스가 없다. */
 vi.mock("react-konva/es/ReactKonvaCore", () => {
@@ -78,9 +84,10 @@ describe("ElementView — 텍스트", () => {
     expect(Number(text.getAttribute("data-lineheight"))).toBeCloseTo(1.1, 5);
     // letterSpacing은 em으로 저장된다 — Konva의 px으로 되돌려 넘긴다.
     expect(Number(text.getAttribute("data-letterspacing"))).toBeCloseTo(0.44, 5);
-    expect(text.getAttribute("data-fontstyle")).toBe("italic bold");
+    expect(text.getAttribute("data-fontstyle")).toBe("italic 600");
     // 한 줄짜리 상자는 접지 않는다(두 번째 줄이 상자 밖으로 잘린다).
     expect(text.getAttribute("data-wrap")).toBe("none");
+    expect(text.getAttribute("data-width")).toBeNull();
     expect(text.textContent).toBe("");
     expect(text.getAttribute("data-text")).toBe("T.E.N. Miracle");
   });
@@ -120,7 +127,7 @@ describe("ElementView — 텍스트", () => {
       custom: { fontStyle: "italic" },
     });
     const text = view.container.querySelector('[data-konva="text"]')!;
-    expect(text.getAttribute("data-fontstyle")).toBe("bold");
+    expect(text.getAttribute("data-fontstyle")).toBe("600");
   });
 
   it("본문처럼 키가 큰 상자는 줄바꿈한다", () => {
@@ -162,9 +169,70 @@ describe("ElementView — 텍스트", () => {
     expect(text.getAttribute("data-x")).toBe("8");
     expect(text.getAttribute("data-width")).toBe("84");
   });
+
+  it("가운데·오른쪽 정렬은 저장된 기준점을 붙잡고 그린다", () => {
+    const position = (align: string) => {
+      const { view } = mount({
+        id: `t-${align}`,
+        type: "text",
+        x: 10,
+        y: 20,
+        width: 200,
+        height: 10,
+        text: "가",
+        fontSize: 10,
+        align,
+        custom: { textFitAnchorWidth: 100 },
+      });
+      const text = view.container.querySelector('[data-konva="text"]')!;
+      const frame = view.container.querySelector('[data-konva="group"]')!;
+      expect(frame.getAttribute("data-x")).toBe("10");
+      return Number(text.getAttribute("data-x"));
+    };
+    const left = position("left");
+    const center = position("center");
+    const right = position("right");
+    expect(left).toBe(0);
+    expect(center * 2).toBeCloseTo(right, 5);
+    expect(right).toBeGreaterThan(left);
+  });
 });
 
 describe("ElementView — 도형·이미지", () => {
+  it("이미지의 CSS filter를 Konva 네이티브 필터로 넘긴다", () => {
+    const { view } = mount({
+      id: "i",
+      type: "image",
+      x: 0,
+      y: 0,
+      width: 100,
+      height: 100,
+      src: "data:image/png;base64,iVBORw0KGgo=",
+      custom: { filter: "brightness(1.28) saturate(0.8)" },
+    });
+    const image = view.container.querySelector('[data-konva="image"]')!;
+    expect(image.getAttribute("data-filters")).toBe(
+      JSON.stringify(["brightness(1.28) saturate(0.8)"]),
+    );
+  });
+
+  it("텍스트의 CSS filter를 요소 Group에 넘긴다", () => {
+    const { view } = mount({
+      id: "t",
+      type: "text",
+      x: 0,
+      y: 0,
+      width: 100,
+      height: 40,
+      text: "필터",
+      custom: { filter: "drop-shadow(0 8px 12px #0008)" },
+    });
+    const frame = view.container.querySelector('[data-konva="group"]')!;
+    expect(frame.getAttribute("data-filters")).toBe(
+      JSON.stringify(["drop-shadow(0 8px 12px #0008)"]),
+    );
+  });
+
   it("사각형은 그라디언트 fill을 Konva 속성으로 받는다", () => {
     const { view } = mount({
       id: "f",

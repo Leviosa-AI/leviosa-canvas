@@ -1,5 +1,5 @@
 import { screen } from "@testing-library/react";
-import { beforeAll, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 
 /**
  * 편집기가 **자기가 필요한 프로바이더를 스스로 깐다**.
@@ -46,6 +46,10 @@ vi.mock("../../../lib/detail-page-canvas/editor-fonts", () => ({
 }));
 
 import { DetailPageEditor } from "../detail-page-editor";
+import {
+  detailPageEditorProfile,
+  selectDetailPageEditorProfile,
+} from "../../../lib/detail-page/editor-profile";
 import { Tooltip, TooltipTrigger } from "../../ui/tooltip";
 import { renderWithDetailPageHost } from "./host-stub";
 
@@ -65,6 +69,8 @@ beforeAll(() => {
     });
   }
 });
+
+afterEach(() => selectDetailPageEditorProfile({}));
 
 /** 편집기 안에 사는 툴팁 한 개. 프로바이더가 없으면 렌더에서 던진다. */
 function TooltipInside() {
@@ -91,5 +97,29 @@ describe("툴팁 프로바이더", () => {
     ).not.toThrow();
 
     expect(screen.getByRole("button", { name: "툴팁 있는 버튼" })).toBeTruthy();
+  });
+});
+
+describe("설정표 선택", () => {
+  it("입구에서 캐러셀 문서를 고르고 slot_bindings 없이 연다", () => {
+    renderWithDetailPageHost(
+      <DetailPageEditor
+        initialDocument={{
+          id: "carousel-1",
+          canvas: { width: 1080, height: 1350 },
+          canvas_json: { width: 1080, height: 1350, pages: [], fonts: [] },
+          kind: "carousel",
+          slot_bindings: undefined,
+        } as never}
+        onSave={() => Promise.resolve()}
+      />,
+    );
+
+    expect(detailPageEditorProfile()).toMatchObject({
+      page: { width: 1080, height: 1350, fixed: true },
+      maxPages: 10,
+      exports: ["jpeg"],
+      wording: "plate",
+    });
   });
 });

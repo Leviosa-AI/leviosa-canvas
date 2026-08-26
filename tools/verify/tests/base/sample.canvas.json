@@ -1,0 +1,28 @@
+{
+  "width": 320,
+  "height": 240,
+  "pages": [
+    {
+      "id": "cover",
+      "width": 320,
+      "height": 240,
+      "background": "#ffffff",
+      "children": [
+        {
+          "id": "title",
+          "type": "text",
+          "x": 30,
+          "y": 24,
+          "width": 210,
+          "height": 80,
+          "text": "MMMMMMMMMM MMMMMMMMMM",
+          "fontFamily": "Arial",
+          "fontWeight": "700",
+          "fontSize": 24,
+          "lineHeight": 1.2,
+          "fill": "#111111"
+        }
+      ]
+    }
+  ]
+}

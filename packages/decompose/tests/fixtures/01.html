@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  html, body { background:#fff; }
+  .plate {
+    position:relative; width:1080px; height:1350px; overflow:hidden;
+    background:#F6E3DA;
+    font-family:'Pretendard','Apple SD Gothic Neo',sans-serif;
+  }
+  .bg { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; }
+  .wash {
+    position:absolute; inset:0;
+    background:linear-gradient(180deg, rgba(246,214,201,.55) 0%, rgba(247,221,209,.30) 42%, rgba(240,199,183,.42) 100%);
+  }
+
+  .brand-l {
+    position:absolute; left:73px; top:44px;
+    font-size:31px; font-weight:800; letter-spacing:.055em; color:#5A4038;
+  }
+  .brand-r {
+    position:absolute; right:70px; top:32px;
+    font-family:'Jost',sans-serif; font-weight:300; font-size:50px;
+    letter-spacing:.01em; color:#4A3330;
+  }
+
+  .title {
+    position:absolute; left:36px; right:36px; top:120px; height:290px;
+    padding:0 20px; text-align:center; line-height:290px;
+  }
+  .t-script {
+    font-family:'Parisienne',cursive; font-size:116px; line-height:1;
+    color:#E27C6A; letter-spacing:.01em; vertical-align:middle;
+  }
+  .t-blur {
+    font-family:'Jost',sans-serif; font-weight:700; font-size:84px; line-height:1;
+    color:#8C4A3C; letter-spacing:-.01em; vertical-align:middle;
+  }
+
+  .badge { position:absolute; left:718px; top:512px; width:176px; height:176px; }
+  .badge svg { position:absolute; inset:0; }
+  .badge-t {
+    position:absolute; inset:0; display:flex; flex-direction:column;
+    align-items:center; justify-content:center; gap:4px;
+    font-size:42px; font-weight:800; line-height:1.08; color:#fff; letter-spacing:.01em;
+  }
+  .badge-t small { font-size:30px; font-weight:700; letter-spacing:.02em; }
+
+  .foot {
+    position:absolute; left:0; right:0; bottom:56px; text-align:center;
+    font-size:29px; font-weight:600; letter-spacing:.12em; color:#6B4436;
+  }
+</style>
+</head>
+<body>
+<div class="plate" data-role="cover" data-skeleton="cover">
+  <img class="bg" data-block="photo" src="/Users/leviosaai/leviosa/scratchpad/harness/photos/shoot_tint/tint_cut.png" alt="">
+  <div class="wash"></div>
+
+  <div class="brand-l" data-block="text">OLIVE YOUNG</div>
+  <div class="brand-r" data-block="text">dasique</div>
+
+  <div class="title" data-block="text"><span class="t-script">Melting</span> <span class="t-blur">Blur</span> <span class="t-script">Tint</span></div>
+
+  <div class="badge">
+    <svg width="176" height="176" viewBox="0 0 176 176" xmlns="http://www.w3.org/2000/svg">
+      <circle cx="88" cy="88" r="88" fill="#2FD35B"/>
+    </svg>
+    <div class="badge-t" data-block="text">8/15<small>오픈</small></div>
+  </div>
+
+  <div class="foot" data-block="text">NEW 6 COLORS</div>
+</div>
+</body>
+</html>

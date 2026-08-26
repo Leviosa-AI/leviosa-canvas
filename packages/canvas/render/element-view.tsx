@@ -16,16 +16,19 @@
 import "konva/lib/shapes/Ellipse";
 import "konva/lib/shapes/Image";
 import "konva/lib/shapes/Path";
+import "konva/lib/Shape";
 import "konva/lib/shapes/Rect";
 import "konva/lib/shapes/Text";
 
-import { useRef, type ReactNode } from "react";
+import type Konva from "konva";
+import { useEffect, useRef, type ReactNode } from "react";
 import {
   Ellipse,
   Group,
   Image as KonvaImage,
   Path,
   Rect,
+  Shape,
   Text,
 } from "react-konva/es/ReactKonvaCore";
 
@@ -34,14 +37,19 @@ import {
   readBubbleParams,
 } from "../paint/bubble-path";
 import { roundedRectPath } from "../paint/clip-rect";
-import { parseCssGradient } from "../paint/konva-fallback";
+import { parseCssGradient, parseCssInsetShadows } from "../paint/konva-fallback";
+import {
+  drawInsetShadowEllipse,
+  drawInsetShadowRect,
+} from "../paint/inset-shadow";
 import { computeHighlightBands } from "../paint/text-highlight-bands";
 
 import { CanvasElement } from "../store";
-import { num, str, type Attrs } from "../types";
+import { asRecord, num, str, type Attrs } from "../types";
 import { useElementVersion } from "../use-canvas";
 import {
   boxOf,
+  type Box,
   clipBox,
   cornerRadius,
   displayText,
@@ -52,13 +60,14 @@ import {
   konvaFontStyle,
   lineHeightRatio,
   shadowProps,
+  shadowPropsList,
   textDecoration,
   textStroke,
 } from "./attrs";
 import { useEditHandlers, type EditHandlers } from "./edit-context";
 import { imageFrame, imageHasAlpha } from "./image-frame";
 import { measureTextLayout } from "./text-layout";
-import { svgSourceFor } from "./svg-source";
+import { svgFilterInsets, svgSourceFor } from "./svg-source";
 import { useImage } from "./use-image";
 
 /**
@@ -103,6 +112,38 @@ function ElementFrame({
 }) {
   const box = boxOf(el);
   const draggable = isDraggable(el, edit);
+  const frameRef = useRef<Konva.Group | null>(null);
+  const filter =
+    el.type === "image" || el.type === "svg"
+      ? ""
+      : str((el.custom ?? {}) as Attrs, "filter");
+  const version = useElementVersion(el);
+
+  /*
+   * 반투명한 그룹은 «한 장으로 구워서» 투명도를 먹인다 — 디자인 툴이 다 그렇게 한다.
+   *
+   * 안 구우면 Konva가 자식마다 따로 투명도를 먹여서, 겹친 자리가 두 번 깔려 진해진다.
+   * 브라우저는 자식을 다 그린 뒤 그 «한 장»을 반투명하게 하므로 그림이 다르다.
+   *
+   * 자식이 하나뿐이면 겹칠 상대가 없어 결과가 같다 — 굳이 비트맵을 만들지 않는다.
+   * 판이 1080×1350이라 캐시 한 장이 싸지 않다.
+   */
+  const flatten =
+    el.type === "group" &&
+    num(el, "opacity", 1) < 1 &&
+    (el.children?.length ?? 0) > 1;
+
+  useEffect(() => {
+    const node = frameRef.current;
+    const wants = (filter && filter !== "none") || flatten;
+    if (!node || !wants) return;
+    node.cache({ pixelRatio: window.devicePixelRatio, offset: 64 });
+    node.getLayer()?.batchDraw();
+    return () => {
+      node.clearCache();
+    };
+    // 자식이 바뀌면 구운 그림도 낡는다 — version 이 바뀔 때 다시 굽는다.
+  }, [filter, flatten, version]);
   // ⌥를 누른 채 끌면 복제 — Figma·Canva·미리캔버스가 전부 같은 손버릇이다. 누른 사실은
   // **시작할 때** 잡아 둔다. 놓는 순간에는 이미 손을 뗐을 수 있고, 끄는 도중에 트리를
   // 건드리면 리렌더가 끌고 있는 노드의 좌표를 문서 값으로 되돌려 그림이 튄다.
@@ -110,6 +151,7 @@ function ElementFrame({
 
   return (
     <Group
+      ref={frameRef}
       id={el.id}
       name="lc-element"
       x={box.x}
@@ -120,6 +162,7 @@ function ElementFrame({
       opacity={num(el, "opacity", 1)}
       listening={edit?.interactive ?? false}
       draggable={draggable}
+      filters={filter && filter !== "none" ? [filter] : undefined}
       onDragStart={
         draggable && edit
           ? (event: DragEvent) => {
@@ -198,6 +241,84 @@ function ClipTo({ el, children }: { el: Attrs; children: ReactNode }) {
   );
 }
 
+/**
+ * 그림자가 여러 겹일 때, «아래 겹부터» 같은 도형을 한 장씩 더 그린다.
+ *
+ * Konva 도형은 그림자가 하나뿐이다(캔버스 2D 의 `ctx.shadowBlur` 가 값 하나라서다).
+ * CSS 는 «먼저 적은 겹이 위»에 오므로 뒤에서부터 깔고, 맨 위 겹은 요소 자신이 진다.
+ * 덧그리는 장은 «맨 위 겹이 덮어 준다» — 색·모서리가 같아서 실루엣만 남는다.
+ *
+ * 실측: 상세페이지 템플릿의 box-shadow 188번 중 여러 겹은 17번이다.
+ * 겹이 하나면 이 함수는 아무것도 안 그린다 — 노드가 늘지 않는다.
+ */
+function ShadowUnderlays({
+  el,
+  render,
+}: {
+  el: CanvasElement;
+  render: (shadow: Attrs, key: string) => ReactNode;
+}) {
+  const layers = shadowPropsList(el);
+  if (layers.length < 2) return null;
+  // 첫 칸(맨 위 겹)은 요소 자신이 진다. 나머지를 아래에서부터.
+  return (
+    <>
+      {layers
+        .slice(1)
+        .reverse()
+        .map((shadow, i) => render(shadow, `shadow-${i}`))}
+    </>
+  );
+}
+
+/**
+ * 안쪽 그림자 — CSS `inset`. 칠 «위», 내용 «아래»에 그린다(CSS 도 그 순서다).
+ *
+ * 캔버스에 안쪽 그림자가 없어서 직접 그린다(`paint/inset-shadow.ts`).
+ * 겹이 여럿이면 «뒤 겹부터» 깔아 앞 겹이 위에 오게 한다.
+ */
+function InsetShadows({
+  el,
+  box,
+  subType,
+}: {
+  el: CanvasElement;
+  box: Box;
+  subType: string;
+}) {
+  const layers = parseCssInsetShadows(asRecord(el.custom).shadow);
+  if (!layers.length) return null;
+  const round = subType === "ellipse" || subType === "circle";
+  const radius = cornerRadius(el);
+  return (
+    <>
+      {[...layers].reverse().map((shadow, i) => (
+        <Shape
+          key={`inset-${i}`}
+          listening={false}
+          sceneFunc={(context) => {
+            const ctx = (context as unknown as { _context: CanvasRenderingContext2D })
+              ._context;
+            if (!ctx) return;
+            if (round) {
+              drawInsetShadowEllipse(
+                ctx,
+                box.width / 2,
+                box.height / 2,
+                box.width / 2,
+                box.height / 2,
+                shadow,
+              );
+            } else {
+              drawInsetShadowRect(ctx, box.width, box.height, radius, shadow);
+            }
+          }}
+        />
+      ))}
+    </>
+  );
+}
+
 function FigureBody({ el }: { el: CanvasElement }) {
   const box = boxOf(el);
   // 굵기가 0이면 **색까지 같이 떨어뜨린다.** Konva는 strokeWidth를 안 주면 1로 채우므로
@@ -217,20 +338,31 @@ function FigureBody({ el }: { el: CanvasElement }) {
 
   if (subType === "ellipse" || subType === "circle") {
     // Konva의 타원은 중심 기준이다 — 상자 좌상단 기준인 우리 좌표를 옮겨 준다.
-    return (
+    const ellipse = (extra: Attrs, key?: string) => (
       <Ellipse
+        key={key}
         {...shared}
+        {...extra}
         x={box.width / 2}
         y={box.height / 2}
         radiusX={box.width / 2}
         radiusY={box.height / 2}
       />
     );
+    return (
+      <>
+        <ShadowUnderlays el={el} render={(shadow, key) => ellipse(shadow, key)} />
+        {ellipse({})}
+        <InsetShadows el={el} box={box} subType={subType} />
+      </>
+    );
   }
 
-  return (
+  const rect = (extra: Attrs, key?: string) => (
     <Rect
+      key={key}
       {...shared}
+      {...extra}
       x={0}
       y={0}
       width={box.width}
@@ -238,11 +370,49 @@ function FigureBody({ el }: { el: CanvasElement }) {
       cornerRadius={cornerRadius(el)}
     />
   );
+  return (
+    <>
+      <ShadowUnderlays el={el} render={(shadow, key) => rect(shadow, key)} />
+      {rect({})}
+      <InsetShadows el={el} box={box} subType={subType} />
+    </>
+  );
 }
 
-function ImageBody({ el, src }: { el: CanvasElement; src?: string }) {
+function ImageBody({
+  el,
+  src,
+  dest: destOverride,
+}: {
+  el: CanvasElement;
+  src?: string;
+  dest?: { x: number; y: number; width: number; height: number };
+}) {
   const box = boxOf(el);
   const image = useImage(src ?? imageSrc(el));
+  const imageRef = useRef<Konva.Image | null>(null);
+  const filter =
+    el.type === "svg" ? "" : str((el.custom ?? {}) as Attrs, "filter");
+
+  useEffect(() => {
+    const node = imageRef.current;
+    if (!node || !image) return;
+    if (filter && filter !== "none") {
+      node.cache({ pixelRatio: window.devicePixelRatio, offset: 64 });
+    }
+    let parent = node.getParent();
+    while (parent) {
+      if (parent.filters()?.length) {
+        parent.clearCache();
+        parent.cache({ pixelRatio: window.devicePixelRatio, offset: 64 });
+      }
+      parent = parent.getParent();
+    }
+    node.getLayer()?.batchDraw();
+    return () => {
+      if (filter && filter !== "none") node.clearCache();
+    };
+  }, [filter, image]);
 
   if (!image) {
     // 빈 슬롯 자리표시. 투명하게 두면 "깨진 것"으로 읽힌다.
@@ -262,10 +432,13 @@ function ImageBody({ el, src }: { el: CanvasElement; src?: string }) {
   }
 
   const natural = { width: image.naturalWidth, height: image.naturalHeight };
-  const { dest, crop } = imageFrame(el, natural, box, imageHasAlpha(image));
+  const { dest, crop } = destOverride
+    ? { dest: destOverride, crop: undefined }
+    : imageFrame(el, natural, box, imageHasAlpha(image));
 
   return (
     <KonvaImage
+      ref={imageRef}
       {...shadowProps(el)}
       x={dest.x}
       y={dest.y}
@@ -274,6 +447,7 @@ function ImageBody({ el, src }: { el: CanvasElement; src?: string }) {
       height={dest.height}
       crop={crop}
       cornerRadius={cornerRadius(el)}
+      filters={filter && filter !== "none" ? [filter] : undefined}
     />
   );
 }
@@ -306,6 +480,24 @@ function TextBody({ el, editing }: { el: CanvasElement; editing: boolean }) {
 
   const backgroundEnabled = el.backgroundEnabled === true;
   const padding = backgroundEnabled ? num(el, "backgroundPadding", 0) : 0;
+  const singleLine = isSingleLineBox(el);
+  const layout = measureTextLayout(el, text);
+  const anchorWidth = num(custom, "textFitAnchorWidth", box.width);
+  const growX =
+    align === "center"
+      ? (anchorWidth - box.width) / 2
+      : align === "right" || align === "end"
+        ? anchorWidth - box.width
+        : 0;
+  const textWidth = Math.max(1, box.width - padding * 2);
+  const textX = singleLine
+    ? growX + padding +
+      (align === "center"
+        ? (textWidth - layout.blockWidth) / 2
+        : align === "right" || align === "end"
+          ? textWidth - layout.blockWidth
+          : 0)
+    : padding;
 
   /*
    * 상자 높이를 Konva에 주지 않는다. 주면 **넘치는 줄을 조용히 버린다**
@@ -317,7 +509,7 @@ function TextBody({ el, editing }: { el: CanvasElement; editing: boolean }) {
    */
   const verticalAlign = str(el, "verticalAlign", "top");
   const offsetY =
-    verticalAlign === "top" ? 0 : measureTextLayout(el, text).offsetY;
+    verticalAlign === "top" ? 0 : layout.offsetY;
 
   return (
     <ClipTo el={el}>
@@ -325,7 +517,7 @@ function TextBody({ el, editing }: { el: CanvasElement; editing: boolean }) {
         bands.map((band, i) => (
           <Rect
             key={i}
-            x={band.x}
+            x={band.x + growX}
             y={band.y}
             width={band.width}
             height={band.height}
@@ -335,7 +527,7 @@ function TextBody({ el, editing }: { el: CanvasElement; editing: boolean }) {
         ))
       ) : backgroundEnabled || backgroundGradient ? (
         <Rect
-          x={0}
+          x={growX}
           y={0}
           width={box.width}
           height={box.height}
@@ -351,10 +543,32 @@ function TextBody({ el, editing }: { el: CanvasElement; editing: boolean }) {
       ) : null}
       {/* 편집 중에는 글자를 두 번 그리지 않는다 — textarea가 같은 자리에 있다. */}
       {editing ? null : (
+      <>
+      <ShadowUnderlays
+        el={el}
+        render={(shadow, key) => (
+          <Text
+            key={key}
+            x={textX}
+            y={offsetY}
+            width={singleLine ? undefined : textWidth}
+            text={text}
+            fontSize={fontSize}
+            fontFamily={fontFamily}
+            fontStyle={konvaFontStyle(el)}
+            align={align}
+            lineHeight={ratio}
+            letterSpacing={num(el, "letterSpacing", 0) * fontSize}
+            fill={str(el, "fill", "#000000")}
+            wrap={isSingleLineBox(el) ? "none" : "word"}
+            {...shadow}
+          />
+        )}
+      />
       <Text
-        x={padding}
+        x={textX}
         y={offsetY}
-        width={Math.max(1, box.width - padding * 2)}
+        width={singleLine ? undefined : textWidth}
         text={text}
         fontSize={fontSize}
         fontFamily={fontFamily}
@@ -369,10 +583,11 @@ function TextBody({ el, editing }: { el: CanvasElement; editing: boolean }) {
         // 디컴포저는 보이는 줄마다 요소를 하나씩 뽑고 상자를 그 줄에 맞춘다. 한 줄
         // 높이 상자가 줄바꿈되면 두 번째 줄이 상자 밖으로 밀려 잘린다 — 폰트 메트릭이
         // 디컴포저와 미세하게 다를 수 있으므로, 한 줄 상자는 넘치게 두고 접지 않는다.
-        wrap={isSingleLineBox(el) ? "none" : "word"}
+        wrap={singleLine ? "none" : "word"}
         {...shadowProps(el)}
         {...textStroke(el)}
       />
+      </>
       )}
     </ClipTo>
   );
@@ -411,7 +626,21 @@ function SvgBody({ el }: { el: CanvasElement }) {
     );
   }
 
-  return <ImageBody el={el} src={svgSourceFor(el) ?? undefined} />;
+  const filter = svgFilterInsets((el.custom as Attrs | undefined)?.filter);
+  return (
+    <ImageBody
+      el={el}
+      src={svgSourceFor(el) ?? undefined}
+      dest={filter
+        ? {
+            x: -filter.left,
+            y: -filter.top,
+            width: box.width + filter.left + filter.right,
+            height: box.height + filter.top + filter.bottom,
+          }
+        : undefined}
+    />
+  );
 }
 
 function GroupBody({ el }: { el: CanvasElement }) {

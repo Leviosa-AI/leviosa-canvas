@@ -35,5 +35,13 @@
   "samlip-hopang-outline": ["heading", "outline", "rounded"],
   "paperlogy": ["heading", "body", "gothic", "angular"],
   "freesentation": ["body", "gothic"],
-  "diphylleia": ["heading", "myeongjo"]
+  "diphylleia": ["heading", "myeongjo"],
+  "jost": ["heading", "gothic", "rounded"],
+  "bebas-neue": ["heading", "angular"],
+  "anton": ["heading", "angular"],
+  "archivo-black": ["heading", "gothic"],
+  "oswald": ["heading", "gothic", "angular"],
+  "playfair-display": ["heading", "myeongjo", "angular"],
+  "eb-garamond": ["body", "myeongjo"],
+  "parisienne": ["handwriting", "rounded"]
 }

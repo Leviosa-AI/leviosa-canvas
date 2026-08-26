@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  html, body { background:#fff; }
+  .plate {
+    position:relative; width:1080px; height:1350px; overflow:hidden;
+    background:#FAEDE4;
+    font-family:'Pretendard','Apple SD Gothic Neo',sans-serif;
+  }
+  .field {
+    position:absolute; inset:0;
+    background:linear-gradient(180deg, #FCF2EB 0%, #F4DFD2 100%);
+  }
+  .head {
+    position:absolute; left:0; right:0; top:112px; text-align:center;
+    font-size:62px; font-weight:800; line-height:1.36; letter-spacing:-.03em; color:#4A3330;
+  }
+  .head em { font-style:normal; color:#E0705C; }
+
+  .ring { position:absolute; left:330px; top:287px; }
+
+  .shot { position:absolute; left:462px; top:352px; width:158px; height:706px; }
+  .shot img { width:100%; height:100%; object-fit:contain; }
+
+  .note {
+    position:absolute; left:0; right:0; bottom:104px; text-align:center;
+    font-size:30px; font-weight:500; line-height:1.5; color:#7A5B4E; letter-spacing:-.01em;
+  }
+</style>
+</head>
+<body>
+<div class="plate" data-role="body" data-skeleton="hero-detail">
+  <div class="field"></div>
+
+  <div class="head" data-block="text"><em>#블러텍스처</em>로<br>가볍고 고르게 밀착!</div>
+
+  <svg class="ring" width="420" height="420" viewBox="0 0 420 420" xmlns="http://www.w3.org/2000/svg">
+    <circle cx="210" cy="210" r="200" fill="none" stroke="#8C5A4A" stroke-width="4" stroke-dasharray="18 16" opacity="0.6"/>
+  </svg>
+
+  <div class="shot">
+    <img data-block="photo" src="/Users/leviosaai/leviosa/scratchpad/harness/photos/shoot_tint/tint_cut_alpha.png" alt="">
+  </div>
+
+  <div class="note" data-block="text">한 번 그으면 얇게, 두 번 그으면 진하게<br>손끝으로 톡톡 두드려 그라데이션까지</div>
+</div>
+</body>
+</html>

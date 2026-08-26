@@ -346,11 +346,80 @@ export function linearGradientKonvaProps(
   };
 }
 
-/** Parse a CSS ``box-shadow`` (color may lead or trail) for Konva. */
+/**
+ * 쉼표로 이어 붙은 겹을 «겹마다» 끊는다.
+ *
+ * 색 함수 안에도 쉼표가 있으므로(`rgba(18, 63, 181, .18)`) 그냥 쪼개면 안 된다.
+ * 괄호 깊이를 세면서 깊이 0 인 쉼표에서만 끊는다.
+ */
+function splitShadowLayers(value: string): string[] {
+  const out: string[] = [];
+  let depth = 0;
+  let start = 0;
+  for (let i = 0; i < value.length; i++) {
+    const c = value[i];
+    if (c === "(") depth++;
+    else if (c === ")") depth--;
+    else if (c === "," && depth === 0) {
+      out.push(value.slice(start, i));
+      start = i + 1;
+    }
+  }
+  out.push(value.slice(start));
+  return out.map((layer) => layer.trim()).filter(Boolean);
+}
+
+/**
+ * CSS ``box-shadow`` 를 Konva 용으로 읽는다 (색은 앞에 와도 뒤에 와도 된다).
+ *
+ * **겹이 여럿이면 «겉그림자 첫 겹»만 쓴다.** Konva 도형은 그림자가 하나뿐이라
+ * 나머지는 못 그린다 — 다만 첫 겹은 «제대로» 그려야 한다. 겹을 안 끊으면
+ * `0px 10px 26px, …` 의 `26px,` 이 「숫자px」 꼴이 아니라서 버려지고 흐림이 0 이 됐다.
+ * 흐림 0 은 그림자가 아니라 색판이 밀려 나온 모양이라 원본과 아주 다르게 보인다.
+ *
+ * `inset` 은 건너뛴다. Konva 에 안쪽 그림자가 없어서 그 값을 겉그림자로 쓰면
+ * 엉뚱한 자리에 그려진다.
+ */
 export function parseCssShadow(value: unknown): ParsedShadow | null {
-  if (typeof value !== "string") return null;
-  const trimmed = value.trim();
-  if (!trimmed || trimmed === "none") return null;
+  return parseCssShadows(value)[0] ?? null;
+}
+
+/**
+ * 겉그림자를 «겹마다» 읽는다. CSS 가 적은 순서 그대로다 — 앞이 위에 깔린다.
+ *
+ * Konva 도형은 그림자가 하나뿐이라, 겹이 여럿이면 그리는 쪽이 도형을 겹 수만큼
+ * 겹쳐 그려야 한다(`element-view` 의 ShadowStack). 여기서는 값만 편다.
+ * `inset` 은 뺀다 — Konva 에 안쪽 그림자가 없어서 겉에 그리면 엉뚱한 자리에 생긴다.
+ */
+export function parseCssShadows(value: unknown): ParsedShadow[] {
+  if (typeof value !== "string") return [];
+  const raw = value.trim();
+  if (!raw || raw === "none") return [];
+  return splitShadowLayers(raw)
+    .filter((layer) => !/\binset\b/.test(layer))
+    .map(parseOneShadow)
+    .filter((shadow): shadow is ParsedShadow => shadow !== null);
+}
+
+/**
+ * 안쪽 그림자(`inset`)만. 겉그림자와 «반대로» 도형 «안쪽»에 그려진다.
+ *
+ * Konva 에는 안쪽 그림자가 아예 없다 — 그리는 쪽이 도형에 클립을 걸고 «바깥 고리»를
+ * 채워서 그 그림자가 안으로 번지게 한다(`element-view` 의 InsetShadows).
+ * 실측: 상세페이지 템플릿의 box-shadow 188번 중 inset 이 섞인 것이 흔한 유리 카드 형태다.
+ */
+export function parseCssInsetShadows(value: unknown): ParsedShadow[] {
+  if (typeof value !== "string") return [];
+  const raw = value.trim();
+  if (!raw || raw === "none") return [];
+  return splitShadowLayers(raw)
+    .filter((layer) => /\binset\b/.test(layer))
+    .map((layer) => parseOneShadow(layer.replace(/\binset\b/, " ")))
+    .filter((shadow): shadow is ParsedShadow => shadow !== null);
+}
+
+function parseOneShadow(trimmed: string): ParsedShadow | null {
+  if (!trimmed) return null;
   // 색 함수 안에 괄호를 허용하지 않는다(`[^()]` ). `[^)]` 이면 `rgb(rgb(rgb(…`
   // 처럼 여는 괄호만 이어지는 값에서 시작점마다 끝까지 훑어 되짚기가 길이의 제곱으로
   // 늘어난다 — 값은 문서에서 그대로 들어온다.

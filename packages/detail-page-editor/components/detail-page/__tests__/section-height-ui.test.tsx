@@ -1,8 +1,9 @@
-import { describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it } from "vitest";
 import { fireEvent, screen } from "@testing-library/react";
 
 import { DetailPageProperties } from "../detail-page-properties-panel";
 import { livePageHeight } from "../section-reauthor-controller";
+import { selectDetailPageEditorProfile } from "../../../lib/detail-page/editor-profile";
 
 // 패널은 이제 소싱 서버를 `DetailPageHost` 로만 만난다 — 가짜 호스트를 꽂고 렌더한다.
 import { renderWithDetailPageHost as render } from "./host-stub";
@@ -38,6 +39,8 @@ function makePage(overrides: Record<string, unknown> = {}) {
 }
 
 describe("우측 패널 — 섹션 높이", () => {
+  beforeEach(() => selectDetailPageEditorProfile({}));
+
   it("아무것도 안 골랐을 때 지금 높이를 보여 준다", () => {
     const page = makePage();
     render(
@@ -60,6 +63,19 @@ describe("우측 패널 — 섹션 높이", () => {
     fireEvent.change(input, { target: { value: "1600" } });
     fireEvent.blur(input);
     expect(page.computedHeight).toBe(1600);
+  });
+
+  it("캐러셀은 고정된 판 높이 편집칸을 숨긴다", () => {
+    selectDetailPageEditorProfile({ kind: "carousel" });
+    const page = makePage({ computedWidth: 1080, computedHeight: 1350 });
+    render(
+      <DetailPageProperties
+        store={{ selectedElements: [], pages: [page], activePage: page }}
+      />,
+    );
+
+    expect(screen.queryByText("detailPage.properties.plateHeight")).toBeNull();
+    expect(screen.queryByDisplayValue("1350")).toBeNull();
   });
 
   it("배경도 같이 늘린다 — 안 그러면 아래에 흰 띠가 생긴다", () => {

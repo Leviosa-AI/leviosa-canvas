@@ -127,6 +127,119 @@ export function encodeSvgSrc(markup: string): string {
   return `data:image/svg+xml;base64,${btoa(binary)}`;
 }
 
+export type SvgFilterInsets = {
+  left: number;
+  top: number;
+  right: number;
+  bottom: number;
+};
+
+type DropShadow = SvgFilterInsets & {
+  color: string;
+  dx: number;
+  dy: number;
+  stdDeviation: number;
+};
+
+const DROP_SHADOW_RE =
+  /^drop-shadow\(\s*((?:rgba?|hsla?)\([^)]*\)|#[\da-f]+|[a-z]+)\s+(-?(?:\d+\.?\d*|\.\d+))px\s+(-?(?:\d+\.?\d*|\.\d+))px\s+((?:\d+\.?\d*|\.\d+))px\s*\)$/i;
+
+/** CSS drop-shadow 한 개를 SVG 필터와 바깥 여백에 쓸 값으로 바꾼다. */
+function readDropShadow(value: unknown): DropShadow | null {
+  if (typeof value !== "string") return null;
+  const match = DROP_SHADOW_RE.exec(value.trim());
+  if (!match) return null;
+  const dx = Number(match[2]);
+  const dy = Number(match[3]);
+  const stdDeviation = Number(match[4]) / 2;
+  const spread = stdDeviation * 3;
+  return {
+    color: match[1],
+    dx,
+    dy,
+    stdDeviation,
+    left: Math.max(0, spread - dx),
+    top: Math.max(0, spread - dy),
+    right: Math.max(0, spread + dx),
+    bottom: Math.max(0, spread + dy),
+  };
+}
+
+export function svgFilterInsets(value: unknown): SvgFilterInsets | null {
+  const shadow = readDropShadow(value);
+  if (!shadow) return null;
+  const { left, top, right, bottom } = shadow;
+  return { left, top, right, bottom };
+}
+
+const numberText = (value: number): string =>
+  Number(value.toFixed(6)).toString();
+
+function setSvgAttr(tag: string, name: string, value: string): string {
+  const attr = new RegExp(`\\s${name}\\s*=\\s*(["']).*?\\1`, "i");
+  return attr.test(tag)
+    ? tag.replace(attr, ` ${name}="${value}"`)
+    : tag.replace(/>$/, ` ${name}="${value}">`);
+}
+
+/** drop-shadow를 원본 SVG 안에 넣고 필터가 번질 자리를 viewBox에 확보한다. */
+function bakeDropShadow(
+  markup: string,
+  shadow: DropShadow,
+  elementId: string,
+  boxWidth: number,
+  boxHeight: number,
+): string {
+  const open = markup.match(/<svg\b[^>]*>/i);
+  const closeAt = markup.toLowerCase().lastIndexOf("</svg>");
+  if (!open || open.index === undefined || closeAt < open.index + open[0].length) {
+    return markup;
+  }
+
+  const viewBoxMatch = /\bviewBox\s*=\s*(["'])(.*?)\1/i.exec(open[0]);
+  const viewBox = viewBoxMatch?.[2].trim().split(/[\s,]+/).map(Number);
+  const hasViewBox = viewBox?.length === 4 && viewBox.every(Number.isFinite)
+    && viewBox[2] > 0 && viewBox[3] > 0;
+  const x = hasViewBox ? viewBox[0] : 0;
+  const y = hasViewBox ? viewBox[1] : 0;
+  const width = hasViewBox ? viewBox[2] : boxWidth;
+  const height = hasViewBox ? viewBox[3] : boxHeight;
+  if (!(width > 0 && height > 0 && boxWidth > 0 && boxHeight > 0)) return markup;
+
+  const sx = width / boxWidth;
+  const sy = height / boxHeight;
+  const left = shadow.left * sx;
+  const top = shadow.top * sy;
+  const right = shadow.right * sx;
+  const bottom = shadow.bottom * sy;
+  const nextX = x - left;
+  const nextY = y - top;
+  const nextWidth = width + left + right;
+  const nextHeight = height + top + bottom;
+  let nextOpen = setSvgAttr(
+    open[0],
+    "viewBox",
+    [nextX, nextY, nextWidth, nextHeight].map(numberText).join(" "),
+  );
+  nextOpen = setSvgAttr(
+    nextOpen,
+    "width",
+    numberText(boxWidth + shadow.left + shadow.right),
+  );
+  nextOpen = setSvgAttr(
+    nextOpen,
+    "height",
+    numberText(boxHeight + shadow.top + shadow.bottom),
+  );
+
+  const filterId = `lc-svg-shadow-${elementId.replace(/[^a-z0-9_-]/gi, "_")}`;
+  const defs = `<defs><filter id="${filterId}" color-interpolation-filters="sRGB" filterUnits="userSpaceOnUse" x="${numberText(nextX)}" y="${numberText(nextY)}" width="${numberText(nextWidth)}" height="${numberText(nextHeight)}"><feDropShadow dx="${numberText(shadow.dx * sx)}" dy="${numberText(shadow.dy * sy)}" stdDeviation="${numberText(shadow.stdDeviation * sx)} ${numberText(shadow.stdDeviation * sy)}" flood-color="${shadow.color}"/></filter></defs><g filter="url(#${filterId})">`;
+  const before = markup.slice(0, open.index);
+  const body = markup.slice(open.index + open[0].length, closeAt);
+  const after = markup.slice(closeAt);
+  return `${before}${nextOpen}${defs}${body}</g>${after}`;
+}
+
 /**
  * 이 요소를 그릴 최종 `src`.
  *
@@ -134,14 +247,31 @@ export function encodeSvgSrc(markup: string): string {
  * 캐시가 매번 헛돌고 화면이 깜빡인다.
  */
 export function svgSourceFor(el: {
+  id?: unknown;
   src?: unknown;
+  width?: unknown;
+  height?: unknown;
   colorsReplace?: unknown;
+  custom?: unknown;
 }): string | null {
   const src = typeof el.src === "string" ? el.src : "";
   if (!src) return null;
   const colors = readColorReplace(el.colorsReplace);
   const markup = decodeSvgSrc(src);
   if (!markup) return src; // data URI가 아니면(원격 주소) 손대지 않는다
-  const next = ensureSvgNamespace(replaceSvgColors(markup, colors));
+  let next = ensureSvgNamespace(replaceSvgColors(markup, colors));
+  const custom = el.custom && typeof el.custom === "object"
+    ? (el.custom as Record<string, unknown>)
+    : {};
+  const shadow = readDropShadow(custom.filter);
+  if (shadow) {
+    next = bakeDropShadow(
+      next,
+      shadow,
+      typeof el.id === "string" ? el.id : "element",
+      typeof el.width === "number" ? el.width : 0,
+      typeof el.height === "number" ? el.height : 0,
+    );
+  }
   return next === markup ? src : encodeSvgSrc(next);
 }
