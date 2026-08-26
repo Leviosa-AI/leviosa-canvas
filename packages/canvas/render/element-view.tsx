@@ -59,7 +59,7 @@ import {
 import { useEditHandlers, type EditHandlers } from "./edit-context";
 import { imageFrame, imageHasAlpha } from "./image-frame";
 import { measureTextLayout } from "./text-layout";
-import { svgSourceFor } from "./svg-source";
+import { svgFilterInsets, svgSourceFor } from "./svg-source";
 import { useImage } from "./use-image";
 
 /**
@@ -106,7 +106,9 @@ function ElementFrame({
   const draggable = isDraggable(el, edit);
   const frameRef = useRef<Konva.Group | null>(null);
   const filter =
-    el.type === "image" ? "" : str((el.custom ?? {}) as Attrs, "filter");
+    el.type === "image" || el.type === "svg"
+      ? ""
+      : str((el.custom ?? {}) as Attrs, "filter");
   const version = useElementVersion(el);
 
   /*
@@ -273,11 +275,20 @@ function FigureBody({ el }: { el: CanvasElement }) {
   );
 }
 
-function ImageBody({ el, src }: { el: CanvasElement; src?: string }) {
+function ImageBody({
+  el,
+  src,
+  dest: destOverride,
+}: {
+  el: CanvasElement;
+  src?: string;
+  dest?: { x: number; y: number; width: number; height: number };
+}) {
   const box = boxOf(el);
   const image = useImage(src ?? imageSrc(el));
   const imageRef = useRef<Konva.Image | null>(null);
-  const filter = str((el.custom ?? {}) as Attrs, "filter");
+  const filter =
+    el.type === "svg" ? "" : str((el.custom ?? {}) as Attrs, "filter");
 
   useEffect(() => {
     const node = imageRef.current;
@@ -317,7 +328,9 @@ function ImageBody({ el, src }: { el: CanvasElement; src?: string }) {
   }
 
   const natural = { width: image.naturalWidth, height: image.naturalHeight };
-  const { dest, crop } = imageFrame(el, natural, box, imageHasAlpha(image));
+  const { dest, crop } = destOverride
+    ? { dest: destOverride, crop: undefined }
+    : imageFrame(el, natural, box, imageHasAlpha(image));
 
   return (
     <KonvaImage
@@ -468,7 +481,21 @@ function SvgBody({ el }: { el: CanvasElement }) {
     );
   }
 
-  return <ImageBody el={el} src={svgSourceFor(el) ?? undefined} />;
+  const filter = svgFilterInsets((el.custom as Attrs | undefined)?.filter);
+  return (
+    <ImageBody
+      el={el}
+      src={svgSourceFor(el) ?? undefined}
+      dest={filter
+        ? {
+            x: -filter.left,
+            y: -filter.top,
+            width: box.width + filter.left + filter.right,
+            height: box.height + filter.top + filter.bottom,
+          }
+        : undefined}
+    />
+  );
 }
 
 function GroupBody({ el }: { el: CanvasElement }) {

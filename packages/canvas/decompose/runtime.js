@@ -1015,7 +1015,9 @@ export const EXTRACT = ({label, sliceBy, placeholderClass, splitSvgParts}) => {
     const _gi=groupInfo(el); _gk=_gi.key; _ga=_gi.al;
     _gc=_gi.claim; _gcl=_gi.claimLabel;
     const _filterValue=getComputedStyle(el).filter;
-    _filter=filterKind(el)==='text' && _filterValue!=='none' ? _filterValue : '';
+    _filter=(filterKind(el)==='text' || el.tagName.toLowerCase()==='svg')
+      && _filterValue!=='none'
+      ? _filterValue : '';
     _filterChain=filtersOf(el);
     const _grpStart=out.elements.length;
     if(el.tagName.toLowerCase()==='svg'){
