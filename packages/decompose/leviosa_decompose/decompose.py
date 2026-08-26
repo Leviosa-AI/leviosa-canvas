@@ -484,7 +484,7 @@ def _canvas_element(e, eid):
     if e["kind"] == "svg":
         svg = _ensure_svg_xmlns(_strip_svg_root_positioning(e["svg"]))
         data = "data:image/svg+xml;base64," + base64.b64encode(svg.encode()).decode()
-        custom = {"color": e["color"]}
+        custom = {"color": e["color"], "filter": e.get("filter", "none")}
         if e.get("bubble"):
             # 말풍선 파라미터를 그대로 실어 보낸다. 편집기의 bubble-path.ts가 같은 엔진으로
             # path를 재생성하므로, 꼬리 끝점 드래그·리사이즈에도 모양이 유지된다.
