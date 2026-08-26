@@ -53,6 +53,7 @@ import {
   konvaFontStyle,
   lineHeightRatio,
   shadowProps,
+  shadowPropsList,
   textDecoration,
   textStroke,
 } from "./attrs";
@@ -231,6 +232,36 @@ function ClipTo({ el, children }: { el: Attrs; children: ReactNode }) {
   );
 }
 
+/**
+ * 그림자가 여러 겹일 때, «아래 겹부터» 같은 도형을 한 장씩 더 그린다.
+ *
+ * Konva 도형은 그림자가 하나뿐이다(캔버스 2D 의 `ctx.shadowBlur` 가 값 하나라서다).
+ * CSS 는 «먼저 적은 겹이 위»에 오므로 뒤에서부터 깔고, 맨 위 겹은 요소 자신이 진다.
+ * 덧그리는 장은 «맨 위 겹이 덮어 준다» — 색·모서리가 같아서 실루엣만 남는다.
+ *
+ * 실측: 상세페이지 템플릿의 box-shadow 188번 중 여러 겹은 17번이다.
+ * 겹이 하나면 이 함수는 아무것도 안 그린다 — 노드가 늘지 않는다.
+ */
+function ShadowUnderlays({
+  el,
+  render,
+}: {
+  el: CanvasElement;
+  render: (shadow: Attrs, key: string) => ReactNode;
+}) {
+  const layers = shadowPropsList(el);
+  if (layers.length < 2) return null;
+  // 첫 칸(맨 위 겹)은 요소 자신이 진다. 나머지를 아래에서부터.
+  return (
+    <>
+      {layers
+        .slice(1)
+        .reverse()
+        .map((shadow, i) => render(shadow, `shadow-${i}`))}
+    </>
+  );
+}
+
 function FigureBody({ el }: { el: CanvasElement }) {
   const box = boxOf(el);
   // 굵기가 0이면 **색까지 같이 떨어뜨린다.** Konva는 strokeWidth를 안 주면 1로 채우므로
@@ -250,26 +281,42 @@ function FigureBody({ el }: { el: CanvasElement }) {
 
   if (subType === "ellipse" || subType === "circle") {
     // Konva의 타원은 중심 기준이다 — 상자 좌상단 기준인 우리 좌표를 옮겨 준다.
-    return (
+    const ellipse = (extra: Attrs, key?: string) => (
       <Ellipse
+        key={key}
         {...shared}
+        {...extra}
         x={box.width / 2}
         y={box.height / 2}
         radiusX={box.width / 2}
         radiusY={box.height / 2}
       />
     );
+    return (
+      <>
+        <ShadowUnderlays el={el} render={(shadow, key) => ellipse(shadow, key)} />
+        {ellipse({})}
+      </>
+    );
   }
 
-  return (
+  const rect = (extra: Attrs, key?: string) => (
     <Rect
+      key={key}
       {...shared}
+      {...extra}
       x={0}
       y={0}
       width={box.width}
       height={box.height}
       cornerRadius={cornerRadius(el)}
     />
+  );
+  return (
+    <>
+      <ShadowUnderlays el={el} render={(shadow, key) => rect(shadow, key)} />
+      {rect({})}
+    </>
   );
 }
 
@@ -426,6 +473,28 @@ function TextBody({ el, editing }: { el: CanvasElement; editing: boolean }) {
       ) : null}
       {/* 편집 중에는 글자를 두 번 그리지 않는다 — textarea가 같은 자리에 있다. */}
       {editing ? null : (
+      <>
+      <ShadowUnderlays
+        el={el}
+        render={(shadow, key) => (
+          <Text
+            key={key}
+            x={textX}
+            y={offsetY}
+            width={singleLine ? undefined : textWidth}
+            text={text}
+            fontSize={fontSize}
+            fontFamily={fontFamily}
+            fontStyle={konvaFontStyle(el)}
+            align={align}
+            lineHeight={ratio}
+            letterSpacing={num(el, "letterSpacing", 0) * fontSize}
+            fill={str(el, "fill", "#000000")}
+            wrap={isSingleLineBox(el) ? "none" : "word"}
+            {...shadow}
+          />
+        )}
+      />
       <Text
         x={textX}
         y={offsetY}
@@ -448,6 +517,7 @@ function TextBody({ el, editing }: { el: CanvasElement; editing: boolean }) {
         {...shadowProps(el)}
         {...textStroke(el)}
       />
+      </>
       )}
     </ClipTo>
   );

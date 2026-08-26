@@ -15,6 +15,7 @@ import {
   linearGradientKonvaProps,
   parseCssGradient,
   parseCssShadow,
+  parseCssShadows,
   radialGradientKonvaProps,
   type ParsedGradient,
 } from "../paint/konva-fallback";
@@ -154,6 +155,23 @@ export function shadowProps(el: Attrs): Attrs {
     shadowOffsetX: parsed.offsetX,
     shadowOffsetY: parsed.offsetY,
   };
+}
+
+/**
+ * 그림자를 «겹마다» 하나씩. 첫 칸이 맨 위에 깔리는 겹이다.
+ *
+ * Konva 도형은 그림자가 하나뿐이라, 겹이 여럿이면 그리는 쪽이 «도형을 겹 수만큼»
+ * 겹쳐 그린다. 편집기에서 직접 지정한 그림자(`shadowEnabled`)는 언제나 한 겹이다.
+ */
+export function shadowPropsList(el: Attrs): Attrs[] {
+  if (el.shadowEnabled === true) return [shadowProps(el)];
+  return parseCssShadows(customOf(el).shadow).map((parsed) => ({
+    shadowEnabled: true,
+    shadowColor: parsed.color,
+    shadowBlur: parsed.blur,
+    shadowOffsetX: parsed.offsetX,
+    shadowOffsetY: parsed.offsetY,
+  }));
 }
 
 /** `custom.clipToRect` — 부모의 `overflow:hidden`을 디컴포저가 남긴 것. */

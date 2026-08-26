@@ -381,11 +381,27 @@ function splitShadowLayers(value: string): string[] {
  * 엉뚱한 자리에 그려진다.
  */
 export function parseCssShadow(value: unknown): ParsedShadow | null {
-  if (typeof value !== "string") return null;
+  return parseCssShadows(value)[0] ?? null;
+}
+
+/**
+ * 겉그림자를 «겹마다» 읽는다. CSS 가 적은 순서 그대로다 — 앞이 위에 깔린다.
+ *
+ * Konva 도형은 그림자가 하나뿐이라, 겹이 여럿이면 그리는 쪽이 도형을 겹 수만큼
+ * 겹쳐 그려야 한다(`element-view` 의 ShadowStack). 여기서는 값만 편다.
+ * `inset` 은 뺀다 — Konva 에 안쪽 그림자가 없어서 겉에 그리면 엉뚱한 자리에 생긴다.
+ */
+export function parseCssShadows(value: unknown): ParsedShadow[] {
+  if (typeof value !== "string") return [];
   const raw = value.trim();
-  if (!raw || raw === "none") return null;
-  const outer = splitShadowLayers(raw).filter((layer) => !/\binset\b/.test(layer));
-  const trimmed = outer[0];
+  if (!raw || raw === "none") return [];
+  return splitShadowLayers(raw)
+    .filter((layer) => !/\binset\b/.test(layer))
+    .map(parseOneShadow)
+    .filter((shadow): shadow is ParsedShadow => shadow !== null);
+}
+
+function parseOneShadow(trimmed: string): ParsedShadow | null {
   if (!trimmed) return null;
   // 색 함수 안에 괄호를 허용하지 않는다(`[^()]` ). `[^)]` 이면 `rgb(rgb(rgb(…`
   // 처럼 여는 괄호만 이어지는 값에서 시작점마다 끝까지 훑어 되짚기가 길이의 제곱으로
