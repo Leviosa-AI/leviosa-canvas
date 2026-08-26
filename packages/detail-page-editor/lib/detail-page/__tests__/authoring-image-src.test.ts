@@ -22,10 +22,21 @@ describe("parseAuthoringImageSrc", () => {
     });
   });
 
-  it("절대 주소로 와도 같다", () => {
-    expect(
-      parseAuthoringImageSrc(`https://cafe24.sourcing.leviosa.ai.kr${SIGNED}`),
-    ).toEqual({ jobId: "job-1", name: "hero.png", sig: "abc123" });
+  it("절대 주소로 와도, 호스트가 무엇이든 같다", () => {
+    // 상세페이지 서버가 소싱에서 갈라져 나오면서 저작 사진의 호스트가 바뀐다.
+    // 파싱이 경로와 질의만 본다는 것이 그 이관의 전제라, 호스트를 표로 둔다 —
+    // 여기에 호스트 판정이 생기면 컷오버 당일 승격 버튼이 조용히 사라진다.
+    for (const origin of [
+      "https://cafe24.sourcing.leviosa.ai.kr", // 갈라지기 전
+      "https://detail-page.leviosa.ai.kr", // 갈라진 뒤
+      "https://dev.leviosa.ai.kr", // 같은 출처 프록시 경유
+    ]) {
+      expect(parseAuthoringImageSrc(`${origin}${SIGNED}`)).toEqual({
+        jobId: "job-1",
+        name: "hero.png",
+        sig: "abc123",
+      });
+    }
   });
 
   it("이름의 퍼센트 인코딩을 푼다", () => {
