@@ -54,6 +54,7 @@ export function getClosestSupportedFontWeight(
 
 const loadedFontFaces = new Set<string>();
 const loadedFamilyWeights = new Set<string>();
+const warnedFallbackFaces = new Set<string>();
 const stylesheetPromises = new Map<string, Promise<void>>();
 const FONT_LOAD_SAMPLE = "가나다라마바사아자차카타파하 ABCDEFGHIJKLMNOPQRSTUVWXYZ abcdefghijklmnopqrstuvwxyz 0123456789";
 /**
@@ -220,7 +221,12 @@ function loadFontFacesOnce(requests: FontFaceRequest[]): Promise<void> {
         const descriptor = `${request.weight} ${request.size}px "${request.family}"`;
         const faces = await document.fonts.load(descriptor, request.sample);
         if (faces.length === 0) {
-          throw new FontLoadError(`No bundled font face matched: ${descriptor}`);
+          if (!warnedFallbackFaces.has(descriptor)) {
+            warnedFallbackFaces.add(descriptor);
+            // eslint-disable-next-line no-console
+            console.warn(`[leviosa-canvas] ${descriptor}: bundled font did not match; using browser fallback`);
+          }
+          return;
         }
         const unloadedFace = faces.find((face) => face.status !== "loaded");
         if (unloadedFace) {
