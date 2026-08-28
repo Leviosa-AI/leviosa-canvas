@@ -140,15 +140,16 @@ describe("popoverPlacement", () => {
 });
 
 describe("CanvasSelectionTools", () => {
-  it("사진을 고르면 자르기·더보기가 뜬다", async () => {
+  it("사진을 고르면 자르기·프롬프트 편집·더보기가 뜬다", async () => {
     const store = makeStore([imageElement()]);
     renderTools(store);
     await waitFor(() =>
       expect(screen.getByLabelText("detailPage.quickToolbar.crop")).toBeTruthy(),
     );
     expect(screen.getByLabelText("detailPage.quickToolbar.more")).toBeTruthy();
-    // 생성 인스턴스가 없으면 프롬프트 편집은 안 뜬다(픽스처 모드).
-    expect(screen.queryByLabelText("detailPage.quickToolbar.promptEdit")).toBeNull();
+    // 그림 편집은 서버가 아는 문서를 요구하지 않는다 — 그림과 지시가 요청에 다 실려
+    // 가고 결과는 브랜드 자산으로 돌아온다. 캐러셀처럼 문서가 없는 편집기의 길이다.
+    expect(screen.getByLabelText("detailPage.quickToolbar.promptEdit")).toBeTruthy();
   });
 
   it("생성 인스턴스가 있으면 프롬프트 편집이 그 자리에서 열린다", async () => {

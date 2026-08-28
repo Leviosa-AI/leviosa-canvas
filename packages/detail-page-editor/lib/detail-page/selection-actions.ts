@@ -22,7 +22,13 @@ export type ActionElement = {
 };
 
 export type ActionContext = {
-  /** 생성 인스턴스가 있는가. 없으면 프롬프트 편집을 서버가 못 받는다(픽스처). */
+  /**
+   * 서버가 아는 문서가 있는가.
+   *
+   * 글·도형·그룹을 프롬프트로 고치는 일은 서버가 문서를 읽고 고쳐서 돌려주므로 이것이
+   * 필요하다. **그림 편집은 아니다** — 그림과 지시가 요청에 다 실려 가고 결과는 브랜드
+   * 자산으로 돌아온다. 그래서 문서가 없는 편집기(캐러셀)에서도 그림만은 고칠 수 있다.
+   */
   hasGeneration?: boolean;
   /** 배경 지우기가 배선돼 있는가. */
   canRemoveBackground?: boolean;
@@ -62,13 +68,14 @@ export function quickActions(
     if (canRemoveBackground) actions.push("bgRemove");
   }
 
-  if (hasGeneration) {
-    const editable =
-      el.type === "text" ||
-      el.type === "svg" ||
-      el.type === "image" ||
-      (el.type === "group" && hasEditableDescendant(el));
-    if (editable) actions.push("promptEdit");
+  // 그림은 그 자체가 요청에 실려 가므로 문서가 필요 없다. 대신 실을 그림이 있어야 한다.
+  const editableImage = el.type === "image" && Boolean(str(el.src));
+  const needsDocument =
+    el.type === "text" ||
+    el.type === "svg" ||
+    (el.type === "group" && hasEditableDescendant(el));
+  if (editableImage || (needsDocument && hasGeneration)) {
+    actions.push("promptEdit");
   }
 
   actions.push("more");

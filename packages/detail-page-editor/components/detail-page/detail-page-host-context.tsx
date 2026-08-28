@@ -105,8 +105,14 @@ export interface DetailPageHostApi {
     },
     signal?: AbortSignal,
   ) => Promise<DetailPagePromptEditResult>;
+  /**
+   * 고른 그림 한 장을 프롬프트 방향으로 다시 만든다.
+   *
+   * 문서 id 는 선택이다 — 이 일은 문서를 읽지도 고치지도 않고, 그림과 지시가 전부
+   * 인자로 간다. 캐러셀처럼 가리킬 문서가 없는 편집기도 같은 길을 쓴다.
+   */
   promptEditDetailPageImage: (
-    generatedId: string,
+    generatedId: string | null,
     payload: {
       slot_role?: string;
       current_image_url?: string;

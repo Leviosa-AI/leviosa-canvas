@@ -2308,11 +2308,12 @@ export const ElementAiEditPanel = observer(function ElementAiEditPanel({
   // http(s) URL이면 그대로 넘긴다. 402는 크레딧 부족 마커로 승격.
   const editImage = useCallback<GenerateImageFn>(
     async ({ prompt, tier, brandId, annotatedImage }) => {
-      if (!single || !generatedId) return [];
+      // 문서 id 는 없어도 된다 — 그림과 지시만으로 도는 일이다(캐러셀이 그렇다).
+      if (!single) return [];
       const src = str(single.src);
       const isData = src.startsWith("data:");
       try {
-        const res = await api.promptEditDetailPageImage(generatedId, {
+        const res = await api.promptEditDetailPageImage(generatedId ?? null, {
           slot_role: slotRole,
           current_image_url: isData ? undefined : src,
           current_image_base64: isData ? src.split(",")[1] : undefined,
