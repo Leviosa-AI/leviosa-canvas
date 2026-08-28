@@ -22,6 +22,7 @@ export type * from "./types/detail-page-api";
 export type * from "./types/commerce";
 
 export { DetailPageEditor } from "./components/detail-page/detail-page-editor";
+export type { SaveReason } from "./components/detail-page/use-auto-save";
 
 /**
  * 편집기가 부르는 주소(라우트 · 정적 자산)를 앱에 맞춘다.
