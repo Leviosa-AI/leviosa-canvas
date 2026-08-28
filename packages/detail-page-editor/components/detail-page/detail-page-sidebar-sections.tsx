@@ -11,7 +11,6 @@ import {
   Images,
   Layers,
   LayoutTemplate,
-  Palette,
   Shapes,
   Sparkles,
   Type,
@@ -31,7 +30,6 @@ import { DetailPageElementsPanel } from "./detail-page-elements-panel";
 import { DetailPageMyShapesPanel } from "./detail-page-my-shapes-panel";
 import { DetailPageBrandGifsPanel } from "./detail-page-brand-gifs-panel";
 import { DetailPageReferencesPanel } from "./detail-page-references-panel";
-import { DetailPageBrandKitPanel } from "./detail-page-brand-kit-panel";
 import { DetailPageTextPanel } from "./detail-page-text-panel";
 import { DetailPagePhotosPanel } from "./detail-page-photos-panel";
 
@@ -72,7 +70,6 @@ const FALLBACK_LABELS: Record<string, string> = {
   "detailPage.sidebar.charts": "차트",
   "detailPage.sidebar.tables": "표",
   "detailPage.sidebar.ai": "AI 생성",
-  "detailPage.sidebar.brandKit": "브랜드 킷",
   "detailPage.sidebar.brandImages": "브랜드 이미지",
   "detailPage.sidebar.brandGifs": "브랜드 GIF",
   "detailPage.sidebar.brandShapes": "브랜드 도형",
@@ -182,10 +179,9 @@ export function buildDetailPageSections({
   const PhotosTab = makeIconTab(t("detailPage.sidebar.photos"), Image);
   const AiTab = makeIconTab(t("detailPage.sidebar.ai"), Sparkles);
   // 브랜드 자산 구역의 첫 탭 — 여기서부터 "내가 가진 것"이라 위에 선을 하나 긋는다.
-  const BrandKitTab = makeIconTab(t("detailPage.sidebar.brandKit"), Palette, {
+  const MyImagesTab = makeIconTab(t("detailPage.sidebar.brandImages"), Images, {
     dividerBefore: true,
   });
-  const MyImagesTab = makeIconTab(t("detailPage.sidebar.brandImages"), Images);
   const BrandGifsTab = makeIconTab(t("detailPage.sidebar.brandGifs"), Film);
   // 도형·차트·표를 품는 한 탭. 아이콘은 "내 도형"(Shapes)과 겹치지 않게 갈랐다.
   const ElementsTab = makeIconTab(t("detailPage.sidebar.elements"), Component);
@@ -259,12 +255,6 @@ export function buildDetailPageSections({
     Panel: () => <DetailPageReferencesPanel generatedId={generatedId} />,
   };
 
-  const brandKitSection: CanvasSection = {
-    name: "brand-kit",
-    Tab: BrandKitTab,
-    Panel: ({ store }) => <DetailPageBrandKitPanel store={store} />,
-  };
-
   // 요소: 클릭 한 번으로 캔버스에 놓이는 것들을 한 서랍에 모은다.
   //  - 도형: 공용 라이브러리(우리 템플릿에서 추린 범용 SVG) + 스톡 기본 도형/라인.
   //  - 차트: 데이터가 붙은 프리셋. 놓으면 그룹 하나로 들어가고 값·종류는 우측에서.
@@ -312,16 +302,17 @@ export function buildDetailPageSections({
   return [
     ...(structureSection ? [structureSection] : []),
     pagesSection,
+    // 레이어는 페이지 바로 밑이다 — 둘 다 "이 문서가 무엇으로 되어 있나"를 보는 자리라
+    // 붙어 있어야 오간다. 아래쪽은 넣을 것을 고르는 서랍들이다.
+    layersSection,
     textSection,
     photosSection,
     elementsSection,
     aiSection,
-    // ↓ 여기부터 브랜드 자산(브랜드 킷 탭이 위에 구분선을 그린다).
-    brandKitSection,
+    // ↓ 여기부터 브랜드 자산('내 이미지' 탭이 위에 구분선을 그린다).
     myImagesSection,
     brandGifsSection,
     referencesSection,
     myShapesSection,
-    layersSection,
   ];
 }

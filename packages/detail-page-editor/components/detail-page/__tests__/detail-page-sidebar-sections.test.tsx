@@ -8,17 +8,17 @@ describe("buildDetailPageSections", () => {
     const sections = buildDetailPageSections({});
     expect(sections.map((section) => section.name)).toEqual([
       "pages",
+      // 레이어는 페이지 바로 밑이다 — 둘 다 문서의 구성을 보는 자리다.
+      "layers",
       "text",
       "photos",
       // 도형·차트·표는 "요소" 한 탭 안으로 접혔다(레일 포화 방지).
       "elements",
       "ai-generate",
-      "brand-kit",
       "my-images",
       "brand-gifs",
       "brand-references",
       "my-shapes",
-      "layers",
     ]);
   });
 
@@ -35,7 +35,7 @@ describe("buildDetailPageSections", () => {
       return container.querySelectorAll("span.border-t").length > 0;
     });
 
-    expect(dividers.map((section) => section.name)).toEqual(["brand-kit"]);
+    expect(dividers.map((section) => section.name)).toEqual(["my-images"]);
   });
 
   it("레일 탭 수를 열둘 이하로 붙잡아 둔다", () => {
