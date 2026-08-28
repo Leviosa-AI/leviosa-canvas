@@ -482,9 +482,11 @@ export interface EditorHeaderSlotProps {
   save: {
     run: () => void;
     saving: boolean;
-    /** 방금 저장됐다. 잠시 뒤 스스로 꺼진다. */
+    /** 방금 저장됐다. 다음 저장이 시작되면 꺼진다. */
     ok: boolean;
     error: string | null;
+    /** 아직 저장 안 된 변경이 남아 있다. 자동저장을 안 켠 화면에서는 언제나 false. */
+    unsaved: boolean;
   };
   /** 편집기가 만들어 주는 조각들. 자리만 정하면 된다. */
   parts: {

@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { EditorHotkeys } from "./editor-hotkeys";
+import { useAutoSave, type SaveReason } from "./use-auto-save";
 import { FindReplacePanel } from "./find-replace-panel";
 
 import { ChevronLeft, Save } from "lucide-react";
@@ -46,7 +47,22 @@ export type DetailPageEditorProps = {
   initialDocument: LeviosaCanvasDocument;
   saving?: boolean;
   uploadFile?: (file: File) => Promise<string>;
-  onSave: (document: LeviosaCanvasDocument) => Promise<void>;
+  /**
+   * 문서를 저장한다. `reason` 은 왜 지금 저장하는가다 — 앱이 이걸 보고 무거운 뒷일
+   * (상세페이지의 HTML 굽기 같은)을 할지 말지 고른다. 자동저장은 `auto`, 저장 버튼은
+   * `manual`, 탭을 닫거나 편집기를 떠날 때는 `leave` 로 온다.
+   */
+  onSave: (
+    document: LeviosaCanvasDocument,
+    meta: { reason: SaveReason },
+  ) => Promise<void>;
+  /**
+   * 자동저장 간격(ms). 없으면 자동저장을 안 한다.
+   *
+   * 저장이 무거운 화면은 길게 잡는다 — 상세페이지 저장은 서버가 HTML 을 새로 만들어
+   * S3 에 올리고, 캐러셀 저장은 문서 JSON 만 넣는다.
+   */
+  autoSaveDelayMs?: number;
   /** AI 생성 탭의 프롬프트 → 이미지 URL 콜백. 없으면 패널은 안내만 표시. */
   onGenerateImage?: GenerateImageFn;
   /** AI 생성 탭의 프롬프트 → 애니메이션 GIF URL 콜백. 없으면 GIF 모드는 안내만 표시. */
@@ -117,6 +133,7 @@ export function DetailPageEditor({
   saving = false,
   uploadFile,
   onSave,
+  autoSaveDelayMs,
   onGenerateImage,
   onGenerateGif,
   onGenerateTextGif,
@@ -158,12 +175,18 @@ export function DetailPageEditor({
   // 그 필드들을 원본 그대로 읽는다. 낮춘 것을 넣으면 오히려 원본보다 못한 그림이 된다.
   // 브랜드 자산 주소는 바이트 경로로 옮겨서 연다 — 302 를 따라가면 CORS 가 깨져서
   // 캔버스가 그림을 못 읽는다(asset-bytes-url 에 실측 표를 적어 뒀다).
-  const store = useMemo(() => {
+  // 문서는 편집기가 열릴 때 **한 번만** 읽는다. 저장이 끝나고 앱이 서버가 돌려준
+  // 문서를 도로 넣어도 캔버스를 다시 만들지 않는다 — 다시 만들면 되돌리기 100단과
+  // 선택이 통째로 날아간다. 저장 버튼 한 번에 ⌘Z 가 죽던 것이 그 증상이었고,
+  // 자동저장이 붙으면 몇 초마다 그렇게 된다.
+  //
+  // 정말로 다른 문서를 여는 것은 부르는 쪽이 `key` 로 다시 마운트한다.
+  const [store] = useState(() => {
     ensureCanvasKey();
     return createCanvasStore(
       normalizeDocumentAssetSrcs(initialDocument.canvas_json) as DocumentJson,
     );
-  }, [initialDocument.canvas_json]);
+  });
 
   // 글꼴 준비. 문서가 쓰는 얼굴을 전부 받아 놓고, 다 온 뒤에 줄바꿈 손질
   // (`applyTextLineFit`)을 한 번 돌린다 — 폴백 서체로 재면 과대측정해서 손질이
@@ -184,21 +207,30 @@ export function DetailPageEditor({
     };
   }, [store]);
 
-  const handleSave = async () => {
-    setSaveError(null);
-    setSaveOk(false);
-    try {
-      // 회색 자리표시 이미지는 빈 src 로 되돌려 저장한다 — 편집기에서만 쓰는 그림이다.
-      const cleanJson = clearPlaceholderImageSrc(store.toJSON() as CanvasJson);
-      await onSave({
-        ...initialDocument,
-        canvas_json: cleanJson,
-      });
-      setSaveOk(true);
-    } catch (error) {
-      setSaveError(error instanceof Error ? error.message : t("editor.saveError"));
-    }
-  };
+  const documentRef = useRef(initialDocument);
+  documentRef.current = initialDocument;
+
+  const runSave = useCallback(
+    async (reason: SaveReason) => {
+      setSaveError(null);
+      setSaveOk(false);
+      try {
+        // 회색 자리표시 이미지는 빈 src 로 되돌려 저장한다 — 편집기에서만 쓰는 그림이다.
+        const cleanJson = clearPlaceholderImageSrc(store.toJSON() as CanvasJson);
+        await onSave({ ...documentRef.current, canvas_json: cleanJson }, { reason });
+        setSaveOk(true);
+      } catch (error) {
+        setSaveError(error instanceof Error ? error.message : t("editor.saveError"));
+        // 자동저장은 조용히 넘어가지만 실패는 알려 줘야 다음에 다시 보낸다.
+        if (reason !== "manual") throw error;
+      }
+    },
+    [onSave, store, t],
+  );
+
+  const handleSave = useCallback(() => void runSave("manual"), [runSave]);
+
+  const unsaved = useAutoSave({ store, delayMs: autoSaveDelayMs, save: runSave });
 
   // The canvas subtree only depends on the stable store and sidebar
   // contract. Memoize it so QA/save/overlay updates never recreate the heavy
@@ -390,7 +422,7 @@ export function DetailPageEditor({
     <HeaderSlot
       productName={productName?.trim() || t("editor.untitled")}
       onBack={onBack}
-      save={{ run: handleSave, saving, ok: saveOk, error: saveError }}
+      save={{ run: handleSave, saving, ok: saveOk, error: saveError, unsaved }}
       parts={{
         history: historyPart,
         download: downloadPart,
