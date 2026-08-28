@@ -7,7 +7,7 @@
 
 import { act, fireEvent, render, screen } from "@testing-library/react";
 import type { ReactNode } from "react";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("konva/lib/shapes/Ellipse", () => ({}));
 vi.mock("konva/lib/shapes/Image", () => ({}));
@@ -43,17 +43,54 @@ vi.mock("react-konva/es/ReactKonvaCore", () => {
 import { LeviosaCanvasWorkspace } from "../leviosa-canvas-workspace";
 import { PAGES_TIMELINE_HEIGHT } from "../detail-page-pages-timeline";
 import { createCanvasStore } from "@leviosa-ai/canvas/store";
+import { selectDetailPageEditorProfile } from "../../../lib/detail-page/editor-profile";
 
 function store() {
   return createCanvasStore({
     width: 800,
     height: 600,
     pages: [
-      { id: "p1", children: [{ id: "a", type: "text", text: "가", x: 0, y: 0 }] },
+      {
+        id: "p1",
+        children: [{ id: "a", type: "text", text: "가", x: 0, y: 0 }],
+      },
       { id: "p2", children: [] },
     ],
   });
 }
+
+/**
+ * 장 높이 손잡이는 상세페이지 것이다 — 한 장이 세로로 이어 붙는 띠라서 길이가
+ * 편집 대상이다. 캐러셀 판은 1080×1350 고정이라 끌 수 있으면 안 된다.
+ */
+describe("LeviosaCanvasWorkspace — 장 높이 손잡이", () => {
+  afterEach(() => selectDetailPageEditorProfile({}));
+
+  const mount = async () => {
+    const view = render(<LeviosaCanvasWorkspace store={store()} />);
+    await act(async () => {
+      await new Promise((resolve) =>
+        requestAnimationFrame(() => resolve(null)),
+      );
+    });
+    return view;
+  };
+
+  it("상세페이지에서는 활성 장 아래에 붙는다", async () => {
+    const view = await mount();
+    expect(
+      view.container.querySelectorAll("[data-dp-section-height-handle]"),
+    ).toHaveLength(1);
+  });
+
+  it("캐러셀에서는 없다 — 판 크기가 고정이다", async () => {
+    selectDetailPageEditorProfile({ kind: "carousel" });
+    const view = await mount();
+    expect(
+      view.container.querySelectorAll("[data-dp-section-height-handle]"),
+    ).toHaveLength(0);
+  });
+});
 
 describe("LeviosaCanvasWorkspace", () => {
   it("페이지를 세로로 건다", () => {
@@ -67,7 +104,9 @@ describe("LeviosaCanvasWorkspace", () => {
     s.selectElements(["a"]);
     const { container } = render(<LeviosaCanvasWorkspace store={s} />);
 
-    fireEvent.pointerDown(container.querySelector("[data-lc-workspace] > div")!);
+    fireEvent.pointerDown(
+      container.querySelector("[data-lc-workspace] > div")!,
+    );
     expect(s.selectedElementsIds).toEqual([]);
   });
 

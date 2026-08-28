@@ -26,6 +26,7 @@ import {
 import { useTranslation } from "react-i18next";
 
 import { observer } from "./canvas-observer";
+import { detailPageEditorProfile } from "../../lib/detail-page/editor-profile";
 import {
   applySectionHeight,
   type SectionHeightPage,
@@ -56,7 +57,9 @@ export const SectionHeightHandle = observer(function SectionHeightHandle({
   history?: HistoryLike;
 }) {
   const { t } = useTranslation("branding");
-  const drag = useRef<{ pointerId: number; y: number; base: number } | null>(null);
+  const drag = useRef<{ pointerId: number; y: number; base: number } | null>(
+    null,
+  );
   const [dragging, setDragging] = useState(false);
   const height = Math.round(Number(page.computedHeight) || 0);
 
@@ -115,15 +118,33 @@ export const SectionHeightHandle = observer(function SectionHeightHandle({
         pointerEvents: "auto",
       }}
     >
+      {/* 흰 알약 + 테두리. 예전에는 반투명 회색 막대 하나였는데, 사진이나 어두운
+          배경으로 끝나는 장 밑에서는 배경에 묻혀 «없어진» 것처럼 보였다. */}
       <div
         style={{
-          width: dragging ? 64 : 44,
-          height: 5,
+          width: dragging ? 64 : 48,
+          height: 10,
           borderRadius: 999,
-          background: dragging ? "rgb(139, 92, 246)" : "rgba(23,23,23,0.28)",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          background: dragging ? "rgb(139, 92, 246)" : "rgba(255,255,255,0.96)",
+          border: dragging ? "none" : "1px solid rgba(23,23,23,0.18)",
+          boxShadow: "0 1px 3px rgba(0,0,0,0.18)",
           transition: "width 120ms ease, background 120ms ease",
         }}
-      />
+      >
+        <div
+          style={{
+            width: 22,
+            height: 2,
+            borderRadius: 999,
+            background: dragging
+              ? "rgba(255,255,255,0.9)"
+              : "rgba(23,23,23,0.45)",
+          }}
+        />
+      </div>
       {dragging ? (
         <span
           style={{
@@ -196,7 +217,9 @@ export const CanvasSectionHeightHandle = observer(
     const measure = () => {
       const host = containerRef.current;
       const node = pageId
-        ? host?.querySelector<HTMLElement>(`[data-lc-page="${CSS.escape(pageId)}"]`)
+        ? host?.querySelector<HTMLElement>(
+            `[data-lc-page="${CSS.escape(pageId)}"]`,
+          )
         : null;
       const next: Box | null =
         host && node
@@ -249,6 +272,8 @@ export const CanvasSectionHeightHandle = observer(
       // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [pageId, scrollRef]);
 
+    // 캐러셀 판은 1080×1350 고정이다 — 끌 수 있는 손잡이를 두면 안 된다.
+    if (detailPageEditorProfile().page.fixed) return null;
     if (!page || !box) return null;
 
     return (
@@ -264,11 +289,7 @@ export const CanvasSectionHeightHandle = observer(
           zIndex: 21,
         }}
       >
-        <SectionHeightHandle
-          page={page}
-          scale={scale}
-          history={s.history}
-        />
+        <SectionHeightHandle page={page} scale={scale} history={s.history} />
       </div>
     );
   },
