@@ -2,6 +2,12 @@ import { useEffect, useRef, useState } from "react";
 
 export type SaveReason = "auto" | "manual" | "leave";
 
+/**
+ * 첫 변경으로부터 여기까지는 기다려 준다. 디바운스만 두면 계속 그리는 동안 한 번도
+ * 안 나가므로, 편집 중이어도 이 간격마다 한 번은 저장된다.
+ */
+const MAX_WAIT_MS = 15_000;
+
 /** 변경 알림만 받으면 되므로 스토어 전체를 요구하지 않는다. */
 interface ChangeSource {
   on(event: "change", listener: () => void): () => void;
@@ -10,7 +16,7 @@ interface ChangeSource {
 /**
  * 문서가 바뀌면 잠잠해진 뒤에 한 번 저장한다.
  *
- * 규칙 셋이 전부다.
+ * 규칙 넷이 전부다.
  *
  * 1. **한 번에 하나만 보낸다.** 상세페이지 서버는 저장을 멱등키로 직렬화해서, 겹쳐
  *    보내면 뒤엣것이 "처리 중"으로 거절당한다. 보내는 동안 또 바뀌었으면 끝난 뒤에
@@ -20,6 +26,9 @@ interface ChangeSource {
  * 3. **실패는 삼키되 잊지 않는다.** dirty 를 되돌려 두면 다음 변경이나 다음 이탈에
  *    다시 나간다. 자동저장이 실패했다고 편집을 막을 일은 아니고, 그렇다고 곧바로
  *    다시 보내지도 않는다 — 서버가 죽어 있는 동안 요청을 쉬지 않고 때리게 된다.
+ * 4. **기다림에 상한이 있다.** 편집 한 번마다 디바운스가 처음부터 다시 돌아가므로,
+ *    손을 안 떼고 계속 그리면 요청이 영영 안 나간다. 첫 변경으로부터 `MAX_WAIT_MS`
+ *    가 지나면 아직 그리는 중이어도 한 번 내보낸다.
  *
  * `delayMs` 가 없으면 아무것도 안 한다 — 자동저장을 아직 안 켠 화면이 그렇다.
  *
@@ -68,13 +77,21 @@ export function useAutoSave(options: {
       if (sent && dirtyRef.current) await flush(reason);
     };
 
+    // 이번 저장 묶음의 첫 변경 시각. 상한을 재는 기준이고, 내보낸 뒤 0 으로 돌아간다.
+    let firstChangeAt = 0;
+
     const off = store.on("change", () => {
       mark(true);
+      const now = Date.now();
+      if (!firstChangeAt) firstChangeAt = now;
       if (timer) clearTimeout(timer);
+      // 잠잠해지면 `delayMs` 뒤에, 계속 그리는 중이면 상한에 걸려 그보다 먼저 나간다.
+      const wait = Math.max(0, Math.min(delayMs, firstChangeAt + MAX_WAIT_MS - now));
       timer = setTimeout(() => {
         timer = null;
+        firstChangeAt = 0;
         void flush("auto");
-      }, delayMs);
+      }, wait);
     });
 
     const leave = () => {
@@ -82,6 +99,7 @@ export function useAutoSave(options: {
         clearTimeout(timer);
         timer = null;
       }
+      firstChangeAt = 0;
       void flush("leave");
     };
     const onHidden = () => {

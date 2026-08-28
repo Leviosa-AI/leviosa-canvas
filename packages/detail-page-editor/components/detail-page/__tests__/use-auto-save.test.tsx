@@ -99,6 +99,22 @@ describe("useAutoSave", () => {
     expect(save).toHaveBeenCalledTimes(2);
   });
 
+  it("손을 안 떼고 계속 그려도 상한에서 한 번 내보낸다", async () => {
+    const store = changeSource();
+    const save = vi.fn(async () => {});
+    mount(store, save);
+
+    // 디바운스(100ms)보다 촘촘히 계속 바꾼다 — 상한이 없으면 영영 안 나간다.
+    for (let elapsed = 0; elapsed < 15_000; elapsed += 50) {
+      act(() => store.fire());
+      await act(async () => {
+        vi.advanceTimersByTime(50);
+      });
+    }
+    expect(save).toHaveBeenCalledTimes(1);
+    expect(save).toHaveBeenCalledWith("auto");
+  });
+
   it("편집기를 떠나면 기다리지 않고 보낸다", async () => {
     const store = changeSource();
     const save = vi.fn(async () => {});
