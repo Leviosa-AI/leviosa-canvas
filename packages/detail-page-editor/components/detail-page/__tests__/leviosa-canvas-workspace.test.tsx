@@ -83,6 +83,48 @@ describe("LeviosaCanvasWorkspace — 장 높이 손잡이", () => {
     ).toHaveLength(1);
   });
 
+  it("끌면 그 장이 길어지고 칸도 같이 커진다 — 아래 장이 밀린다", async () => {
+    const s = store();
+    const view = render(<LeviosaCanvasWorkspace store={s} />);
+    await act(async () => {
+      await new Promise((resolve) =>
+        requestAnimationFrame(() => resolve(null)),
+      );
+    });
+    const handle = view.container.querySelector<HTMLElement>(
+      "[data-dp-section-height-handle]",
+    )!;
+    const box = () =>
+      view.container.querySelector<HTMLElement>('[data-lc-page="p1"]')!;
+    const before = s.pages[0].computedHeight;
+
+    fireEvent.pointerDown(handle, {
+      button: 0,
+      clientX: 0,
+      clientY: 0,
+      pointerId: 1,
+    });
+    fireEvent.pointerMove(handle, { clientX: 0, clientY: 300, pointerId: 1 });
+    fireEvent.pointerUp(handle, { clientX: 0, clientY: 300, pointerId: 1 });
+
+    expect(s.pages[0].computedHeight).toBe(before + 300);
+    // 칸이 안 커지면 늘어난 만큼이 아래 장에 덮인다.
+    expect(box().style.height).toBe(`${before + 300}px`);
+  });
+
+  it("아래 띠·하단 독보다 위에 있다 — 덮이면 잡을 수가 없다", async () => {
+    const view = await mount();
+    const frame = view.container.querySelector<HTMLElement>(
+      "[data-dp-section-height-frame]",
+    )!;
+    const dock = view.container.querySelector<HTMLElement>(
+      "[data-dp-bottom-dock]",
+    )!;
+    expect(Number(frame.style.zIndex)).toBeGreaterThan(
+      Number(dock.style.zIndex),
+    );
+  });
+
   it("캐러셀에서는 없다 — 판 크기가 고정이다", async () => {
     selectDetailPageEditorProfile({ kind: "carousel" });
     const view = await mount();

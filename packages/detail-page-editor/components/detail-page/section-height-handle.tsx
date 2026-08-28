@@ -68,7 +68,7 @@ export const SectionHeightHandle = observer(function SectionHeightHandle({
     // Konva 가 이 누름을 보면 캔버스 빈 곳 클릭으로 읽어 선택을 풀어 버린다.
     e.preventDefault();
     e.stopPropagation();
-    e.currentTarget.setPointerCapture(e.pointerId);
+    e.currentTarget.setPointerCapture?.(e.pointerId);
     history?.startTransaction?.();
     drag.current = { pointerId: e.pointerId, y: e.clientY, base: height };
     setDragging(true);
@@ -286,7 +286,9 @@ export const CanvasSectionHeightHandle = observer(
           width: box.width,
           height: box.height,
           pointerEvents: "none",
-          zIndex: 21,
+          // 아래 띠(페이지 목록)와 하단 독보다 위다. 장의 아래 끝이 화면 밑쪽에
+          // 오면 그것들이 손잡이를 덮어서 «없어진» 것처럼 보였다.
+          zIndex: 31,
         }}
       >
         <SectionHeightHandle page={page} scale={scale} history={s.history} />
