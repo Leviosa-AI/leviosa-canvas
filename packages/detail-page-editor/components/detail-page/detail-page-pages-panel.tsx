@@ -2,10 +2,10 @@
 
 import { detailPageEditorProfile } from "../../lib/detail-page/editor-profile";
 
-import { useCallback, useState, useSyncExternalStore } from "react";
+import { Fragment, useCallback, useState, useSyncExternalStore } from "react";
 import { observer } from "./canvas-observer";
 import { useTranslation } from "react-i18next";
-import { GripVertical } from "lucide-react";
+import { GripVertical, Plus } from "lucide-react";
 import {
   DndContext,
   closestCenter,
@@ -53,12 +53,14 @@ type PageLike = {
   /** 단색 hex 또는 `linear-gradient(...)` 문자열. `FillControl`이 둘 다 만든다. */
   background?: string;
   set?: (props: Record<string, unknown>) => void;
+  /** 문서 안 몇 번째인가를 바꾼다. 페이지 자신이 가진 함수다 — 스토어에는 없다. */
+  setZIndex?: (index: number) => void;
 };
 type StoreLike = {
   pages: PageLike[];
   activePage?: PageLike;
   selectPage: (id: string) => void;
-  setPageZIndex: (id: string, index: number) => void;
+  addPage: (props: Record<string, unknown>) => PageLike;
 };
 
 type TFn = (key: string, opts?: Record<string, unknown>) => string;
@@ -93,6 +95,54 @@ const restrictToVerticalAxis: Modifier = ({ transform }) => ({
   ...transform,
   x: 0,
 });
+
+/** 두 화면 사이에 새 화면을 끼우는 자리. 평소엔 선 한 줄, 올리면 «+» 가 뜬다. */
+function InsertHere({
+  store,
+  after,
+  disabled,
+}: {
+  store: StoreLike;
+  after: number;
+  disabled?: boolean;
+}) {
+  const { t } = useTranslation("branding");
+  if (disabled) return null;
+
+  const insert = () => {
+    const ref = store.pages[after];
+    const profile = detailPageEditorProfile();
+    const next = store.addPage({
+      width:
+        profile.page.width === "document"
+          ? ref?.computedWidth ?? "auto"
+          : profile.page.width,
+      height: profile.page.fixed
+        ? profile.page.height
+        : ref?.computedHeight ?? profile.page.height,
+    });
+    next.setZIndex?.(after + 1);
+    store.selectPage(next.id);
+  };
+
+  return (
+    <div className="group/insert relative h-3">
+      <button
+        type="button"
+        aria-label={t("detailPage.pageToolbar.addBelow")}
+        title={t("detailPage.pageToolbar.addBelow")}
+        onClick={insert}
+        className="absolute inset-x-0 top-0 flex h-3 items-center justify-center"
+      >
+        <span className="h-px flex-1 bg-dpe-ink-200 opacity-0 transition-opacity group-hover/insert:opacity-100" />
+        <span className="mx-1 flex h-4 w-4 items-center justify-center rounded-full border border-dpe-ink-200 bg-dpe-surface text-dpe-ink-500 opacity-0 transition-opacity group-hover/insert:opacity-100">
+          <Plus aria-hidden="true" size={11} />
+        </span>
+        <span className="h-px flex-1 bg-dpe-ink-200 opacity-0 transition-opacity group-hover/insert:opacity-100" />
+      </button>
+    </div>
+  );
+}
 
 // ── Sortable row ────────────────────────────────────────────────────────────────
 
@@ -249,7 +299,9 @@ export const DetailPagePagesPanel = observer(function DetailPagePagesPanel({
       if (!over || active.id === over.id) return;
       const toIndex = s.pages.findIndex((p) => p.id === over.id);
       if (toIndex === -1) return;
-      s.setPageZIndex(active.id as string, toIndex);
+      // 순서를 바꾸는 것은 페이지 자신이다. 스토어에 `setPageZIndex` 는 없어서
+      // 끌어다 놓을 때마다 «is not a function» 으로 죽었다.
+      s.pages.find((p) => p.id === active.id)?.setZIndex?.(toIndex);
     },
     [s],
   );
@@ -266,6 +318,8 @@ export const DetailPagePagesPanel = observer(function DetailPagePagesPanel({
           : s.pages[0]?.computedHeight ?? 0,
       )
     : Math.round(s.pages.reduce((acc, p) => acc + p.computedHeight, 0));
+
+  const canAdd = s.pages.length < profile.maxPages;
 
   return (
     <div className="flex h-full flex-col">
@@ -291,13 +345,17 @@ export const DetailPagePagesPanel = observer(function DetailPagePagesPanel({
           >
             <div className="space-y-2">
               {s.pages.map((page, index) => (
-                <PageRow
-                  key={page.id}
-                  store={s}
-                  page={page}
-                  index={index}
-                  thumb={detailPageThumbnailBus.get(page.id)}
-                />
+                <Fragment key={page.id}>
+                  <PageRow
+                    store={s}
+                    page={page}
+                    index={index}
+                    thumb={detailPageThumbnailBus.get(page.id)}
+                  />
+                  {/* 새 화면은 «어디에» 가 먼저다. 목록 끝에 버튼 하나를 두면 넣고 나서
+                      다시 끌어 옮기게 되므로, 넣을 자리마다 하나씩 둔다. */}
+                  <InsertHere store={s} after={index} disabled={!canAdd} />
+                </Fragment>
               ))}
             </div>
           </SortableContext>

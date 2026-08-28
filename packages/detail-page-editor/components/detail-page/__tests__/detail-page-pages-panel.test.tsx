@@ -3,6 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { DetailPagePagesPanel } from "../detail-page-pages-panel";
+import { selectDetailPageEditorProfile } from "../../../lib/detail-page/editor-profile";
 
 /**
  * 페이지 배경은 우측 `PageInspector`에도 있지만 **아무것도 선택 안 됐을 때만** 뜬다.
@@ -27,7 +28,7 @@ function makeStore(pages: ReturnType<typeof makePage>[]) {
     pages,
     activePage: pages[0],
     selectPage: vi.fn(),
-    setPageZIndex: vi.fn(),
+    addPage: vi.fn(() => ({ id: "new", setZIndex: vi.fn() })),
   };
 }
 
@@ -88,5 +89,53 @@ describe("DetailPagePagesPanel — 페이지 배경", () => {
 
     // 행 클릭으로 번지면 스와치를 누를 때마다 페이지가 튄다.
     expect(store.selectPage).not.toHaveBeenCalled();
+  });
+});
+
+describe("DetailPagePagesPanel — 화면 끼우기", () => {
+  afterEach(() => selectDetailPageEditorProfile({}));
+
+  it("화면 사이마다 끼울 자리를 둔다", () => {
+    render(<DetailPagePagesPanel store={makeStore([makePage("p1"), makePage("p2")])} />);
+
+    expect(
+      screen.getAllByRole("button", { name: "detailPage.pageToolbar.addBelow" }),
+    ).toHaveLength(2);
+  });
+
+  it("누른 자리 바로 뒤에 넣는다", async () => {
+    const user = userEvent.setup();
+    const store = makeStore([makePage("p1"), makePage("p2")]);
+    render(<DetailPagePagesPanel store={store} />);
+
+    await user.click(
+      screen.getAllByRole("button", { name: "detailPage.pageToolbar.addBelow" })[0],
+    );
+    expect(store.addPage).toHaveBeenCalledWith({ width: 860, height: 1200 });
+    expect(store.selectPage).toHaveBeenCalledWith("new");
+  });
+
+  it("캐러셀은 1080×1350 판만 넣고 10장에서 자리를 감춘다", async () => {
+    const user = userEvent.setup();
+    selectDetailPageEditorProfile({ kind: "carousel" });
+    const store = makeStore(
+      Array.from({ length: 9 }, (_, i) => makePage(`p${i}`)),
+    );
+    const view = render(<DetailPagePagesPanel store={store} />);
+
+    await user.click(
+      screen.getAllByRole("button", { name: "detailPage.pageToolbar.addBelow" })[0],
+    );
+    expect(store.addPage).toHaveBeenCalledWith({ width: 1080, height: 1350 });
+
+    view.unmount();
+    render(
+      <DetailPagePagesPanel
+        store={makeStore(Array.from({ length: 10 }, (_, i) => makePage(`q${i}`)))}
+      />,
+    );
+    expect(
+      screen.queryAllByRole("button", { name: "detailPage.pageToolbar.addBelow" }),
+    ).toHaveLength(0);
   });
 });

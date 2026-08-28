@@ -22,6 +22,7 @@ import {
   Strikethrough,
   Highlighter,
   Sparkles,
+  Copy,
   Trash2,
   Ungroup,
   Type as TypeIcon,
@@ -179,6 +180,7 @@ type ElementLike = {
 type PageLike = {
   id: string;
   background?: string;
+  clone?: () => void;
   width?: number;
   height?: number;
   computedWidth?: number;
@@ -195,6 +197,7 @@ type StoreLike = {
   fonts?: FontCatalogStore["fonts"];
   addFont?: FontCatalogStore["addFont"];
   deleteElements?: (ids: string[]) => void;
+  deletePages?: (ids: string[]) => void;
   ungroupElements?: (ids: string[]) => void;
 };
 
@@ -2233,15 +2236,32 @@ const PageInspector = observer(function PageInspector({
   const { t } = useTranslation("branding");
   const profile = detailPageEditorProfile();
   const page = store.activePage ?? store.pages[0];
-  const bg = str(page?.background, "#ffffff");
   return (
     <>
       {profile.page.fixed ? null : <PageHeightSection page={page} />}
-      <Section title={t("detailPage.properties.pageBackground")}>
-        <FillControl value={bg} onChange={(c) => page?.set?.({ background: c })} />
-        <p className="mt-2 text-xs text-dpe-ink-400">
-          {t("detailPage.properties.pageBackgroundHint")}
-        </p>
+      {/* 화면을 통째로 다루는 두 가지. 예전에는 캔버스 옆 세로 띠에 있었는데, 판을
+          가리는 데 비해 여기가 이미 «이 화면» 을 다루는 자리다. */}
+      <Section title={t("detailPage.properties.pageActions")}>
+        <div className="flex gap-2">
+          <button
+            type="button"
+            disabled={!page?.clone || store.pages.length >= profile.maxPages}
+            onClick={() => page?.clone?.()}
+            className="inline-flex h-9 flex-1 items-center justify-center gap-1.5 rounded-dpe-md border border-dpe-ink-200 bg-dpe-surface text-xs font-dpe-semibold text-dpe-ink-700 hover:bg-dpe-ink-50 disabled:cursor-not-allowed disabled:text-dpe-ink-300"
+          >
+            <Copy aria-hidden="true" size={15} />
+            {t("detailPage.pageToolbar.duplicate")}
+          </button>
+          <button
+            type="button"
+            disabled={store.pages.length <= 1}
+            onClick={() => page && store.deletePages?.([page.id])}
+            className="inline-flex h-9 flex-1 items-center justify-center gap-1.5 rounded-dpe-md border border-dpe-ink-200 bg-dpe-surface text-xs font-dpe-semibold text-dpe-ink-700 hover:bg-dpe-danger-50 hover:text-dpe-danger-700 disabled:cursor-not-allowed disabled:text-dpe-ink-300"
+          >
+            <Trash2 aria-hidden="true" size={15} />
+            {t("detailPage.pageToolbar.delete")}
+          </button>
+        </div>
       </Section>
       {onGenerateDataGif ? (
         <CellGridGifSection
