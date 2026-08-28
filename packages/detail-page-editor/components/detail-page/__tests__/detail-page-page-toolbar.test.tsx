@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 
 import { DetailPagePageToolbar } from "../detail-page-page-toolbar";
@@ -29,6 +29,26 @@ describe("DetailPagePageToolbar", () => {
         screen.getByRole("button", { name: /detailPage.pageToolbar.reauthor/ }),
       );
       expect(heard).toEqual(["b"]);
+    } finally {
+      off();
+    }
+  });
+
+  it("끌면 자리가 옮겨지고, 그 끌기가 재저작으로 이어지지 않는다", () => {
+    const heard: string[] = [];
+    const off = onSectionReauthorRequested((id) => heard.push(id));
+    try {
+      render(<DetailPagePageToolbar store={{}} page={{ id: "b" }} />);
+      const button = screen.getByRole("button", {
+        name: /detailPage.pageToolbar.reauthor/,
+      });
+      fireEvent.pointerDown(button, { button: 0, clientX: 0, clientY: 0 });
+      fireEvent.pointerMove(button, { clientX: 40, clientY: 30 });
+      fireEvent.pointerUp(button, { clientX: 40, clientY: 30 });
+      fireEvent.click(button);
+
+      expect(button).toHaveStyle({ transform: "translate(40px, 30px)" });
+      expect(heard).toEqual([]);
     } finally {
       off();
     }
