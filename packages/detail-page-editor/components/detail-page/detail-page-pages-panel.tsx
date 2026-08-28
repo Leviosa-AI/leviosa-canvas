@@ -2,10 +2,10 @@
 
 import { detailPageEditorProfile } from "../../lib/detail-page/editor-profile";
 
-import { Fragment, useCallback, useState, useSyncExternalStore } from "react";
+import { Fragment, useCallback, useSyncExternalStore } from "react";
 import { observer } from "./canvas-observer";
 import { useTranslation } from "react-i18next";
-import { GripVertical, Plus } from "lucide-react";
+import { Copy, GripVertical, Plus, Trash2 } from "lucide-react";
 import {
   DndContext,
   closestCenter,
@@ -23,7 +23,6 @@ import {
 import { CSS } from "@dnd-kit/utilities";
 
 import { detailPageThumbnailBus } from "./detail-page-thumbnail-bus";
-import { FillControl } from "./fill-control";
 
 /**
  * Custom Canvas side-panel "페이지" section (hookable-style page list).
@@ -53,6 +52,7 @@ type PageLike = {
   /** 단색 hex 또는 `linear-gradient(...)` 문자열. `FillControl`이 둘 다 만든다. */
   background?: string;
   set?: (props: Record<string, unknown>) => void;
+  clone?: () => void;
   /** 문서 안 몇 번째인가를 바꾼다. 페이지 자신이 가진 함수다 — 스토어에는 없다. */
   setZIndex?: (index: number) => void;
 };
@@ -61,6 +61,7 @@ type StoreLike = {
   activePage?: PageLike;
   selectPage: (id: string) => void;
   addPage: (props: Record<string, unknown>) => PageLike;
+  deletePages?: (ids: string[]) => void;
 };
 
 type TFn = (key: string, opts?: Record<string, unknown>) => string;
@@ -115,11 +116,11 @@ function InsertHere({
     const next = store.addPage({
       width:
         profile.page.width === "document"
-          ? ref?.computedWidth ?? "auto"
+          ? (ref?.computedWidth ?? "auto")
           : profile.page.width,
       height: profile.page.fixed
         ? profile.page.height
-        : ref?.computedHeight ?? profile.page.height,
+        : (ref?.computedHeight ?? profile.page.height),
     });
     next.setZIndex?.(after + 1);
     store.selectPage(next.id);
@@ -170,8 +171,7 @@ const PageRow = observer(function PageRow({
   const active = store.activePage?.id === page.id;
   const ratio = page.computedHeight / Math.max(1, page.computedWidth);
   const { role, title } = pageLabel(page, index, t);
-  const [editingBackground, setEditingBackground] = useState(false);
-  const background = page.background || "#ffffff";
+  const maxPages = detailPageEditorProfile().maxPages;
 
   const style: React.CSSProperties = {
     transform: CSS.Transform.toString(transform),
@@ -199,70 +199,71 @@ const PageRow = observer(function PageRow({
       ].join(" ")}
     >
       <div className="flex items-center gap-2">
-      <span
-        {...listeners}
-        aria-label={t("detailPage.pages.reorderHandle")}
-        className={[
-          "shrink-0 touch-none rounded text-dpe-ink-300 hover:text-dpe-ink-500",
-          isDragging ? "cursor-grabbing" : "cursor-grab",
-        ].join(" ")}
-      >
-        <GripVertical aria-hidden="true" size={16} />
-      </span>
-      <div
-        className="relative shrink-0 overflow-hidden rounded-dpe-md border border-dpe-ink-100 bg-dpe-ink-50"
-        style={{ width: 64, height: Math.min(80, Math.max(40, 64 * ratio)) }}
-      >
-        {thumb ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={thumb}
-            alt={title || t("detailPage.pages.pageN", { number: index + 1 })}
-            draggable={false}
-            className="h-full w-full object-cover object-top"
-          />
-        ) : null}
-      </div>
-      <div className="min-w-0 flex-1">
-        <p className="truncate text-sm">
-          <span className="text-dpe-ink-400">{role}</span>
-          {title ? (
-            <>
-              <span className="mx-1 text-dpe-ink-300">|</span>
-              <span className="font-dpe-bold text-dpe-ink-900">{title}</span>
-            </>
-          ) : null}
-        </p>
-      </div>
-      {/*
-        페이지 배경. 우측 인스펙터에도 같은 컨트롤이 있지만 **아무것도 선택 안 됐을 때만**
-        뜬다 — 20섹션짜리 문서를 만지는 동안 선택이 비는 순간이 거의 없어서 사실상 안 보였다.
-        쓰기는 우측과 똑같이 `page.set({background})`이라 상태가 갈라지지 않는다.
-      */}
-      <button
-        type="button"
-        onClick={(event) => {
-          event.stopPropagation();
-          setEditingBackground((open) => !open);
-        }}
-        aria-label={t("detailPage.pages.background")}
-        aria-expanded={editingBackground}
-        title={t("detailPage.pages.background")}
-        className="h-6 w-6 shrink-0 rounded-dpe-md border border-dpe-ink-200 hover:border-dpe-ink-400"
-        style={{ background }}
-      />
-      </div>
-      {editingBackground ? (
-        <div
-          className="mt-2 border-t border-dpe-ink-100 pt-2"
-          onClick={(event) => event.stopPropagation()}
+        <span
+          {...listeners}
+          aria-label={t("detailPage.pages.reorderHandle")}
+          className={[
+            "shrink-0 touch-none rounded text-dpe-ink-300 hover:text-dpe-ink-500",
+            isDragging ? "cursor-grabbing" : "cursor-grab",
+          ].join(" ")}
         >
-          <FillControl
-            value={background}
-            onChange={(next) => page.set?.({ background: next })}
-          />
+          <GripVertical aria-hidden="true" size={16} />
+        </span>
+        <div
+          className="relative shrink-0 overflow-hidden rounded-dpe-md border border-dpe-ink-100 bg-dpe-ink-50"
+          style={{ width: 64, height: Math.min(80, Math.max(40, 64 * ratio)) }}
+        >
+          {thumb ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={thumb}
+              alt={title || t("detailPage.pages.pageN", { number: index + 1 })}
+              draggable={false}
+              className="h-full w-full object-cover object-top"
+            />
+          ) : null}
         </div>
-      ) : null}
+        <div className="min-w-0 flex-1">
+          <p className="truncate text-sm">
+            <span className="text-dpe-ink-400">{role}</span>
+            {title ? (
+              <>
+                <span className="mx-1 text-dpe-ink-300">|</span>
+                <span className="font-dpe-bold text-dpe-ink-900">{title}</span>
+              </>
+            ) : null}
+          </p>
+        </div>
+        {/* 복제 / 삭제. 판을 고르지 않아도 목록에서 바로 되게 둔다. */}
+        <div className="flex shrink-0 flex-col gap-1">
+          <button
+            type="button"
+            disabled={store.pages.length >= maxPages}
+            onClick={(event) => {
+              event.stopPropagation();
+              page.clone?.();
+            }}
+            aria-label={t("detailPage.pageToolbar.duplicate")}
+            title={t("detailPage.pageToolbar.duplicate")}
+            className="flex h-6 w-6 items-center justify-center rounded-dpe-md border border-dpe-ink-200 text-dpe-ink-500 hover:border-dpe-ink-400 hover:text-dpe-ink-800 disabled:cursor-not-allowed disabled:text-dpe-ink-200 disabled:hover:border-dpe-ink-200"
+          >
+            <Copy aria-hidden="true" size={13} />
+          </button>
+          <button
+            type="button"
+            disabled={store.pages.length <= 1}
+            onClick={(event) => {
+              event.stopPropagation();
+              store.deletePages?.([page.id]);
+            }}
+            aria-label={t("detailPage.pageToolbar.delete")}
+            title={t("detailPage.pageToolbar.delete")}
+            className="flex h-6 w-6 items-center justify-center rounded-dpe-md border border-dpe-ink-200 text-dpe-ink-500 hover:border-dpe-ink-400 hover:text-dpe-danger-600 disabled:cursor-not-allowed disabled:text-dpe-ink-200 disabled:hover:border-dpe-ink-200"
+          >
+            <Trash2 aria-hidden="true" size={13} />
+          </button>
+        </div>
+      </div>
     </div>
   );
 });
@@ -315,7 +316,7 @@ export const DetailPagePagesPanel = observer(function DetailPagePagesPanel({
     ? Math.round(
         typeof profile.page.height === "number"
           ? profile.page.height
-          : s.pages[0]?.computedHeight ?? 0,
+          : (s.pages[0]?.computedHeight ?? 0),
       )
     : Math.round(s.pages.reduce((acc, p) => acc + p.computedHeight, 0));
 
