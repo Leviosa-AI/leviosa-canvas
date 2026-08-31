@@ -99,6 +99,18 @@ function AgencyEditorHeader({ productName, onBack, save, parts }) {
 
 ## 지키는 규칙 하나
 
-편집기 소스에는 `border-neutral-200` 같은 원본 팔레트 클래스를 **직접 적지 않는다**.
-한 줄이 새로 들어오면 갈아입힌 화면에서 그 자리만 원래 회색으로 남고, 그건 아무도
-안 알려 준다. `test/detail-page-editor-theme.test.ts` 가 그걸 잡는다.
+편집기 소스에는 `dpe-*` 말고 다른 색 이름을 **직접 적지 않는다**. 어기는 길이 두
+가지고, 둘 다 조용히 망가진다.
+
+- `border-neutral-200` 같은 **원본 팔레트**. 한 줄이 새로 들어오면 갈아입힌 화면에서
+  그 자리만 원래 회색으로 남는다.
+- `bg-popover` · `text-primary-foreground` 같은 **shadcn 의미 이름**. 이쪽은 더 나쁘다 —
+  소비자 앱의 CSS 변수를 읽으므로 이 패키지가 값을 정할 방법이 아예 없다. 앱이 그
+  변수를 안 두면 Tailwind 는 클래스를 **한 줄도 안 굽고**(판이 투명해진다), 두더라도
+  그 앱의 값이지 편집기가 고른 값이 아니다. 실제로 두 번 샜다: 글꼴 목록이
+  `bg-accent`(agency 에서 먹)로 호버할 때마다 새까매졌고, 다운로드 팝오버는
+  `bg-popover`(agency 에 없음)로 목록 판이 뒤와 겹쳐 보이고 `text-primary-foreground`
+  (없음)로 저장 버튼 글자가 배경과 같은 색이 됐다.
+
+셀 색이 마땅치 않으면 팔레트 이름을 적는 대신 `tokens.css` 에 토큰을 하나 늘린다.
+`test/detail-page-editor-theme.test.ts` 가 두 규칙을 다 잡는다.

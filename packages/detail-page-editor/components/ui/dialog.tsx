@@ -1,5 +1,10 @@
 "use client";
 
+/**
+ * 편집기 모달. 포털이 body 로 나가므로 `data-dpe-root` 를 다시 달고(아래), 판의
+ * 글자색과 테두리색은 물려받지 않고 적는다 — 색 없는 `border` 는 currentColor 다.
+ * 이유는 select.tsx 주석에 있다.
+ */
 import * as React from "react";
 import { XIcon } from "lucide-react";
 import { Dialog as DialogPrimitive } from "radix-ui";
@@ -65,7 +70,7 @@ function DialogContent({
         data-slot="dialog-content"
         data-dpe-root=""
         className={cn(
-          "bg-dpe-surface data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 fixed top-[50%] left-[50%] z-[115] grid w-full max-w-[calc(100%-2rem)] translate-x-[-50%] translate-y-[-50%] gap-4 rounded-dpe-lg border p-6 shadow-lg duration-200 outline-none sm:max-w-lg",
+          "bg-dpe-surface text-dpe-ink-900 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 fixed top-[50%] left-[50%] z-[115] grid w-full max-w-[calc(100%-2rem)] translate-x-[-50%] translate-y-[-50%] gap-4 rounded-dpe-lg border border-dpe-ink-200 p-6 shadow-lg duration-200 outline-none sm:max-w-lg",
           className,
         )}
         onOpenAutoFocus={(event) => {
