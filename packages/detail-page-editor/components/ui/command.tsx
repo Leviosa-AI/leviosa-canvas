@@ -1,5 +1,19 @@
 "use client";
 
+/**
+ * cmdk 위에 얹은 목록. 지금 소비자는 글꼴 피커 하나다.
+ *
+ * 색은 **편집기 토큰(`dpe-*`)만** 쓴다. shadcn 원본이 달고 온
+ * `bg-accent` · `bg-popover` · `text-muted-foreground` 는 소비자 앱의 팔레트를
+ * 그대로 읽는 이름이라, 이 패키지가 그 값을 정할 방법이 없다. leviosa-agency 는
+ * `--color-accent: #1a1a1a` — 먹이다. 그래서 글꼴 후보에 마우스를 올리면 행 전체가
+ * 검게 칠해지고, 그 위의 미리보기(검정 글자 WebP)와 이름표가 통째로 사라졌다.
+ * 강조색을 어둡게 잡는 것은 그 앱의 정당한 선택이지 버그가 아니다 — 목록 행의
+ * 호버가 강조색을 빌려 쓴 것이 버그다.
+ *
+ * 호버·선택은 회색 한 단계(`dpe-ink-100`)로 끝낸다. 글자색은 건드리지 않는다.
+ */
+
 import * as React from "react";
 import { Command as CommandPrimitive } from "cmdk";
 import { Search } from "lucide-react";
@@ -20,7 +34,7 @@ const Command = React.forwardRef<
   <CommandPrimitive
     ref={ref}
     className={cn(
-      "flex h-full w-full flex-col overflow-hidden rounded-dpe-md bg-popover text-popover-foreground",
+      "flex h-full w-full flex-col overflow-hidden rounded-dpe-md bg-dpe-surface text-dpe-ink-900",
       className,
     )}
     {...props}
@@ -44,7 +58,7 @@ const CommandDialog = ({
             Search and run available commands.
           </DialogDescription>
         </DialogHeader>
-        <Command className="[&_[cmdk-group-heading]]:px-2 [&_[cmdk-group-heading]]:font-dpe-medium [&_[cmdk-group-heading]]:text-muted-foreground [&_[cmdk-group]:not([hidden])_~[cmdk-group]]:pt-0 [&_[cmdk-group]]:px-2 [&_[cmdk-input-wrapper]_svg]:h-5 [&_[cmdk-input-wrapper]_svg]:w-5 [&_[cmdk-input]]:h-12 [&_[cmdk-item]]:px-2 [&_[cmdk-item]]:py-3 [&_[cmdk-item]_svg]:h-5 [&_[cmdk-item]_svg]:w-5">
+        <Command className="[&_[cmdk-group-heading]]:px-2 [&_[cmdk-group-heading]]:font-dpe-medium [&_[cmdk-group-heading]]:text-dpe-ink-500 [&_[cmdk-group]:not([hidden])_~[cmdk-group]]:pt-0 [&_[cmdk-group]]:px-2 [&_[cmdk-input-wrapper]_svg]:h-5 [&_[cmdk-input-wrapper]_svg]:w-5 [&_[cmdk-input]]:h-12 [&_[cmdk-item]]:px-2 [&_[cmdk-item]]:py-3 [&_[cmdk-item]_svg]:h-5 [&_[cmdk-item]_svg]:w-5">
           {children}
         </Command>
       </DialogContent>
@@ -59,14 +73,17 @@ const CommandInput = React.forwardRef<
   }
 >(({ className, wrapperClassName, ...props }, ref) => (
   <div
-    className={cn("flex items-center border-b px-3", wrapperClassName)}
+    className={cn(
+      "flex items-center border-b border-dpe-ink-100 px-3",
+      wrapperClassName,
+    )}
     cmdk-input-wrapper=""
   >
     <Search className="mr-2 h-4 w-4 shrink-0 opacity-50" />
     <CommandPrimitive.Input
       ref={ref}
       className={cn(
-        "flex h-11 w-full rounded-dpe-md bg-transparent py-3 text-sm outline-none placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50",
+        "flex h-11 w-full rounded-dpe-md bg-transparent py-3 text-sm outline-none placeholder:text-dpe-ink-400 disabled:cursor-not-allowed disabled:opacity-50",
         className,
       )}
       {...props}
@@ -109,7 +126,7 @@ const CommandGroup = React.forwardRef<
   <CommandPrimitive.Group
     ref={ref}
     className={cn(
-      "overflow-hidden p-1 text-foreground [&_[cmdk-group-heading]]:px-2 [&_[cmdk-group-heading]]:py-1.5 [&_[cmdk-group-heading]]:text-xs [&_[cmdk-group-heading]]:font-dpe-medium [&_[cmdk-group-heading]]:text-muted-foreground",
+      "overflow-hidden p-1 text-dpe-ink-900 [&_[cmdk-group-heading]]:px-2 [&_[cmdk-group-heading]]:py-1.5 [&_[cmdk-group-heading]]:text-xs [&_[cmdk-group-heading]]:font-dpe-medium [&_[cmdk-group-heading]]:text-dpe-ink-500",
       className,
     )}
     {...props}
@@ -124,7 +141,7 @@ const CommandSeparator = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <CommandPrimitive.Separator
     ref={ref}
-    className={cn("-mx-1 h-px bg-border", className)}
+    className={cn("-mx-1 h-px bg-dpe-ink-100", className)}
     {...props}
   />
 ));
@@ -137,7 +154,7 @@ const CommandItem = React.forwardRef<
   <CommandPrimitive.Item
     ref={ref}
     className={cn(
-      "relative flex cursor-default select-none items-center rounded-dpe-sm px-2 py-1.5 text-sm outline-none data-[disabled=true]:pointer-events-none data-[selected='true']:bg-accent data-[selected=true]:text-accent-foreground data-[disabled=true]:opacity-50",
+      "relative flex cursor-default select-none items-center rounded-dpe-sm px-2 py-1.5 text-sm text-dpe-ink-900 outline-none data-[disabled=true]:pointer-events-none data-[selected=true]:bg-dpe-ink-100 data-[disabled=true]:opacity-50",
       className,
     )}
     {...props}
@@ -153,7 +170,7 @@ const CommandShortcut = ({
   return (
     <span
       className={cn(
-        "ml-auto text-xs tracking-widest text-muted-foreground",
+        "ml-auto text-xs tracking-widest text-dpe-ink-500",
         className,
       )}
       {...props}
