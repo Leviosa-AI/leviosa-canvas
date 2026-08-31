@@ -58,7 +58,8 @@ type ExportStoreLike = {
 };
 
 // 등록 플랫폼은 파일명 접미사에만 반영된다(상세페이지 폭은 750px 고정). 셀러가
-// 어디에 올릴지 고르며 맥락을 잡도록 노출한다.
+// 어디에 올릴지 고르며 맥락을 잡도록 노출한다. 캐러셀은 인스타그램 한 곳으로만
+// 나가므로 이 목록을 아예 안 띄운다 — `profile.registerPlatform` 이 그것을 정한다.
 const PLATFORMS = [
   { value: "naver", label: "네이버 스마트 스토어" },
   { value: "coupang", label: "쿠팡" },
@@ -220,7 +221,7 @@ export const DetailPageDownloadDialog = observer(function DetailPageDownloadDial
     setError(null);
     const mime = format === "png" ? "image/png" : "image/jpeg";
     const ext = format === "png" ? "png" : "jpg";
-    const base = `${fileName}-${platform}`;
+    const base = profile.registerPlatform ? `${fileName}-${platform}` : fileName;
     try {
       if (format === "psd" || format === "svg" || format === "ai") {
         // 문서 JSON 기반 내보내기. ag-psd 포함 모듈은 이 시점에만 로드한다.
@@ -384,23 +385,25 @@ export const DetailPageDownloadDialog = observer(function DetailPageDownloadDial
               </Select>
             </div>
 
-            <div className="space-y-1.5">
-              <Label className="text-xs text-dpe-ink-500">
-                {t("editor.registerPlatform")}
-              </Label>
-              <Select value={platform} onValueChange={setPlatform}>
-                <SelectTrigger className="w-full">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {PLATFORMS.map((p) => (
-                    <SelectItem key={p.value} value={p.value}>
-                      {p.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+            {profile.registerPlatform && (
+              <div className="space-y-1.5">
+                <Label className="text-xs text-dpe-ink-500">
+                  {t("editor.registerPlatform")}
+                </Label>
+                <Select value={platform} onValueChange={setPlatform}>
+                  <SelectTrigger className="w-full">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {PLATFORMS.map((p) => (
+                      <SelectItem key={p.value} value={p.value}>
+                        {p.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
 
             <div className="space-y-1.5">
               <Label className="text-xs text-dpe-ink-500">{t("editor.pageScope")}</Label>

@@ -89,7 +89,10 @@ describe("DetailPageDownloadDialog", () => {
     expect(within(dialog).getByText(/750 × 3,000 px/)).toBeInTheDocument();
   });
 
-  it("캐러셀은 JPG 하나만 보여 주고 그것을 기본으로 내보낸다", async () => {
+  it("캐러셀도 상세페이지와 같은 형식을 다 보여 주고, 기본은 JPG 다", async () => {
+    // 한때 JPG 하나로 좁혀 뒀다. 인스타그램이 JPG 로 받는다는 이유였는데, 내보낸
+    // 파일이 곧장 업로드로만 가는 것이 아니다 — 투명 배경은 PNG 가, 다른 도구로
+    // 넘겨 손보는 것은 PSD·AI·SVG 가 받는다. 기본값(첫 항목)만 JPG 로 남긴다.
     const user = userEvent.setup();
     const store = makeStore(1);
     selectDetailPageEditorProfile({ kind: "carousel" });
@@ -101,6 +104,10 @@ describe("DetailPageDownloadDialog", () => {
     await user.click(within(dialog).getAllByRole("combobox")[0]);
     expect(screen.getAllByRole("option").map((option) => option.textContent)).toEqual([
       "JPG",
+      "PNG",
+      "editor.formatPsd",
+      "editor.formatAi",
+      "editor.formatSvg",
     ]);
     await user.click(screen.getByRole("option", { name: "JPG" }));
     await user.click(within(dialog).getByText("editor.downloadAction"));
@@ -109,6 +116,37 @@ describe("DetailPageDownloadDialog", () => {
     expect(store.toDataURL).toHaveBeenCalledWith(
       expect.objectContaining({ mimeType: "image/jpeg" }),
     );
+  });
+
+  it("캐러셀은 등록 플랫폼을 안 묻고, 파일명에도 안 붙인다", async () => {
+    // 캐러셀은 인스타그램 한 곳으로만 나간다. 고를 것이 없는 목록을 남겨 두면
+    // 접미사만 거짓말을 한다 — `-naver` 가 붙은 인스타그램 이미지.
+    const user = userEvent.setup();
+    selectDetailPageEditorProfile({ kind: "carousel" });
+    render(<DetailPageDownloadDialog store={makeStore(2)} fileName="my-plates" />);
+
+    await user.click(screen.getByText("editor.download"));
+    const dialog = screen.getByRole("dialog");
+    expect(within(dialog).queryByText("editor.registerPlatform")).toBeNull();
+
+    await chooseFormat(user, "editor.formatPsd");
+    await user.click(within(dialog).getByText("editor.downloadAction"));
+    await vi.waitFor(() =>
+      expect(exportFiles.downloadBlob).toHaveBeenCalledWith(
+        expect.any(Blob),
+        "my-plates.psd",
+      ),
+    );
+  });
+
+  it("상세페이지는 등록 플랫폼을 계속 묻는다", async () => {
+    const user = userEvent.setup();
+    render(<DetailPageDownloadDialog store={makeStore(1)} />);
+
+    await user.click(screen.getByText("editor.download"));
+    expect(
+      within(screen.getByRole("dialog")).getByText("editor.registerPlatform"),
+    ).toBeInTheDocument();
   });
 
   it("exports each page via store.toDataURL and triggers a download", async () => {
