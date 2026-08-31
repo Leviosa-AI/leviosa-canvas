@@ -17,6 +17,7 @@
   "exports": {
     ".": "./index.ts",
     "./package.json": "./package.json",
+    "./config/*": "./config/*",
     "./tokens.css": "./styles/tokens.css",
     "./canvas-bridge.css": "./styles/canvas-bridge.css",
     "./host": "./components/detail-page/detail-page-host-context.tsx",

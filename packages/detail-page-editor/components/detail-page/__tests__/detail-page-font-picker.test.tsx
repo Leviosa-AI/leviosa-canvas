@@ -184,6 +184,29 @@ describe("DetailPageFontPicker", () => {
     expect(all).toHaveAttribute("aria-pressed", "true");
   });
 
+  /**
+   * 소비자 앱(leviosa-agency)의 `--color-accent` 는 먹이다. 목록 행이 그 이름을
+   * 빌려 쓰면 호버한 순간 행이 새까매지고 미리보기도 이름표도 사라진다.
+   * 강조색이 아니라 편집기 회색 토큰으로 칠하는지 클래스로 못박는다.
+   */
+  it("tints a hovered row with the editor's own gray, never the host accent", async () => {
+    const user = userEvent.setup();
+    render(
+      <DetailPageFontPicker
+        value="Roboto"
+        text="Hello"
+        documentFamilies={["Roboto"]}
+        onSelect={vi.fn().mockResolvedValue(undefined)}
+      />,
+    );
+
+    await user.click(screen.getByRole("button", { name: "detailPage.properties.chooseFont" }));
+    for (const option of screen.getAllByRole("option")) {
+      expect(option.className).toContain("data-[selected=true]:bg-dpe-ink-100");
+      expect(option.className).not.toMatch(/bg-accent|accent-foreground/);
+    }
+  });
+
   it("keeps the picker open and reports a failed font load", async () => {
     const user = userEvent.setup();
     render(

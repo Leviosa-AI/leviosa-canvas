@@ -112,10 +112,27 @@ registerDetailPageEditorTranslations(i18n, {
 | 묶음 | 무엇 | 어떻게 얻나 |
 |---|---|---|
 | `render-fonts` | 번들 폰트 CSS·바이트 | `leviosa-konva-fonts --prefix=<basePath>/render-fonts/fonts/ --out=public/render-fonts` (`@leviosa-ai/konva` 의 CLI) |
-| `detail-font-previews`, `cardnews-font-previews` | 폰트 피커 미리보기 WebP | 아직 소비자 쪽 빌드 스크립트다(`leviosa-frontend/scripts/generate-font-previews.mjs`). 없으면 피커가 이름을 그 폰트로 그려 대신한다 |
+| `detail-font-previews` | **추천 글꼴**(CDN 카탈로그 22종) 미리보기 WebP | 소비자 빌드 스크립트가 `@leviosa-ai/detail-page-editor/config/detail-page-fonts.json` 을 읽어 굽는다 |
+| `cardnews-font-previews` | **기본 글꼴**(번들 폰트) 미리보기 WebP | 같은 스크립트가 `render-fonts` 번들 바이트로 굽는다. 파일 이름은 konva 카탈로그의 `id` |
 | `gif-effect-previews` | GIF 효과 미리보기 | 소싱 저장소의 `scripts/detail_page_gif_effect_previews.py` 산출물 |
 
 `--prefix` 에 basePath 를 넣는 것을 잊으면 CSS 안의 폰트 파일 주소가 앱 바깥을 가리킨다.
+
+미리보기 WebP 를 안 구우면 피커는 이름을 그 폰트로 그려 대신하는데, **추천 글꼴은 그 폴백도
+안 먹는다** — 카탈로그 폰트의 `@font-face` 는 그 폰트를 고른 뒤에야 선언되므로, 굽지 않은
+행은 전부 기본 UI 폰트로 똑같이 보인다. 번들 글꼴만 폴백이 제대로 산다(프리즈된 스타일시트가
+이미 `@font-face` 를 깔아 둔다). 즉 미리보기는 있으면 좋은 게 아니라 추천 글꼴 목록의 전제다.
+
+두 폴더 이름을 소비자가 이미 다르게 쓰고 있다면 폴더를 옮기지 말고 주소를 알려 준다 —
+`configureDetailPageEditor` 의 `assets` 가 그 자리다. leviosa-agency 는 브랜드 스타일가이드
+피커가 쓰던 `public/font-previews` 를 그대로 재사용한다.
+
+```ts
+configureDetailPageEditor({
+  basePath: "/agency",
+  assets: { cardnewsFontPreviews: "/agency/font-previews" },
+});
+```
 
 ## 6. AI 편집 버튼이 안 보인다면
 
