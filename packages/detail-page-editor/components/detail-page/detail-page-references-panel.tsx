@@ -99,7 +99,7 @@ export function DetailPageReferencesPanel({
           type="button"
           disabled={!activeBrandId || saveMutation.isPending}
           onClick={() => saveMutation.mutate()}
-          className="mb-3 flex h-16 w-full flex-col items-center justify-center gap-1 rounded-dpe-md border border-dashed border-dpe-ink-300 text-dpe-ink-400 transition-colors hover:border-dpe-ink-400 hover:text-dpe-ink-600 disabled:opacity-40"
+          className="mb-3 flex h-16 w-full flex-col items-center justify-center gap-1 rounded-le-md border border-dashed border-le-ink-300 text-le-ink-400 transition-colors hover:border-le-ink-400 hover:text-le-ink-600 disabled:opacity-40"
         >
           {saveMutation.isPending ? (
             <Loader2 aria-hidden="true" className="animate-spin" size={18} />
@@ -111,21 +111,21 @@ export function DetailPageReferencesPanel({
       ) : null}
 
       {error ? (
-        <p className="mb-2 text-xs font-dpe-medium text-dpe-danger-600">{error}</p>
+        <p className="mb-2 text-xs font-le-medium text-le-danger-600">{error}</p>
       ) : null}
 
       {brandsLoading || listQuery.isLoading ? (
-        <div className="flex flex-1 items-center justify-center text-dpe-ink-400">
+        <div className="flex flex-1 items-center justify-center text-le-ink-400">
           <Loader2 aria-hidden="true" className="animate-spin" size={22} />
         </div>
       ) : !activeBrand ? (
-        <p className="text-xs text-dpe-ink-400">브랜드를 먼저 골라 주세요.</p>
+        <p className="text-xs text-le-ink-400">브랜드를 먼저 골라 주세요.</p>
       ) : listQuery.error ? (
-        <p className="text-xs font-dpe-medium text-dpe-danger-600">
+        <p className="text-xs font-le-medium text-le-danger-600">
           레퍼런스를 불러오지 못했어요.
         </p>
       ) : groups.length === 0 ? (
-        <div className="flex flex-1 flex-col items-center justify-center gap-2 text-center text-dpe-ink-400">
+        <div className="flex flex-1 flex-col items-center justify-center gap-2 text-center text-le-ink-400">
           <ImageOff aria-hidden="true" size={22} />
           <p className="text-xs">
             아직 저장한 레퍼런스가 없어요. 마음에 드는 상세페이지를 저장해 두면 다음
@@ -136,15 +136,15 @@ export function DetailPageReferencesPanel({
         <div className="space-y-4 overflow-y-auto">
           {groups.map((group) => (
             <section key={group.key}>
-              <h3 className="mb-1.5 truncate text-[11px] font-dpe-medium text-dpe-ink-600">
+              <h3 className="mb-1.5 truncate text-[11px] font-le-medium text-le-ink-600">
                 {group.name}
-                <span className="ml-1 text-dpe-ink-400">{group.items.length}장</span>
+                <span className="ml-1 text-le-ink-400">{group.items.length}장</span>
               </h3>
               <div className="grid grid-cols-2 gap-2">
                 {group.items.map((item) => (
                   <figure
                     key={item.asset_id}
-                    className="overflow-hidden rounded-dpe-md border border-dpe-ink-200"
+                    className="overflow-hidden rounded-le-md border border-le-ink-200"
                     title={item.screen_label || item.display_name}
                   >
                     {/* eslint-disable-next-line @next/next/no-img-element */}

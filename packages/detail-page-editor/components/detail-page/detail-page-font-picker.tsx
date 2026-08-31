@@ -114,14 +114,14 @@ export function DetailPageFontPicker({
         )}
       </span>
       {font.latinOnly ? (
-        <span className="shrink-0 rounded border border-dpe-ink-200 px-1 py-0.5 text-[10px] leading-none text-dpe-ink-500">
+        <span className="shrink-0 rounded border border-le-ink-200 px-1 py-0.5 text-[10px] leading-none text-le-ink-500">
           {t("detailPage.properties.fontLatinOnly")}
         </span>
       ) : null}
       {loading === font.family ? (
         <LoaderCircle
           aria-label={t("detailPage.properties.fontLoading")}
-          className="shrink-0 animate-spin text-dpe-ink-500"
+          className="shrink-0 animate-spin text-le-ink-500"
           size={15}
         />
       ) : value === font.family ? (
@@ -143,10 +143,10 @@ export function DetailPageFontPicker({
           type="button"
           aria-label={t("detailPage.properties.chooseFont")}
           aria-expanded={open}
-          className="flex min-w-0 items-center justify-between gap-2 rounded-dpe-md border border-dpe-ink-200 bg-dpe-surface px-2 py-1.5 text-left text-sm text-dpe-ink-900 outline-none hover:bg-dpe-ink-50 focus:border-dpe-ink-400"
+          className="flex min-w-0 items-center justify-between gap-2 rounded-le-md border border-le-ink-200 bg-le-surface px-2 py-1.5 text-left text-sm text-le-ink-900 outline-none hover:bg-le-ink-50 focus:border-le-ink-400"
         >
           <span className="min-w-0 truncate">{selected?.label ?? value}</span>
-          <ChevronDown aria-hidden="true" className="shrink-0 text-dpe-ink-400" size={14} />
+          <ChevronDown aria-hidden="true" className="shrink-0 text-le-ink-400" size={14} />
         </button>
       </PopoverPrimitive.Trigger>
       <PopoverPrimitive.Portal>
@@ -155,12 +155,12 @@ export function DetailPageFontPicker({
           align="start"
           sideOffset={8}
           collisionPadding={12}
-          className="z-[120] w-[340px] overflow-hidden rounded-dpe-lg border border-dpe-ink-200 bg-dpe-surface shadow-[0_10px_32px_rgba(0,0,0,0.14)]"
+          className="z-[120] w-[340px] overflow-hidden rounded-le-lg border border-le-ink-200 bg-le-surface shadow-[0_10px_32px_rgba(0,0,0,0.14)]"
         >
           <div
             role="group"
             aria-label={t("detailPage.properties.fontTagFilter")}
-            className="flex flex-wrap gap-1 border-b border-dpe-ink-100 px-2 py-2"
+            className="flex flex-wrap gap-1 border-b border-le-ink-100 px-2 py-2"
           >
             <button
               type="button"
@@ -168,8 +168,8 @@ export function DetailPageFontPicker({
               onClick={() => setTags([])}
               className={`rounded-full border px-2 py-0.5 text-[11px] leading-4 transition-colors ${
                 tags.length === 0
-                  ? "border-dpe-ink-900 bg-dpe-ink-900 text-dpe-on-accent"
-                  : "border-dpe-ink-200 text-dpe-ink-600 hover:bg-dpe-ink-50"
+                  ? "border-le-ink-900 bg-le-ink-900 text-le-on-accent"
+                  : "border-le-ink-200 text-le-ink-600 hover:bg-le-ink-50"
               }`}
             >
               {t("detailPage.properties.fontTagAll")}
@@ -182,8 +182,8 @@ export function DetailPageFontPicker({
                 onClick={() => toggleTag(tag)}
                 className={`rounded-full border px-2 py-0.5 text-[11px] leading-4 transition-colors ${
                   tags.includes(tag)
-                    ? "border-dpe-ink-900 bg-dpe-ink-900 text-dpe-on-accent"
-                    : "border-dpe-ink-200 text-dpe-ink-600 hover:bg-dpe-ink-50"
+                    ? "border-le-ink-900 bg-le-ink-900 text-le-on-accent"
+                    : "border-le-ink-200 text-le-ink-600 hover:bg-le-ink-50"
                 }`}
               >
                 {t(`detailPage.fontTags.${tag}`)}
@@ -229,22 +229,22 @@ export function DetailPageFontPicker({
             </CommandList>
           </Command>
           {hasHangul ? (
-            <p className="border-t border-dpe-ink-100 px-3 py-2 text-xs text-dpe-ink-500">
+            <p className="border-t border-le-ink-100 px-3 py-2 text-xs text-le-ink-500">
               {t("detailPage.properties.fontLatinOnlyUnavailable")}
             </p>
           ) : null}
           {error ? (
-            <p role="alert" className="border-t border-dpe-danger-100 bg-dpe-danger-50 px-3 py-2 text-xs text-dpe-danger-600">
+            <p role="alert" className="border-t border-le-danger-100 bg-le-danger-50 px-3 py-2 text-xs text-le-danger-600">
               {t("detailPage.properties.fontLoadFailed")}
             </p>
           ) : null}
           {selected ? (
-            <div className="border-t border-dpe-ink-100 px-3 py-2 text-[11px] leading-4 text-dpe-ink-500">
+            <div className="border-t border-le-ink-100 px-3 py-2 text-[11px] leading-4 text-le-ink-500">
               <a
                 href={selected.licenseUrl}
                 target="_blank"
                 rel="noreferrer"
-                className="font-dpe-medium text-dpe-ink-700 underline decoration-dpe-ink-300 underline-offset-2"
+                className="font-le-medium text-le-ink-700 underline decoration-le-ink-300 underline-offset-2"
               >
                 {t("detailPage.properties.fontLicense")}: {selected.licenseName}
               </a>
@@ -255,7 +255,7 @@ export function DetailPageFontPicker({
               ) : null}
             </div>
           ) : null}
-          <PopoverPrimitive.Arrow className="fill-dpe-on-accent" />
+          <PopoverPrimitive.Arrow className="fill-le-on-accent" />
         </PopoverPrimitive.Content>
       </PopoverPrimitive.Portal>
     </PopoverPrimitive.Root>

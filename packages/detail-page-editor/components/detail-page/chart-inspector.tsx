@@ -80,7 +80,7 @@ function Cell({
           (e.target as HTMLInputElement).blur();
         }
       }}
-      className={`w-full min-w-0 rounded-dpe-md border border-dpe-ink-200 bg-dpe-surface px-2 py-1.5 text-sm text-dpe-ink-900 outline-none focus:border-dpe-ink-400 ${
+      className={`w-full min-w-0 rounded-le-md border border-le-ink-200 bg-le-surface px-2 py-1.5 text-sm text-le-ink-900 outline-none focus:border-le-ink-400 ${
         align === "right" ? "text-right tabular-nums" : ""
       }`}
     />
@@ -220,10 +220,10 @@ export const ChartInspector = observer(function ChartInspector({
               type="button"
               aria-pressed={kind === spec.kind}
               onClick={() => apply({ kind })}
-              className={`h-8 rounded-dpe-md border text-xs transition-colors ${
+              className={`h-8 rounded-le-md border text-xs transition-colors ${
                 kind === spec.kind
-                  ? "border-dpe-ink-300 bg-dpe-ink-100 font-dpe-semibold text-dpe-ink-900"
-                  : "border-dpe-ink-200 bg-dpe-surface text-dpe-ink-600 hover:bg-dpe-ink-50"
+                  ? "border-le-ink-300 bg-le-ink-100 font-le-semibold text-le-ink-900"
+                  : "border-le-ink-200 bg-le-surface text-le-ink-600 hover:bg-le-ink-50"
               }`}
             >
               {t(`detailPage.chart.kinds.${kind}`)}
@@ -231,7 +231,7 @@ export const ChartInspector = observer(function ChartInspector({
           ))}
         </div>
         {resolved.hiddenSeries > 0 ? (
-          <p className="mt-2 text-[11px] text-dpe-warn-600">
+          <p className="mt-2 text-[11px] text-le-warn-600">
             {t("detailPage.chart.hiddenSeries", { count: resolved.hiddenSeries })}
           </p>
         ) : null}
@@ -239,7 +239,7 @@ export const ChartInspector = observer(function ChartInspector({
 
       <Section title={t("detailPage.chart.data")}>
         <div onPaste={onPaste}>
-          <div className="flex items-center gap-1.5 pb-1 text-[11px] text-dpe-ink-400">
+          <div className="flex items-center gap-1.5 pb-1 text-[11px] text-le-ink-400">
             <span className="flex-1">{t("detailPage.chart.columnLabel")}</span>
             {spec.data.series.map((series) => (
               <span key={series.name} className="w-20 text-right">
@@ -296,7 +296,7 @@ export const ChartInspector = observer(function ChartInspector({
                       },
                     })
                   }
-                  className="flex h-8 w-6 shrink-0 items-center justify-center rounded-dpe-md text-dpe-ink-400 hover:text-dpe-danger-500 disabled:cursor-not-allowed disabled:opacity-30"
+                  className="flex h-8 w-6 shrink-0 items-center justify-center rounded-le-md text-le-ink-400 hover:text-le-danger-500 disabled:cursor-not-allowed disabled:opacity-30"
                 >
                   <Trash2 size={14} />
                 </button>
@@ -306,12 +306,12 @@ export const ChartInspector = observer(function ChartInspector({
           <button
             type="button"
             onClick={() => setData(withRowAdded(spec.data))}
-            className="mt-2 inline-flex h-8 w-full items-center justify-center gap-1.5 rounded-dpe-md border border-dpe-ink-200 bg-dpe-surface text-xs font-dpe-medium text-dpe-ink-600 hover:bg-dpe-ink-50"
+            className="mt-2 inline-flex h-8 w-full items-center justify-center gap-1.5 rounded-le-md border border-le-ink-200 bg-le-surface text-xs font-le-medium text-le-ink-600 hover:bg-le-ink-50"
           >
             <Plus size={14} />
             {t("detailPage.chart.addRow")}
           </button>
-          <p className="mt-1.5 text-[11px] text-dpe-ink-400">
+          <p className="mt-1.5 text-[11px] text-le-ink-400">
             {notice ?? t("detailPage.chart.pasteHint")}
           </p>
         </div>
@@ -320,7 +320,7 @@ export const ChartInspector = observer(function ChartInspector({
       <Section title={t("detailPage.chart.display")}>
         <div className="grid grid-cols-2 gap-2">
           <label className="flex items-center gap-2">
-            <span className="w-10 shrink-0 text-xs text-dpe-ink-500">
+            <span className="w-10 shrink-0 text-xs text-le-ink-500">
               {t("detailPage.chart.unit")}
             </span>
             <Cell
@@ -331,7 +331,7 @@ export const ChartInspector = observer(function ChartInspector({
             />
           </label>
           <label className="flex items-center gap-2">
-            <span className="w-10 shrink-0 text-xs text-dpe-ink-500">
+            <span className="w-10 shrink-0 text-xs text-le-ink-500">
               {t("detailPage.chart.decimals")}
             </span>
             <NumberField
@@ -375,14 +375,14 @@ export const ChartInspector = observer(function ChartInspector({
 
         <div className="mt-2 grid grid-cols-2 gap-2">
           <label className="flex items-center gap-2">
-            <span className="w-10 shrink-0 text-xs text-dpe-ink-500">
+            <span className="w-10 shrink-0 text-xs text-le-ink-500">
               {t("detailPage.chart.max")}
             </span>
             {spec.options.max === "auto" ? (
               <button
                 type="button"
                 onClick={() => setOptions({ max: Math.round(resolved.max) })}
-                className="h-8 min-w-0 flex-1 rounded-dpe-md border border-dpe-ink-200 bg-dpe-surface text-xs text-dpe-ink-500 hover:bg-dpe-ink-50"
+                className="h-8 min-w-0 flex-1 rounded-le-md border border-le-ink-200 bg-le-surface text-xs text-le-ink-500 hover:bg-le-ink-50"
               >
                 {t("detailPage.chart.maxAuto")}
               </button>
@@ -398,7 +398,7 @@ export const ChartInspector = observer(function ChartInspector({
             <button
               type="button"
               onClick={() => setOptions({ max: "auto" })}
-              className="h-8 rounded-dpe-md border border-dpe-ink-200 bg-dpe-surface text-xs text-dpe-ink-500 hover:bg-dpe-ink-50"
+              className="h-8 rounded-le-md border border-le-ink-200 bg-le-surface text-xs text-le-ink-500 hover:bg-le-ink-50"
             >
               {t("detailPage.chart.maxToAuto")}
             </button>
@@ -406,7 +406,7 @@ export const ChartInspector = observer(function ChartInspector({
         </div>
 
         <label className="mt-2 flex items-center gap-2">
-          <span className="w-10 shrink-0 text-xs text-dpe-ink-500">
+          <span className="w-10 shrink-0 text-xs text-le-ink-500">
             {t("detailPage.chart.highlight")}
           </span>
           <select
@@ -418,7 +418,7 @@ export const ChartInspector = observer(function ChartInspector({
                   event.target.value === "" ? null : Number(event.target.value),
               })
             }
-            className="h-8 min-w-0 flex-1 rounded-dpe-md border border-dpe-ink-200 bg-dpe-surface px-2 text-xs text-dpe-ink-700 outline-none focus:border-dpe-ink-400"
+            className="h-8 min-w-0 flex-1 rounded-le-md border border-le-ink-200 bg-le-surface px-2 text-xs text-le-ink-700 outline-none focus:border-le-ink-400"
           >
             <option value="">{t("detailPage.chart.highlightNone")}</option>
             {spec.data.labels.map((label, index) => (
@@ -437,7 +437,7 @@ export const ChartInspector = observer(function ChartInspector({
         <div className="flex flex-col gap-2">
           {slots.map((slot) => (
             <label key={slot.index} className="flex items-center gap-2">
-              <span className="w-16 shrink-0 truncate text-xs text-dpe-ink-500">
+              <span className="w-16 shrink-0 truncate text-xs text-le-ink-500">
                 {scope === "highlight"
                   ? t("detailPage.chart.color.accent")
                   : slot.name ||
@@ -457,7 +457,7 @@ export const ChartInspector = observer(function ChartInspector({
             </label>
           ))}
           {scope !== "highlight" && slotsTruncated ? (
-            <p className="text-[11px] leading-relaxed text-dpe-ink-400">
+            <p className="text-[11px] leading-relaxed text-le-ink-400">
               {t("detailPage.chart.color.moreSlots", { count: MAX_PALETTE_SLOTS })}
             </p>
           ) : null}
@@ -471,7 +471,7 @@ export const ChartInspector = observer(function ChartInspector({
             ] as const
           ).map(([key, value]) => (
             <label key={key} className="flex items-center gap-2">
-              <span className="w-16 shrink-0 text-xs text-dpe-ink-500">
+              <span className="w-16 shrink-0 text-xs text-le-ink-500">
                 {t(`detailPage.chart.color.${key}`)}
               </span>
               <ColorInput
@@ -491,7 +491,7 @@ export const ChartInspector = observer(function ChartInspector({
       <Section title={t("detailPage.chart.shape")}>
         <div className="grid grid-cols-2 gap-2">
           <label className="flex items-center gap-2">
-            <span className="w-10 shrink-0 text-xs text-dpe-ink-500">
+            <span className="w-10 shrink-0 text-xs text-le-ink-500">
               {t("detailPage.chart.barSize")}
             </span>
             <NumberField
@@ -501,7 +501,7 @@ export const ChartInspector = observer(function ChartInspector({
             />
           </label>
           <label className="flex items-center gap-2">
-            <span className="w-10 shrink-0 text-xs text-dpe-ink-500">
+            <span className="w-10 shrink-0 text-xs text-le-ink-500">
               {t("detailPage.chart.gap")}
             </span>
             <NumberField
@@ -517,12 +517,12 @@ export const ChartInspector = observer(function ChartInspector({
         <button
           type="button"
           onClick={() => detachChart(el)}
-          className="inline-flex h-9 w-full items-center justify-center gap-2 rounded-dpe-md border border-dpe-ink-200 bg-dpe-surface text-sm font-dpe-semibold text-dpe-ink-700 hover:bg-dpe-ink-50"
+          className="inline-flex h-9 w-full items-center justify-center gap-2 rounded-le-md border border-le-ink-200 bg-le-surface text-sm font-le-semibold text-le-ink-700 hover:bg-le-ink-50"
         >
           <Unlink aria-hidden="true" size={15} />
           {t("detailPage.chart.detach")}
         </button>
-        <p className="mt-1.5 text-[11px] text-dpe-ink-400">
+        <p className="mt-1.5 text-[11px] text-le-ink-400">
           {t("detailPage.chart.detachHint")}
         </p>
       </Section>

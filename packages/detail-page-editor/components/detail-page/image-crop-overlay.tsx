@@ -428,13 +428,13 @@ export function ImageCropOverlay({
         data-dp-crop-bar=""
         onPointerDown={(event) => event.stopPropagation()}
         style={{ position: "absolute", ...barPosition, transform: "translateX(-50%)" }}
-        className="flex items-center gap-2 rounded-dpe-xl border border-dpe-ink-200 bg-dpe-surface/95 py-1.5 pl-3 pr-1.5 shadow-md backdrop-blur-sm"
+        className="flex items-center gap-2 rounded-le-xl border border-le-ink-200 bg-le-surface/95 py-1.5 pl-3 pr-1.5 shadow-md backdrop-blur-sm"
       >
-        <span className="text-[13px] font-dpe-semibold text-dpe-ink-900">
+        <span className="text-[13px] font-le-semibold text-le-ink-900">
           {t("detailPage.crop.title")}
         </span>
 
-        <span className="h-5 w-px bg-dpe-ink-200" aria-hidden="true" />
+        <span className="h-5 w-px bg-le-ink-200" aria-hidden="true" />
 
         {/* 확대 — 1배는 원본을 다 쓰는 자리, 키울수록 가운데를 지키며 좁아진다. */}
         <input
@@ -447,7 +447,7 @@ export function ImageCropOverlay({
           onChange={(event) =>
             setRect(zoomRect(rect, start.image, aspect, Number(event.target.value)))
           }
-          className="h-1 w-32 accent-dpe-ink-900"
+          className="h-1 w-32 accent-le-ink-900"
         />
 
         {/* 비율 — 고르면 그 자리에서 상자를 그 비율로 맞추고, 이후 손잡이도 따라 움직인다. */}
@@ -459,8 +459,8 @@ export function ImageCropOverlay({
             title={t(`detailPage.crop.presets.${presetId}`)}
             onClick={() => setMenuOpen((open) => !open)}
             className={[
-              "flex h-8 items-center gap-0.5 rounded-dpe-md px-1.5 text-dpe-ink-700 transition-colors",
-              menuOpen ? "bg-dpe-ink-100" : "hover:bg-dpe-ink-100",
+              "flex h-8 items-center gap-0.5 rounded-le-md px-1.5 text-le-ink-700 transition-colors",
+              menuOpen ? "bg-le-ink-100" : "hover:bg-le-ink-100",
             ].join(" ")}
           >
             <Proportions aria-hidden="true" size={16} />
@@ -470,12 +470,12 @@ export function ImageCropOverlay({
             <div
               role="menu"
               data-dp-crop-presets=""
-              className="absolute bottom-10 left-1/2 z-10 w-44 -translate-x-1/2 rounded-dpe-lg border border-dpe-ink-200 bg-dpe-surface py-1 shadow-lg"
+              className="absolute bottom-10 left-1/2 z-10 w-44 -translate-x-1/2 rounded-le-lg border border-le-ink-200 bg-le-surface py-1 shadow-lg"
             >
               {CROP_PRESETS.map((item, index) => (
                 <div key={item.id}>
                   {index > 0 && item.group !== CROP_PRESETS[index - 1].group ? (
-                    <div className="my-1 border-t border-dpe-ink-100" />
+                    <div className="my-1 border-t border-le-ink-100" />
                   ) : null}
                   <button
                     type="button"
@@ -483,7 +483,7 @@ export function ImageCropOverlay({
                     aria-checked={item.id === presetId}
                     data-dp-crop-preset={item.id}
                     onClick={() => choosePreset(item)}
-                    className="flex h-[30px] w-full items-center gap-2 px-3 text-left text-[13px] text-dpe-ink-700 transition-colors hover:bg-dpe-ink-100"
+                    className="flex h-[30px] w-full items-center gap-2 px-3 text-left text-[13px] text-le-ink-700 transition-colors hover:bg-le-ink-100"
                   >
                     <Check
                       aria-hidden="true"
@@ -505,17 +505,17 @@ export function ImageCropOverlay({
           aria-label={t("detailPage.crop.reset")}
           title={t("detailPage.crop.reset")}
           onClick={() => setRect(fitRect(start.image, aspect))}
-          className="flex h-8 w-8 items-center justify-center rounded-dpe-md text-dpe-ink-700 transition-colors hover:bg-dpe-ink-100"
+          className="flex h-8 w-8 items-center justify-center rounded-le-md text-le-ink-700 transition-colors hover:bg-le-ink-100"
         >
           <Minimize2 aria-hidden="true" size={15} />
         </button>
 
-        <span className="h-5 w-px bg-dpe-ink-200" aria-hidden="true" />
+        <span className="h-5 w-px bg-le-ink-200" aria-hidden="true" />
 
         <button
           type="button"
           onClick={() => onClose(false)}
-          className="flex h-8 items-center rounded-dpe-md px-2.5 text-[13px] font-dpe-medium text-dpe-ink-600 transition-colors hover:bg-dpe-ink-100"
+          className="flex h-8 items-center rounded-le-md px-2.5 text-[13px] font-le-medium text-le-ink-600 transition-colors hover:bg-le-ink-100"
         >
           <X aria-hidden="true" size={14} className="mr-1" />
           {t("detailPage.crop.cancel")}
@@ -525,7 +525,7 @@ export function ImageCropOverlay({
           data-dp-crop-apply=""
           aria-label={t("detailPage.crop.apply")}
           onClick={apply}
-          className="flex h-8 w-8 items-center justify-center rounded-dpe-md bg-dpe-active-600 text-dpe-on-accent"
+          className="flex h-8 w-8 items-center justify-center rounded-le-md bg-le-active-600 text-le-on-accent"
         >
           <Check aria-hidden="true" size={16} />
         </button>

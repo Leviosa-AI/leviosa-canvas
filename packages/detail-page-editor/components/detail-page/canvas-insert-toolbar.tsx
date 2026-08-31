@@ -49,7 +49,7 @@ function Menu({
   return (
     <div
       role="menu"
-      className="absolute bottom-11 left-1/2 z-10 w-44 -translate-x-1/2 rounded-dpe-lg border border-dpe-ink-200 bg-dpe-surface py-1 shadow-lg"
+      className="absolute bottom-11 left-1/2 z-10 w-44 -translate-x-1/2 rounded-le-lg border border-le-ink-200 bg-le-surface py-1 shadow-lg"
     >
       {children}
     </div>
@@ -73,7 +73,7 @@ function MenuItem({
       role="menuitem"
       data-dp-insert-item={testId}
       onClick={onClick}
-      className="flex h-[30px] w-full items-center gap-2 px-3 text-left text-[13px] text-dpe-ink-700 transition-colors hover:bg-dpe-ink-100"
+      className="flex h-[30px] w-full items-center gap-2 px-3 text-left text-[13px] text-le-ink-700 transition-colors hover:bg-le-ink-100"
     >
       {children}
       {label}
@@ -106,7 +106,7 @@ function InsertGroup({
         type="button"
         data-dp-insert-primary={label}
         onClick={onPrimary}
-        className="flex h-9 items-center gap-1.5 rounded-l-dpe-lg px-2.5 text-[13px] font-dpe-medium text-dpe-ink-700 transition-colors hover:bg-dpe-ink-100 hover:text-dpe-ink-900"
+        className="flex h-9 items-center gap-1.5 rounded-l-le-lg px-2.5 text-[13px] font-le-medium text-le-ink-700 transition-colors hover:bg-le-ink-100 hover:text-le-ink-900"
       >
         {icon}
         {label}
@@ -118,8 +118,8 @@ function InsertGroup({
         aria-label={`${label} …`}
         onClick={onToggle}
         className={[
-          "flex h-9 w-6 items-center justify-center rounded-r-dpe-lg text-dpe-ink-500 transition-colors hover:bg-dpe-ink-100 hover:text-dpe-ink-900",
-          open ? "bg-dpe-ink-100 text-dpe-ink-900" : "",
+          "flex h-9 w-6 items-center justify-center rounded-r-le-lg text-le-ink-500 transition-colors hover:bg-le-ink-100 hover:text-le-ink-900",
+          open ? "bg-le-ink-100 text-le-ink-900" : "",
         ].join(" ")}
       >
         <ChevronDown aria-hidden="true" size={13} />
@@ -184,7 +184,7 @@ export function CanvasInsertToolbar({ store }: { store: unknown }) {
     <div
       ref={root}
       data-dp-insert-toolbar=""
-      className="flex items-center gap-0.5 rounded-dpe-xl border border-dpe-ink-200 bg-dpe-surface/95 px-1 py-1 shadow-md backdrop-blur-sm"
+      className="flex items-center gap-0.5 rounded-le-xl border border-le-ink-200 bg-le-surface/95 px-1 py-1 shadow-md backdrop-blur-sm"
     >
       <InsertGroup
         label={t("detailPage.insert.text")}
@@ -202,7 +202,7 @@ export function CanvasInsertToolbar({ store }: { store: unknown }) {
             onClick={() => addText(preset)}
           />
         ))}
-        <div className="my-1 border-t border-dpe-ink-100" />
+        <div className="my-1 border-t border-le-ink-100" />
         <MenuItem
           testId="text-panel"
           label={t("detailPage.insert.moreText")}
@@ -226,14 +226,14 @@ export function CanvasInsertToolbar({ store }: { store: unknown }) {
           >
             <span
               aria-hidden="true"
-              className="block h-3.5 w-3.5 shrink-0 bg-dpe-ink-300"
+              className="block h-3.5 w-3.5 shrink-0 bg-le-ink-300"
               style={{
                 borderRadius: id === "circle" ? "9999px" : id === "rounded" ? 4 : 0,
               }}
             />
           </MenuItem>
         ))}
-        <div className="my-1 border-t border-dpe-ink-100" />
+        <div className="my-1 border-t border-le-ink-100" />
         {QUICK_SHAPE_IDS.map((id) => {
           const shape = BASIC_SHAPES.find((item) => item.id === id);
           if (!shape) return null;
@@ -252,7 +252,7 @@ export function CanvasInsertToolbar({ store }: { store: unknown }) {
             </MenuItem>
           );
         })}
-        <div className="my-1 border-t border-dpe-ink-100" />
+        <div className="my-1 border-t border-le-ink-100" />
         <MenuItem
           testId="shape-panel"
           label={t("detailPage.insert.moreShapes")}

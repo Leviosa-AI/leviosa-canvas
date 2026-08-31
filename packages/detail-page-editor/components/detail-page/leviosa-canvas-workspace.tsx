@@ -334,7 +334,7 @@ export function LeviosaCanvasWorkspace({
         <div
           data-dp-zoom-dock=""
           style={{ position: "absolute", right: DOCK_GAP, pointerEvents: "auto" }}
-          className="rounded-dpe-lg border border-dpe-ink-200 bg-dpe-surface/95 px-2 py-1 shadow-sm backdrop-blur-sm"
+          className="rounded-le-lg border border-le-ink-200 bg-le-surface/95 px-2 py-1 shadow-sm backdrop-blur-sm"
         >
           <ZoomButtons store={store} />
         </div>

@@ -142,20 +142,20 @@ export function DetailPageIconsPanel({ store }: { store: unknown }) {
 
       {group === "logos" ? (
         // 파일은 CC0지만 로고 자체는 상표다. 안내를 지우면 이용 조건을 어기는 쪽으로 샌다.
-        <p className="mx-3 mt-2 shrink-0 rounded-dpe-md bg-dpe-warn-50 px-2 py-1.5 text-[11px] leading-relaxed text-dpe-warn-800">
+        <p className="mx-3 mt-2 shrink-0 rounded-le-md bg-le-warn-50 px-2 py-1.5 text-[11px] leading-relaxed text-le-warn-800">
           {t("detailPage.icons.logoTrademark")}
         </p>
       ) : null}
 
       <div ref={scrollRef} className="mt-3 min-h-0 flex-1 overflow-y-auto px-3">
         {icons.isPending ? (
-          <div className="flex justify-center py-6 text-dpe-ink-400">
+          <div className="flex justify-center py-6 text-le-ink-400">
             <Loader2 aria-hidden="true" className="animate-spin" size={20} />
           </div>
         ) : icons.isError ? (
-          <p className="text-xs text-dpe-danger-600">{t("detailPage.icons.failed")}</p>
+          <p className="text-xs text-le-danger-600">{t("detailPage.icons.failed")}</p>
         ) : cells.length === 0 ? (
-          <div className="flex flex-col items-center gap-2 py-6 text-center text-dpe-ink-400">
+          <div className="flex flex-col items-center gap-2 py-6 text-center text-le-ink-400">
             <ImageOff aria-hidden="true" size={20} />
             <p className="text-xs">{t("detailPage.icons.empty")}</p>
           </div>
@@ -169,7 +169,7 @@ export function DetailPageIconsPanel({ store }: { store: unknown }) {
                   onClick={() => insert(item, markup)}
                   title={t("detailPage.shapes.insertHint")}
                   aria-label={item.id}
-                  className="flex aspect-square items-center justify-center rounded-dpe-lg border border-dpe-ink-200 p-1.5 hover:border-dpe-ink-400"
+                  className="flex aspect-square items-center justify-center rounded-le-lg border border-le-ink-200 p-1.5 hover:border-le-ink-400"
                 >
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
@@ -182,7 +182,7 @@ export function DetailPageIconsPanel({ store }: { store: unknown }) {
             </div>
             <div ref={sentinelRef} aria-hidden="true" className="h-px" />
             {isFetchingNextPage ? (
-              <div className="flex justify-center py-3 text-dpe-ink-400">
+              <div className="flex justify-center py-3 text-le-ink-400">
                 <Loader2 aria-hidden="true" className="animate-spin" size={16} />
               </div>
             ) : hasNextPage ? (
@@ -190,13 +190,13 @@ export function DetailPageIconsPanel({ store }: { store: unknown }) {
               <button
                 type="button"
                 onClick={() => void fetchNextPage()}
-                className="mt-2 w-full rounded-dpe-md border border-dpe-ink-200 py-1.5 text-[11px] font-dpe-medium text-dpe-ink-500 hover:bg-dpe-ink-50"
+                className="mt-2 w-full rounded-le-md border border-le-ink-200 py-1.5 text-[11px] font-le-medium text-le-ink-500 hover:bg-le-ink-50"
               >
                 {t("detailPage.icons.loadMore")}
               </button>
             ) : truncated ? (
               // 조용히 자르면 "이게 전부"로 읽힌다.
-              <p className="mt-2 px-1 text-[11px] text-dpe-ink-400">
+              <p className="mt-2 px-1 text-[11px] text-le-ink-400">
                 {t("detailPage.icons.truncated")}
               </p>
             ) : null}
@@ -204,7 +204,7 @@ export function DetailPageIconsPanel({ store }: { store: unknown }) {
         )}
       </div>
 
-      <p className="shrink-0 border-t border-dpe-ink-100 px-3 py-2 text-[11px] leading-relaxed text-dpe-ink-500">
+      <p className="shrink-0 border-t border-le-ink-100 px-3 py-2 text-[11px] leading-relaxed text-le-ink-500">
         {t("detailPage.icons.licenseHint")}
       </p>
     </div>
@@ -226,7 +226,7 @@ function SegmentedGroup<T extends string>({
     <div
       role="group"
       aria-label={label}
-      className="flex flex-1 rounded-dpe-md border border-dpe-ink-200 p-0.5"
+      className="flex flex-1 rounded-le-md border border-le-ink-200 p-0.5"
     >
       {options.map((option) => {
         const active = option.value === value;
@@ -236,10 +236,10 @@ function SegmentedGroup<T extends string>({
             type="button"
             aria-pressed={active}
             onClick={() => onChange(option.value)}
-            className={`flex-1 rounded px-2 py-1 text-[11px] font-dpe-medium transition-colors ${
+            className={`flex-1 rounded px-2 py-1 text-[11px] font-le-medium transition-colors ${
               active
-                ? "bg-dpe-ink-900 text-dpe-on-accent"
-                : "text-dpe-ink-500 hover:bg-dpe-ink-100"
+                ? "bg-le-ink-900 text-le-on-accent"
+                : "text-le-ink-500 hover:bg-le-ink-100"
             }`}
           >
             {option.label}

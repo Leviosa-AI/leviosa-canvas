@@ -166,8 +166,8 @@ export function FillControl({
           onClick={() => onChange(solid)}
           className={
             !isGradient
-              ? "h-8 rounded-dpe-md bg-dpe-ink-900 text-xs font-dpe-semibold text-dpe-on-accent"
-              : "h-8 rounded-dpe-md border border-dpe-ink-200 text-xs font-dpe-medium text-dpe-ink-600 hover:bg-dpe-ink-50"
+              ? "h-8 rounded-le-md bg-le-ink-900 text-xs font-le-semibold text-le-on-accent"
+              : "h-8 rounded-le-md border border-le-ink-200 text-xs font-le-medium text-le-ink-600 hover:bg-le-ink-50"
           }
         >
           {t("detailPage.properties.fillSolid")}
@@ -177,8 +177,8 @@ export function FillControl({
           onClick={() => emit(g)}
           className={
             isGradient
-              ? "h-8 rounded-dpe-md bg-dpe-ink-900 text-xs font-dpe-semibold text-dpe-on-accent"
-              : "h-8 rounded-dpe-md border border-dpe-ink-200 text-xs font-dpe-medium text-dpe-ink-600 hover:bg-dpe-ink-50"
+              ? "h-8 rounded-le-md bg-le-ink-900 text-xs font-le-semibold text-le-on-accent"
+              : "h-8 rounded-le-md border border-le-ink-200 text-xs font-le-medium text-le-ink-600 hover:bg-le-ink-50"
           }
         >
           {t("detailPage.properties.fillGradient")}
@@ -191,7 +191,7 @@ export function FillControl({
         <div className="flex flex-col gap-2">
           {/* 미리보기 바 */}
           <div
-            className="h-6 w-full rounded-dpe-md border border-dpe-ink-200"
+            className="h-6 w-full rounded-le-md border border-le-ink-200"
             style={{ background: value }}
             aria-hidden="true"
           />
@@ -212,16 +212,16 @@ export function FillControl({
                     value={Math.round(clampPos(s.pos))}
                     onChange={(e) => setStop(i, { pos: Number(e.target.value) })}
                     aria-label={t("detailPage.properties.gradientStopPosition")}
-                    className="w-14 rounded-dpe-md border border-dpe-ink-200 px-1.5 py-1 text-xs tabular-nums focus:border-dpe-ink-400 focus:outline-none"
+                    className="w-14 rounded-le-md border border-le-ink-200 px-1.5 py-1 text-xs tabular-nums focus:border-le-ink-400 focus:outline-none"
                   />
-                  <span className="text-[11px] text-dpe-ink-400">%</span>
+                  <span className="text-[11px] text-le-ink-400">%</span>
                 </div>
                 <button
                   type="button"
                   onClick={() => removeStop(i)}
                   disabled={g.stops.length <= 2}
                   aria-label={t("detailPage.properties.gradientRemoveStop")}
-                  className="rounded p-1 text-dpe-ink-400 hover:text-dpe-ink-700 disabled:cursor-not-allowed disabled:opacity-30"
+                  className="rounded p-1 text-le-ink-400 hover:text-le-ink-700 disabled:cursor-not-allowed disabled:opacity-30"
                 >
                   <X size={13} />
                 </button>
@@ -230,7 +230,7 @@ export function FillControl({
             <button
               type="button"
               onClick={addStop}
-              className="flex items-center justify-center gap-1 rounded-dpe-md border border-dashed border-dpe-ink-300 py-1.5 text-[11px] font-dpe-medium text-dpe-ink-500 hover:border-dpe-ink-400 hover:bg-dpe-ink-50"
+              className="flex items-center justify-center gap-1 rounded-le-md border border-dashed border-le-ink-300 py-1.5 text-[11px] font-le-medium text-le-ink-500 hover:border-le-ink-400 hover:bg-le-ink-50"
             >
               <Plus size={12} />
               {t("detailPage.properties.gradientAddStop")}
@@ -239,7 +239,7 @@ export function FillControl({
 
           {/* 각도 */}
           <label className="flex items-center gap-3">
-            <span className="w-8 shrink-0 text-[11px] text-dpe-ink-500">
+            <span className="w-8 shrink-0 text-[11px] text-le-ink-500">
               {t("detailPage.properties.gradientAngle")}
             </span>
             <input
@@ -248,9 +248,9 @@ export function FillControl({
               max={360}
               value={g.angle}
               onChange={(e) => emit({ ...g, angle: Number(e.target.value) })}
-              className="min-w-0 flex-1 accent-dpe-ink-900"
+              className="min-w-0 flex-1 accent-le-ink-900"
             />
-            <span className="w-10 text-right text-xs tabular-nums text-dpe-ink-700">
+            <span className="w-10 text-right text-xs tabular-nums text-le-ink-700">
               {Math.round(g.angle)}°
             </span>
           </label>

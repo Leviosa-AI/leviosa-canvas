@@ -17,15 +17,15 @@ export function BrandPanelHeader({ onRefresh }: { onRefresh: () => void }) {
 
   return (
     <div
-      data-dpe-part="panel-header"
+      data-le-part="panel-header"
       className="mb-3 flex items-center justify-between gap-2"
     >
-      <label className="grid min-w-0 flex-1 gap-1 text-[11px] font-dpe-medium text-dpe-ink-500">
+      <label className="grid min-w-0 flex-1 gap-1 text-[11px] font-le-medium text-le-ink-500">
         {t("detailPage.brandAssets.activeBrand")}
         <select
           value={activeBrandId ?? ""}
           onChange={(event) => setActiveBrandId(event.target.value)}
-          className="h-8 min-w-0 rounded-dpe-md border border-dpe-ink-200 bg-dpe-surface px-2 text-xs text-dpe-ink-800"
+          className="h-8 min-w-0 rounded-le-md border border-le-ink-200 bg-le-surface px-2 text-xs text-le-ink-800"
         >
           {brands.map((brand) => (
             <option key={brand.id} value={brand.id}>
@@ -37,7 +37,7 @@ export function BrandPanelHeader({ onRefresh }: { onRefresh: () => void }) {
       <button
         type="button"
         onClick={onRefresh}
-        className="mt-4 flex h-7 w-7 items-center justify-center rounded-dpe-md text-dpe-ink-400 hover:bg-dpe-ink-100 hover:text-dpe-ink-600"
+        className="mt-4 flex h-7 w-7 items-center justify-center rounded-le-md text-le-ink-400 hover:bg-le-ink-100 hover:text-le-ink-600"
         aria-label={t("detailPage.brandAssets.refresh")}
       >
         <RefreshCw aria-hidden="true" size={14} />

@@ -335,7 +335,7 @@ export const DetailPageDownloadDialog = observer(function DetailPageDownloadDial
         onClick={() => setOpen((v) => !v)}
         aria-haspopup="dialog"
         aria-expanded={open}
-        className="inline-flex h-9 items-center gap-2 rounded-dpe-md bg-dpe-ink-900 px-3 text-sm font-dpe-semibold text-dpe-on-accent transition-colors hover:bg-dpe-ink-800"
+        className="inline-flex h-9 items-center gap-2 rounded-le-md bg-le-ink-900 px-3 text-sm font-le-semibold text-le-on-accent transition-colors hover:bg-le-ink-800"
       >
         <Download aria-hidden="true" size={16} />
         {t("editor.download")}
@@ -345,17 +345,17 @@ export const DetailPageDownloadDialog = observer(function DetailPageDownloadDial
         <div
           role="dialog"
           aria-label={t("editor.downloadTitle")}
-          className="absolute right-0 top-[calc(100%+8px)] z-50 w-80 rounded-dpe-xl border border-dpe-ink-200 bg-dpe-surface p-4 shadow-[0_12px_40px_rgba(0,0,0,0.16)]"
+          className="absolute right-0 top-[calc(100%+8px)] z-50 w-80 rounded-le-xl border border-le-ink-200 bg-le-surface p-4 shadow-[0_12px_40px_rgba(0,0,0,0.16)]"
         >
           <div className="mb-3 flex items-center justify-between">
-            <h3 className="text-base font-dpe-semibold text-dpe-ink-950">
+            <h3 className="text-base font-le-semibold text-le-ink-950">
               {t("editor.downloadTitle")}
             </h3>
             <button
               type="button"
               onClick={() => setOpen(false)}
               aria-label={t("editor.close")}
-              className="flex h-7 w-7 items-center justify-center rounded-dpe-md text-dpe-ink-400 hover:bg-dpe-ink-100 hover:text-dpe-ink-700"
+              className="flex h-7 w-7 items-center justify-center rounded-le-md text-le-ink-400 hover:bg-le-ink-100 hover:text-le-ink-700"
             >
               <X size={16} />
             </button>
@@ -363,11 +363,11 @@ export const DetailPageDownloadDialog = observer(function DetailPageDownloadDial
 
           <div className="space-y-3">
             <div className="space-y-1.5">
-              <Label className="text-xs text-dpe-ink-500">{t("editor.fileFormat")}</Label>
+              <Label className="text-xs text-le-ink-500">{t("editor.fileFormat")}</Label>
               <Select value={format} onValueChange={(v) => setFormat(v as Format)}>
                 <SelectTrigger className="w-full">
                   <span className="inline-flex items-center gap-2">
-                    <ImageIcon size={15} className="text-dpe-ink-500" />
+                    <ImageIcon size={15} className="text-le-ink-500" />
                     <SelectValue />
                   </span>
                 </SelectTrigger>
@@ -387,7 +387,7 @@ export const DetailPageDownloadDialog = observer(function DetailPageDownloadDial
 
             {profile.registerPlatform && (
               <div className="space-y-1.5">
-                <Label className="text-xs text-dpe-ink-500">
+                <Label className="text-xs text-le-ink-500">
                   {t("editor.registerPlatform")}
                 </Label>
                 <Select value={platform} onValueChange={setPlatform}>
@@ -406,7 +406,7 @@ export const DetailPageDownloadDialog = observer(function DetailPageDownloadDial
             )}
 
             <div className="space-y-1.5">
-              <Label className="text-xs text-dpe-ink-500">{t("editor.pageScope")}</Label>
+              <Label className="text-xs text-le-ink-500">{t("editor.pageScope")}</Label>
               <Select value={scope} onValueChange={(v) => setScope(v as Scope)}>
                 <SelectTrigger className="w-full">
                   <SelectValue />
@@ -424,7 +424,7 @@ export const DetailPageDownloadDialog = observer(function DetailPageDownloadDial
             {format !== "psd" ? (
               <label className="flex cursor-pointer items-center gap-2.5 py-0.5">
                 <Switch checked={single} onCheckedChange={setSingle} />
-                <span className="text-sm text-dpe-ink-700">
+                <span className="text-sm text-le-ink-700">
                   {format === "ai"
                     ? t("editor.mergeArtboard")
                     : format === "svg"
@@ -437,8 +437,8 @@ export const DetailPageDownloadDialog = observer(function DetailPageDownloadDial
             {isRasterFormat(format) ? (
               <div className="space-y-1.5">
                 <div className="flex items-center justify-between">
-                  <Label className="text-xs text-dpe-ink-500">{t("editor.resolution")}</Label>
-                  <span className="text-xs font-dpe-semibold text-dpe-ink-700">{resolution}×</span>
+                  <Label className="text-xs text-le-ink-500">{t("editor.resolution")}</Label>
+                  <span className="text-xs font-le-semibold text-le-ink-700">{resolution}×</span>
                 </div>
                 <Slider
                   min={1}
@@ -447,7 +447,7 @@ export const DetailPageDownloadDialog = observer(function DetailPageDownloadDial
                   value={[resolution]}
                   onValueChange={(v) => setResolution(v[0] ?? 1)}
                 />
-                <div className="flex justify-between text-[10px] text-dpe-ink-400">
+                <div className="flex justify-between text-[10px] text-le-ink-400">
                   <span>1×</span>
                   <span>4×</span>
                 </div>
@@ -459,7 +459,7 @@ export const DetailPageDownloadDialog = observer(function DetailPageDownloadDial
                 선택은 픽셀 형식일 때만 의미가 있다. */}
             {hasAnimation && isRasterFormat(format) ? (
               <div className="space-y-1.5">
-                <Label className="text-xs text-dpe-ink-500">
+                <Label className="text-xs text-le-ink-500">
                   {t("editor.animationFormat")}
                 </Label>
                 <Select
@@ -477,7 +477,7 @@ export const DetailPageDownloadDialog = observer(function DetailPageDownloadDial
                     ))}
                   </SelectContent>
                 </Select>
-                <p className="text-[10px] leading-relaxed text-dpe-ink-400">
+                <p className="text-[10px] leading-relaxed text-le-ink-400">
                   {t(
                     ANIMATION_FORMATS.find((f) => f.value === animationFormat)?.hintKey ??
                       "",
@@ -486,8 +486,8 @@ export const DetailPageDownloadDialog = observer(function DetailPageDownloadDial
               </div>
             ) : null}
 
-            <div className="rounded-dpe-lg bg-dpe-ink-50 p-3 text-xs text-dpe-ink-600">
-              <p className="mb-1 font-dpe-semibold text-dpe-ink-700">{t("editor.downloadInfo")}</p>
+            <div className="rounded-le-lg bg-le-ink-50 p-3 text-xs text-le-ink-600">
+              <p className="mb-1 font-le-semibold text-le-ink-700">{t("editor.downloadInfo")}</p>
               <ul className="space-y-0.5">
                 <li>• {t("editor.pagesCount", { count: selectedPages.length })}</li>
                 <li>
@@ -500,7 +500,7 @@ export const DetailPageDownloadDialog = observer(function DetailPageDownloadDial
                 {format === "svg" ? <li>• {t("editor.svgNote")}</li> : null}
                 {format === "ai" ? <li>• {t("editor.aiNote")}</li> : null}
                 {aiOverflow ? (
-                  <li className="text-dpe-warn-700">
+                  <li className="text-le-warn-700">
                     • {t("editor.aiOverflowNote", { limit: AI_MAX_ARTBOARD.toLocaleString() })}
                   </li>
                 ) : null}
@@ -508,14 +508,14 @@ export const DetailPageDownloadDialog = observer(function DetailPageDownloadDial
             </div>
 
             {error ? (
-              <p className="text-xs font-dpe-medium text-dpe-danger-600">{error}</p>
+              <p className="text-xs font-le-medium text-le-danger-600">{error}</p>
             ) : null}
 
             <Button
               type="button"
               onClick={handleExport}
               disabled={exporting || selectedPages.length === 0}
-              className="h-11 w-full bg-dpe-ink-900 text-sm font-dpe-semibold hover:bg-dpe-ink-800"
+              className="h-11 w-full bg-le-ink-900 text-sm font-le-semibold hover:bg-le-ink-800"
             >
               {exporting ? (
                 <>
