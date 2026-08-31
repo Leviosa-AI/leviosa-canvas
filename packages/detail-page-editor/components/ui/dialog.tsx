@@ -1,5 +1,10 @@
 "use client";
 
+/**
+ * 편집기 모달. 색은 **편집기 토큰(`dpe-*`)만** 쓴다 — `bg-background` ·
+ * `bg-accent` · `text-muted-foreground` · `ring-ring` 은 소비자 앱의 팔레트를 읽는
+ * 이름이라, 그 앱이 안 두면 판이 투명해지고 글자가 사라진다(select.tsx 주석 참고).
+ */
 import * as React from "react";
 import { XIcon } from "lucide-react";
 import { Dialog as DialogPrimitive } from "radix-ui";
@@ -64,7 +69,7 @@ function DialogContent({
       <DialogPrimitive.Content
         data-slot="dialog-content"
         className={cn(
-          "bg-background data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 fixed top-[50%] left-[50%] z-[115] grid w-full max-w-[calc(100%-2rem)] translate-x-[-50%] translate-y-[-50%] gap-4 rounded-dpe-lg border p-6 shadow-lg duration-200 outline-none sm:max-w-lg",
+          "bg-dpe-surface text-dpe-ink-900 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 fixed top-[50%] left-[50%] z-[115] grid w-full max-w-[calc(100%-2rem)] translate-x-[-50%] translate-y-[-50%] gap-4 rounded-dpe-lg border border-dpe-ink-200 p-6 shadow-lg duration-200 outline-none sm:max-w-lg",
           className,
         )}
         onOpenAutoFocus={(event) => {
@@ -79,7 +84,7 @@ function DialogContent({
         {showCloseButton && (
           <DialogPrimitive.Close
             data-slot="dialog-close"
-            className="ring-offset-background focus:ring-ring data-[state=open]:bg-accent data-[state=open]:text-muted-foreground absolute top-3 right-3 flex size-11 items-center justify-center rounded-full opacity-70 transition-opacity hover:opacity-100 hover:bg-accent active:bg-accent focus:ring-2 focus:ring-offset-2 focus:outline-hidden disabled:pointer-events-none [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-5"
+            className="text-dpe-ink-700 focus:ring-dpe-select-200 data-[state=open]:bg-dpe-ink-100 absolute top-3 right-3 flex size-11 items-center justify-center rounded-full opacity-70 transition-opacity hover:opacity-100 hover:bg-dpe-ink-100 active:bg-dpe-ink-200 focus:ring-2 focus:ring-offset-2 focus:outline-hidden disabled:pointer-events-none [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-5"
           >
             <XIcon />
             <span className="sr-only">Close</span>
@@ -147,7 +152,7 @@ function DialogDescription({
   return (
     <DialogPrimitive.Description
       data-slot="dialog-description"
-      className={cn("text-muted-foreground text-sm", className)}
+      className={cn("text-dpe-ink-500 text-sm", className)}
       {...props}
     />
   );
