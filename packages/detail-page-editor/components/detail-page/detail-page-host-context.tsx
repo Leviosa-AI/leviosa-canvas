@@ -105,8 +105,14 @@ export interface DetailPageHostApi {
     },
     signal?: AbortSignal,
   ) => Promise<DetailPagePromptEditResult>;
+  /**
+   * 고른 그림 한 장을 프롬프트 방향으로 다시 만든다.
+   *
+   * 문서 id 는 선택이다 — 이 일은 문서를 읽지도 고치지도 않고, 그림과 지시가 전부
+   * 인자로 간다. 캐러셀처럼 가리킬 문서가 없는 편집기도 같은 길을 쓴다.
+   */
   promptEditDetailPageImage: (
-    generatedId: string,
+    generatedId: string | null,
     payload: {
       slot_role?: string;
       current_image_url?: string;
@@ -298,20 +304,6 @@ export interface BrandAsset {
   deleted_at: string | null;
 }
 
-/**
- * 무드보드와 브랜드킷은 **편집기가 안을 안 본다**. 불러서 킷으로 바꾸고 브랜드킷
- * 슬롯(호스트가 꽂는 노드)에 그대로 넘길 뿐이다.
- *
- * 그래서 모양을 선언하지 않는다. 선언하면 오히려 깨진다 — `deriveBrandKit` 의 인자는
- * 반변이라, 우리가 `unknown` 으로 적으면 앱이 자기 `Moodboard` 를 받는 함수를 못 꽂고,
- * 좁게 적으면 이번엔 우리 호출부가 못 넘긴다. 나르기만 하는 값에 양방향으로 열린 타입을
- * 주는 것이 정직하다.
- */
-/* eslint-disable-next-line @typescript-eslint/no-explicit-any */
-export type BrandMoodboard = any;
-/* eslint-disable-next-line @typescript-eslint/no-explicit-any */
-export type BrandKit = any;
-
 export interface DetailPageHostBrand {
   listBrandAssets: (
     brandId: string,
@@ -348,12 +340,6 @@ export interface DetailPageHostBrand {
   /** 훅을 못 쓰는 자리(모듈 함수)에서 활성 브랜드를 알아낼 때. */
   getStoredActiveBrandId: () => string | null;
 
-  loadBrandMoodboard: (
-    brand: BrandWorkspaceBrand,
-    assets: BrandAsset[],
-    signal?: AbortSignal,
-  ) => Promise<BrandMoodboard>;
-  deriveBrandKit: (moodboard: BrandMoodboard) => BrandKit;
   useBrandPrimaryColor: () => string;
 }
 
@@ -409,7 +395,6 @@ export interface DetailPageHostQueryKeys {
       brandId: string | null,
       media?: BrandAssetMedia,
     ) => readonly unknown[];
-    brandMoodboard: (brandId: string | null) => readonly unknown[];
     detailPageShapeLibrary: () => readonly unknown[];
     detailPageStockPhotos: (query: string) => readonly unknown[];
     detailPageIcons: (
@@ -435,11 +420,6 @@ export interface DetailPageHostSlots {
   PricingModal?: ComponentType<{
     open: boolean;
     onOpenChange: (open: boolean) => void;
-  }>;
-  BrandKitPanel?: ComponentType<{
-    kit: BrandKit;
-    store: never;
-    className?: string;
   }>;
   /**
    * '내 이미지' 서랍의 두 번째 탭 — 저작이 구운 사진.
@@ -482,9 +462,11 @@ export interface EditorHeaderSlotProps {
   save: {
     run: () => void;
     saving: boolean;
-    /** 방금 저장됐다. 잠시 뒤 스스로 꺼진다. */
+    /** 방금 저장됐다. 다음 저장이 시작되면 꺼진다. */
     ok: boolean;
     error: string | null;
+    /** 아직 저장 안 된 변경이 남아 있다. 자동저장을 안 켠 화면에서는 언제나 false. */
+    unsaved: boolean;
   };
   /** 편집기가 만들어 주는 조각들. 자리만 정하면 된다. */
   parts: {

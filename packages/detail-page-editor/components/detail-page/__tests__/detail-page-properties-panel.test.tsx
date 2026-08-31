@@ -249,29 +249,60 @@ describe("DetailPageProperties — 도형 gradient", () => {
 /**
  * 선택이 없을 때 페이지 배경도 단색/그라데이션을 지원한다(page.background에 문자열).
  */
-describe("DetailPageProperties — 페이지 배경 gradient", () => {
+describe("DetailPageProperties — 화면 다루기", () => {
   afterEach(() => vi.restoreAllMocks());
 
-  it("그라데이션 토글이 page.background를 linear-gradient로 설정한다", async () => {
-    const user = userEvent.setup();
-    const set = vi.fn();
-    const store = {
-      selectedElements: [],
-      pages: [{ id: "p1", children: [], background: "#ffffff", set }],
-      activePage: { id: "p1", children: [], background: "#ffffff", set },
-      deleteElements: vi.fn(),
-      ungroupElements: vi.fn(),
+  /** 캔버스 옆 세로 띠에 있던 두 가지가 여기로 왔다. */
+  function pageStore(pages: number) {
+    const clone = vi.fn();
+    const deletePages = vi.fn();
+    const list = Array.from({ length: pages }, (_, i) => ({
+      id: `p${i + 1}`,
+      children: [],
+      background: "#ffffff",
+      set: vi.fn(),
+      clone,
+    }));
+    return {
+      clone,
+      deletePages,
+      store: {
+        selectedElements: [],
+        pages: list,
+        activePage: list[0],
+        deleteElements: vi.fn(),
+        deletePages,
+        ungroupElements: vi.fn(),
+      },
     };
+  }
+
+  it("복제는 활성 화면의 clone 을 부른다", async () => {
+    const user = userEvent.setup();
+    const { clone, store } = pageStore(2);
     render(<DetailPageProperties store={store} />);
     await user.click(
-      screen.getByRole("button", { name: "detailPage.properties.fillGradient" }),
+      screen.getByRole("button", { name: /detailPage.pageToolbar.duplicate/ }),
     );
-    const call = set.mock.calls.find(
-      (c) =>
-        typeof c[0]?.background === "string" &&
-        c[0].background.includes("linear-gradient"),
+    expect(clone).toHaveBeenCalled();
+  });
+
+  it("삭제는 활성 화면 id 로 deletePages 를 부른다", async () => {
+    const user = userEvent.setup();
+    const { deletePages, store } = pageStore(2);
+    render(<DetailPageProperties store={store} />);
+    await user.click(
+      screen.getByRole("button", { name: /detailPage.pageToolbar.delete/ }),
     );
-    expect(call).toBeTruthy();
+    expect(deletePages).toHaveBeenCalledWith(["p1"]);
+  });
+
+  it("화면이 하나뿐이면 삭제를 막는다", () => {
+    const { store } = pageStore(1);
+    render(<DetailPageProperties store={store} />);
+    expect(
+      screen.getByRole("button", { name: /detailPage.pageToolbar.delete/ }),
+    ).toBeDisabled();
   });
 });
 

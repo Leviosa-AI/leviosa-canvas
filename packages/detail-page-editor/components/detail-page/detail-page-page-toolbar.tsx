@@ -1,83 +1,35 @@
 "use client";
 
-import { useSyncExternalStore } from "react";
+import { useRef, useState, useSyncExternalStore } from "react";
 import { observer } from "./canvas-observer";
 import { useTranslation } from "react-i18next";
-import {
-  Sparkles,
-  ChevronUp,
-  ChevronDown,
-  Copy,
-  Plus,
-  Trash2,
-  Wand2,
-} from "lucide-react";
+import { Wand2 } from "lucide-react";
 
 import {
   isSectionReauthorWired,
   requestSectionReauthor,
   subscribeSectionReauthorAvailability,
 } from "../../lib/detail-page/section-reauthor-bus";
-import { detailPageEditorProfile } from "../../lib/detail-page/editor-profile";
 
 /**
- * hookable-style per-section (per-page) floating quick toolbar.
+ * 활성 화면 옆에 뜨는 동그란 버튼 하나 — «이 화면 다시 만들기».
  *
- * Renders a vertical pill next to the active page with: AI, move up, move down,
- * duplicate, add, delete. The actions mirror the stock editor's stock ``<PageControls>``
- * (`page.setZIndex` / `page.clone` / `store.addPage` / `store.deletePages`) so
- * behaviour matches the SDK exactly — we just restyle it as a vertical rail and
- * disable the stock controls in the workspace.
+ * 예전에는 세로 띠에 AI·위·아래·복제·추가·삭제가 줄줄이 붙어 있었다. 화면을 가리는
+ * 데 비해 쓰는 것은 하나뿐이었고, 나머지 넷은 페이지를 다루는 일이라 페이지 목록과
+ * 오른쪽 페이지 패널로 옮겼다.
+ *
+ * 붙박이가 아니라 끌어서 옮길 수 있다. 옮긴 자리는 편집기가 열려 있는 동안 유지된다
+ * (화면을 바꿀 때마다 다시 붙는 위치로 튀면 옮긴 의미가 없다).
  */
 
-type PageLike = {
-  id: string;
-  bleed?: number;
-  width?: number | string;
-  height?: number | string;
-  setZIndex: (index: number) => void;
-  clone: () => void;
-};
-type StoreLike = {
-  pages: PageLike[];
-  activePage?: { id: string; bleed?: number; width?: number | string; height?: number | string };
-  addPage: (props: Record<string, unknown>) => PageLike;
-  deletePages: (ids: string[]) => void;
-  openSidePanel?: (name: string) => void;
-};
+type PageLike = { id: string };
+type Offset = { x: number; y: number };
 
-function IconButton({
-  label,
-  onClick,
-  disabled,
-  children,
-}: {
-  label: string;
-  onClick: () => void;
-  disabled?: boolean;
-  children: React.ReactNode;
-}) {
-  return (
-    <button
-      type="button"
-      title={label}
-      aria-label={label}
-      disabled={disabled}
-      onClick={(e) => {
-        e.stopPropagation();
-        onClick();
-      }}
-      className={[
-        "flex h-8 w-8 items-center justify-center rounded-dpe-lg transition-colors",
-        disabled
-          ? "cursor-not-allowed text-dpe-ink-300"
-          : "text-dpe-ink-500 hover:bg-dpe-ink-100 hover:text-dpe-ink-900",
-      ].join(" ")}
-    >
-      {children}
-    </button>
-  );
-}
+/** 이 편집기 세션 동안 기억한다 — 화면을 바꿔도 버튼이 제자리에 있게. */
+let keptOffset: Offset = { x: 0, y: 0 };
+
+/** 이만큼도 못 움직였으면 끈 것이 아니라 누른 것이다. */
+const DRAG_SLOP = 4;
 
 export const DetailPagePageToolbar = observer(function DetailPagePageToolbar({
   store,
@@ -93,96 +45,67 @@ export const DetailPagePageToolbar = observer(function DetailPagePageToolbar({
     isSectionReauthorWired,
     () => false,
   );
-  const s = store as StoreLike;
   const p = page as PageLike;
-  const profile = detailPageEditorProfile();
-  const index = s.pages.findIndex((pg) => pg.id === p.id);
-  const isFirst = index <= 0;
-  const isLast = index === s.pages.length - 1;
-  const canDelete = s.pages.length > 1;
-  const canAdd = s.pages.length < profile.maxPages;
+  const [offset, setOffset] = useState<Offset>(keptOffset);
+  const drag = useRef<{ x: number; y: number; from: Offset } | null>(null);
+  const dragged = useRef(false);
 
-  const addAfter = () => {
-    if (!canAdd) return;
-    const ref = s.activePage ?? s.pages[index];
-    const next = s.addPage({
-      bleed: ref?.bleed ?? 0,
-      width:
-        profile.page.width === "document"
-          ? ref?.width ?? "auto"
-          : profile.page.width,
-      height: profile.page.fixed
-        ? profile.page.height
-        : ref?.height ?? profile.page.height,
-    });
-    next.setZIndex(index + 1);
+  const move = (event: React.PointerEvent<HTMLButtonElement>) => {
+    const start = drag.current;
+    if (!start) return;
+    const dx = event.clientX - start.x;
+    const dy = event.clientY - start.y;
+    if (Math.abs(dx) > DRAG_SLOP || Math.abs(dy) > DRAG_SLOP)
+      dragged.current = true;
+    if (!dragged.current) return;
+    const rect = event.currentTarget.getBoundingClientRect();
+    // 화면 밖으로 던져 놓으면 다시 잡을 수가 없다 — 창 안으로 묶는다.
+    const next = { x: start.from.x + dx, y: start.from.y + dy };
+    const left = rect.left - offset.x + next.x;
+    const top = rect.top - offset.y + next.y;
+    const maxX = window.innerWidth - rect.width - 8;
+    const maxY = window.innerHeight - rect.height - 8;
+    next.x += Math.min(0, maxX - left) + Math.max(0, 8 - left);
+    next.y += Math.min(0, maxY - top) + Math.max(0, 8 - top);
+    keptOffset = next;
+    setOffset(next);
   };
 
+  // 다시 만들기를 못 꽂은 화면에서는 띠 자체가 없다 — 버튼이 하나뿐이라 그것이
+  // 빠지면 빈 껍데기만 남는다.
+  if (!reauthorWired) return null;
+
   return (
-    <div className="flex flex-col items-center gap-0.5 rounded-2xl border border-dpe-ink-200 bg-dpe-surface/95 px-1 py-1.5 shadow-md backdrop-blur-sm">
-      <button
-        type="button"
-        title={t("detailPage.pageToolbar.aiGenerate")}
-        aria-label={t("detailPage.pageToolbar.aiGenerate")}
-        onClick={(e) => {
-          e.stopPropagation();
-          s.openSidePanel?.("ai-generate");
-        }}
-        className="flex h-8 w-8 items-center justify-center rounded-dpe-lg transition-colors hover:bg-dpe-ink-100"
-      >
-        <Sparkles size={17} className="text-dpe-ai" />
-      </button>
-
-      {/* 이 화면만 마크업째 다시 만든다 — 슬롯 카피 편집과 달리 칸 수·표 같은 구조가
-          바뀔 수 있다. 요청만 띄우고 실제 일(모달·API·페이지 교체)은 편집기가 한다. */}
-      {reauthorWired ? (
-        <button
-          type="button"
-          title={t("detailPage.pageToolbar.reauthor", {
-            defaultValue: "이 화면 다시 만들기",
-          })}
-          aria-label={t("detailPage.pageToolbar.reauthor", {
-            defaultValue: "이 화면 다시 만들기",
-          })}
-          onClick={(e) => {
-            e.stopPropagation();
-            requestSectionReauthor(p.id);
-          }}
-          className="flex h-8 w-8 items-center justify-center rounded-dpe-lg transition-colors hover:bg-dpe-ink-100"
-        >
-          <Wand2 size={16} className="text-dpe-ai-alt" />
-        </button>
-      ) : null}
-
-      <hr className="my-0.5 w-5 border-dpe-ink-200" />
-
-      <IconButton label={t("detailPage.pageToolbar.moveUp")} onClick={() => p.setZIndex(index - 1)} disabled={isFirst}>
-        <ChevronUp size={17} />
-      </IconButton>
-      <IconButton label={t("detailPage.pageToolbar.moveDown")} onClick={() => p.setZIndex(index + 1)} disabled={isLast}>
-        <ChevronDown size={17} />
-      </IconButton>
-      <IconButton
-        label={t("detailPage.pageToolbar.duplicate")}
-        onClick={() => p.clone()}
-        disabled={!canAdd}
-      >
-        <Copy size={16} />
-      </IconButton>
-      <IconButton
-        label={t("detailPage.pageToolbar.addBelow")}
-        onClick={addAfter}
-        disabled={!canAdd}
-      >
-        <Plus size={17} />
-      </IconButton>
-
-      <hr className="my-0.5 w-5 border-dpe-ink-200" />
-
-      <IconButton label={t("detailPage.pageToolbar.delete")} onClick={() => s.deletePages([p.id])} disabled={!canDelete}>
-        <Trash2 size={16} />
-      </IconButton>
-    </div>
+    <button
+      type="button"
+      title={t("detailPage.pageToolbar.reauthor", {
+        defaultValue: "이 화면 다시 만들기",
+      })}
+      aria-label={t("detailPage.pageToolbar.reauthor", {
+        defaultValue: "이 화면 다시 만들기",
+      })}
+      onPointerDown={(e) => {
+        if (e.button !== 0) return;
+        dragged.current = false;
+        drag.current = { x: e.clientX, y: e.clientY, from: offset };
+        e.currentTarget.setPointerCapture?.(e.pointerId);
+      }}
+      onPointerMove={move}
+      onPointerUp={(e) => {
+        drag.current = null;
+        e.currentTarget.releasePointerCapture?.(e.pointerId);
+      }}
+      onClick={(e) => {
+        e.stopPropagation();
+        // 끌어다 놓은 것이 다시 만들기로 이어지면 크레딧이 그냥 나간다.
+        if (dragged.current) return;
+        requestSectionReauthor(p.id);
+      }}
+      style={{ transform: `translate(${offset.x}px, ${offset.y}px)` }}
+      className="flex h-10 w-10 cursor-grab touch-none items-center justify-center rounded-full border border-dpe-ink-200 bg-dpe-surface/95 shadow-md backdrop-blur-sm transition-colors hover:bg-dpe-ink-100 active:cursor-grabbing"
+    >
+      <Wand2 size={17} className="text-dpe-ai-alt" />
+    </button>
   );
 });
 DetailPagePageToolbar.displayName = "DetailPagePageToolbar";

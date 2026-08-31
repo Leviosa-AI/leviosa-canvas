@@ -16,18 +16,19 @@ describe("quickActions", () => {
   });
 
   it("사진 하나면 자르기가 맨 앞이다", () => {
-    expect(quickActions([image])).toEqual(["crop", "more"]);
+    expect(quickActions([image])).toEqual(["crop", "promptEdit", "more"]);
   });
 
   it("배경 지우기는 배선돼 있을 때만", () => {
     expect(quickActions([image], { canRemoveBackground: true })).toEqual([
       "crop",
       "bgRemove",
+      "promptEdit",
       "more",
     ]);
   });
 
-  it("주소가 없는 사진은 자를 것이 없다", () => {
+  it("주소가 없는 사진은 자를 것도 고칠 것도 없다", () => {
     expect(quickActions([{ id: "i2", type: "image" }])).toEqual(["more"]);
   });
 
@@ -38,10 +39,19 @@ describe("quickActions", () => {
       "more",
     ]);
     const marked = { id: "g2", type: "image", src: "x", custom: { detailPageGif: true } };
-    expect(quickActions([marked], { canRemoveBackground: true })).toEqual(["more"]);
+    expect(quickActions([marked], { canRemoveBackground: true })).toEqual([
+      "promptEdit",
+      "more",
+    ]);
   });
 
-  it("프롬프트 편집은 생성 인스턴스가 있어야 뜬다", () => {
+  it("그림 편집은 문서 없이도 뜬다 — 캐러셀이 그렇다", () => {
+    // 그림과 지시가 요청에 다 실려 가고, 결과는 브랜드 자산으로 돌아온다.
+    expect(quickActions([image])).toContain("promptEdit");
+  });
+
+  it("글·도형 편집은 서버가 아는 문서가 있어야 뜬다", () => {
+    // 이쪽은 서버가 문서를 읽고 고쳐서 돌려준다.
     expect(quickActions([text])).toEqual(["more"]);
     expect(quickActions([text], { hasGeneration: true })).toEqual([
       "promptEdit",
