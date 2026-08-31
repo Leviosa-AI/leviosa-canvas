@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useTranslation } from "react-i18next";
 import { BookmarkPlus, ImageOff, Loader2 } from "lucide-react";
 
 import { BrandPanelHeader } from "./detail-page-brand-panel-header";
@@ -38,6 +39,7 @@ export function DetailPageReferencesPanel({
   generatedId?: string;
 }) {
   const { api, brand, toast } = useDetailPageHost();
+  const { t } = useTranslation("branding");
   const queryClient = useQueryClient();
   const { activeBrand, activeBrandId, isLoading: brandsLoading } = brand.useBrandWorkspace();
   const [error, setError] = useState<string | null>(null);
@@ -62,10 +64,10 @@ export function DetailPageReferencesPanel({
     }
     return [...byGroup.entries()].map(([key, items]) => ({
       key,
-      name: items[0]?.reference_name || "상세페이지",
+      name: items[0]?.reference_name || t("detailPage.references.untitled"),
       items: [...items].sort((a, b) => a.screen_index - b.screen_index),
     }));
-  }, [listQuery.data]);
+  }, [listQuery.data, t]);
 
   const saveMutation = useMutation({
     mutationFn: async () => {
@@ -76,7 +78,7 @@ export function DetailPageReferencesPanel({
     onSuccess: async (result) => {
       setError(null);
       const screens = result.assets.filter((asset) => asset.role === "screen").length;
-      toast.success(`레퍼런스로 저장했어요 (화면 ${screens}장).`);
+      toast.success(t("detailPage.references.saved", { count: screens }));
       await queryClient.invalidateQueries({
         queryKey: [REFERENCES_QUERY_ROOT, activeBrandId],
       });
@@ -85,7 +87,7 @@ export function DetailPageReferencesPanel({
       setError(
         err instanceof Error && err.message !== "no-instance"
           ? err.message
-          : "레퍼런스로 저장하지 못했어요.",
+          : t("detailPage.references.saveFailed"),
       );
     },
   });
@@ -106,7 +108,7 @@ export function DetailPageReferencesPanel({
           ) : (
             <BookmarkPlus aria-hidden="true" size={18} />
           )}
-          <span className="text-[11px]">이 상세페이지를 레퍼런스로 저장</span>
+          <span className="text-[11px]">{t("detailPage.references.saveThis")}</span>
         </button>
       ) : null}
 
@@ -119,18 +121,15 @@ export function DetailPageReferencesPanel({
           <Loader2 aria-hidden="true" className="animate-spin" size={22} />
         </div>
       ) : !activeBrand ? (
-        <p className="text-xs text-dpe-ink-400">브랜드를 먼저 골라 주세요.</p>
+        <p className="text-xs text-dpe-ink-400">{t("detailPage.references.pickBrand")}</p>
       ) : listQuery.error ? (
         <p className="text-xs font-dpe-medium text-dpe-danger-600">
-          레퍼런스를 불러오지 못했어요.
+          {t("detailPage.references.loadFailed")}
         </p>
       ) : groups.length === 0 ? (
         <div className="flex flex-1 flex-col items-center justify-center gap-2 text-center text-dpe-ink-400">
           <ImageOff aria-hidden="true" size={22} />
-          <p className="text-xs">
-            아직 저장한 레퍼런스가 없어요. 마음에 드는 상세페이지를 저장해 두면 다음
-            상품에서 바로 참고할 수 있어요.
-          </p>
+          <p className="text-xs">{t("detailPage.references.empty")}</p>
         </div>
       ) : (
         <div className="space-y-4 overflow-y-auto">
@@ -138,7 +137,9 @@ export function DetailPageReferencesPanel({
             <section key={group.key}>
               <h3 className="mb-1.5 truncate text-[11px] font-dpe-medium text-dpe-ink-600">
                 {group.name}
-                <span className="ml-1 text-dpe-ink-400">{group.items.length}장</span>
+                <span className="ml-1 text-dpe-ink-400">
+                  {t("detailPage.references.screenCount", { count: group.items.length })}
+                </span>
               </h3>
               <div className="grid grid-cols-2 gap-2">
                 {group.items.map((item) => (

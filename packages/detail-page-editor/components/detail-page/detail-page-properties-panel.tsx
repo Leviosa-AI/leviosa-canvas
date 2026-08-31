@@ -1509,13 +1509,18 @@ const TextGifSection = observer(function TextGifSection({
   );
 });
 
-/** 칸 모양 선택지. 서버 `GET /images/data-gif-effects` 의 SHAPES 와 같아야 한다. */
-const CELL_SHAPES: Array<{ id: string; label: string }> = [
-  { id: "circle", label: "동그라미" },
-  { id: "square", label: "네모" },
-  { id: "rounded", label: "둥근 네모" },
-  { id: "diamond", label: "마름모" },
-  { id: "hexagon", label: "육각형" },
+/**
+ * 칸 모양 선택지. 서버 `GET /images/data-gif-effects` 의 SHAPES 와 같아야 한다.
+ *
+ * 이름은 도형 패널이 이미 번역해 둔 것을 그대로 쓴다 — 같은 도형을 두 벌 번역해 두면
+ * 한쪽만 언어를 타서 목록에 한국어와 영어가 섞인다. `square` 만 그쪽 이름이 `rect` 다.
+ */
+const CELL_SHAPES: Array<{ id: string; labelKey: string }> = [
+  { id: "circle", labelKey: "detailPage.shapes.basic.circle" },
+  { id: "square", labelKey: "detailPage.shapes.basic.rect" },
+  { id: "rounded", labelKey: "detailPage.shapes.basic.rounded" },
+  { id: "diamond", labelKey: "detailPage.shapes.basic.diamond" },
+  { id: "hexagon", labelKey: "detailPage.shapes.basic.hexagon" },
 ];
 
 /**
@@ -1756,7 +1761,7 @@ const CellGridGifSection = observer(function CellGridGifSection({
           >
             {CELL_SHAPES.map((option) => (
               <option key={option.id} value={option.id}>
-                {option.label}
+                {t(option.labelKey)}
               </option>
             ))}
           </select>

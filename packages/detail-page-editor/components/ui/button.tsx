@@ -5,20 +5,20 @@ import { Slot } from "radix-ui"
 import { cn } from "../../lib/utils"
 
 const buttonVariants = cva(
-  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-dpe-md text-sm font-dpe-medium transition-all disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4 shrink-0 [&_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive",
+  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-dpe-md text-sm font-dpe-medium transition-all disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4 shrink-0 [&_svg]:shrink-0 outline-none focus-visible:border-dpe-ink-400 focus-visible:ring-dpe-ink-300/50 focus-visible:ring-[3px] aria-invalid:ring-dpe-danger-500/20 dark:aria-invalid:ring-dpe-danger-500/40 aria-invalid:border-dpe-danger-500",
   {
     variants: {
       variant: {
-        default: "bg-primary text-primary-foreground hover:bg-primary/90",
+        default: "bg-dpe-ink-900 text-dpe-on-accent hover:bg-dpe-ink-900/90",
         destructive:
-          "bg-destructive text-dpe-on-accent hover:bg-destructive/90 focus-visible:ring-destructive/20 dark:focus-visible:ring-destructive/40 dark:bg-destructive/60",
+          "bg-dpe-danger-500 text-dpe-on-accent hover:bg-dpe-danger-500/90 focus-visible:ring-dpe-danger-500/20 dark:focus-visible:ring-dpe-danger-500/40 dark:bg-dpe-danger-500/60",
         outline:
-          "border bg-background shadow-xs hover:bg-accent hover:text-accent-foreground dark:bg-input/30 dark:border-input dark:hover:bg-input/50",
+          "border bg-dpe-surface shadow-xs hover:bg-dpe-ink-100 hover:text-dpe-ink-900 dark:bg-dpe-ink-100/30 dark:border-dpe-ink-200 dark:hover:bg-dpe-ink-100/50",
         secondary:
-          "bg-secondary text-secondary-foreground hover:bg-secondary/80",
+          "bg-dpe-ink-100 text-dpe-ink-900 hover:bg-dpe-ink-100/80",
         ghost:
-          "hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50",
-        link: "text-primary underline-offset-4 hover:underline",
+          "hover:bg-dpe-ink-100 hover:text-dpe-ink-900 dark:hover:bg-dpe-ink-100/50",
+        link: "text-dpe-ink-900 underline-offset-4 hover:underline",
       },
       size: {
         default: "h-9 px-4 py-2 has-[>svg]:px-3",

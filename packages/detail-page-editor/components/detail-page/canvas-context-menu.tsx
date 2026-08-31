@@ -200,6 +200,9 @@ export const CanvasContextMenu = observer(function CanvasContextMenu({
       <div
         role="menu"
         data-dp-canvas-menu
+        // 포털이 body 로 나가 편집기 뿌리 밖에 놓인다 — 딱지를 다시 달아야 소비자 앱이
+        // `[data-dpe-root]` 로 좁혀 둔 색·모서리 토큰이 이 메뉴에도 먹는다.
+        data-dpe-root=""
         style={{ left, top, width: MENU_WIDTH }}
         className="fixed z-[71] rounded-dpe-lg border border-dpe-ink-200 bg-dpe-surface py-1 shadow-lg"
       >
