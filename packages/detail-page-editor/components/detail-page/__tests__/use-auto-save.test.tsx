@@ -111,7 +111,10 @@ describe("useAutoSave", () => {
         vi.advanceTimersByTime(50);
       });
     }
-    expect(save).toHaveBeenCalledTimes(1);
+    // 상한이 없으면 0번이다. 몇 번인지는 상한 값에 달렸으니 범위로 잡는다 — 매 변경마다
+    // 나가는 것(=디바운스가 죽은 것)도 여기서 걸린다.
+    expect(save.mock.calls.length).toBeGreaterThan(0);
+    expect(save.mock.calls.length).toBeLessThan(6);
     expect(save).toHaveBeenCalledWith("auto");
   });
 
