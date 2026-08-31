@@ -122,10 +122,10 @@ export function SpecPromptEditPanel({
   ]);
 
   return (
-    <div className="relative flex flex-col overflow-hidden rounded-dpe-xl border border-border bg-card">
-      <div className="flex items-center gap-1.5 border-b border-border px-3 py-2">
-        <Sparkles size={13} className="text-primary" />
-        <span className="text-xs font-dpe-medium text-foreground">
+    <div className="relative flex flex-col overflow-hidden rounded-dpe-xl border border-dpe-ink-200 bg-dpe-surface">
+      <div className="flex items-center gap-1.5 border-b border-dpe-ink-200 px-3 py-2">
+        <Sparkles size={13} className="text-dpe-ai" />
+        <span className="text-xs font-dpe-medium text-dpe-ink-900">
           {t("detailPage.promptEdit.header")}
         </span>
         {unlimited || editLimit > 0 ? (
@@ -152,13 +152,13 @@ export function SpecPromptEditPanel({
                 : t(`detailPage.specPromptEdit.placeholder.${specKind}`)
             }
             disabled={busy}
-            className="max-h-32 flex-1 resize-none bg-transparent px-2 py-1.5 text-[13px] leading-5 text-foreground outline-none placeholder:text-muted-foreground/70 disabled:opacity-60"
+            className="max-h-32 flex-1 resize-none bg-transparent px-2 py-1.5 text-[13px] leading-5 text-dpe-ink-900 outline-none placeholder:text-dpe-ink-400 disabled:opacity-60"
           />
           <button
             type="button"
             onClick={send}
             disabled={busy || !input.trim()}
-            className="grid h-8 w-8 shrink-0 place-items-center rounded-dpe-lg bg-primary text-primary-foreground disabled:opacity-40"
+            className="grid h-8 w-8 shrink-0 place-items-center rounded-dpe-lg bg-dpe-ink-900 text-dpe-on-accent disabled:opacity-40"
             aria-label={t("detailPage.promptEdit.send")}
           >
             {busy ? (
@@ -170,7 +170,7 @@ export function SpecPromptEditPanel({
         </div>
       )}
       {busy ? <GenerationProgressLine progress={progress} /> : null}
-      <p className="px-3 pb-2 text-[11px] leading-relaxed text-muted-foreground">
+      <p className="px-3 pb-2 text-[11px] leading-relaxed text-dpe-ink-500">
         {t("detailPage.specPromptEdit.hint")}
       </p>
     </div>

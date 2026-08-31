@@ -139,6 +139,27 @@ describe("DetailPageDownloadDialog", () => {
     );
   });
 
+  it("저장 버튼과 목록 판을 편집기 토큰으로 칠한다", async () => {
+    // 소비자 앱(leviosa-agency)에는 `--color-primary-foreground` 도 `--color-popover`
+    // 도 없다. 그 이름을 부르면 Tailwind 가 클래스를 아예 안 굽는다 — 저장 버튼은
+    // 글자색이 본문(먹)을 물려받아 배경(`dpe-ink-900`, 같은 앱에서 먹)과 같아지고,
+    // 목록 판은 투명해져 뒤의 라벨과 겹친다. 화면으로만 보이는 종류라 여기서 못박는다.
+    const user = userEvent.setup();
+    render(<DetailPageDownloadDialog store={makeStore(1)} />);
+
+    await user.click(screen.getByText("editor.download"));
+    const dialog = screen.getByRole("dialog");
+
+    const action = within(dialog).getByText("editor.downloadAction").closest("button")!;
+    expect(action.className).toContain("text-dpe-on-accent");
+    expect(action.className).not.toMatch(/text-primary-foreground|bg-primary\b/);
+
+    await user.click(within(dialog).getAllByRole("combobox")[0]);
+    const listbox = await screen.findByRole("listbox");
+    expect(listbox.className).toContain("bg-dpe-surface");
+    expect(listbox.className).not.toMatch(/bg-popover|popover-foreground/);
+  });
+
   it("상세페이지는 등록 플랫폼을 계속 묻는다", async () => {
     const user = userEvent.setup();
     render(<DetailPageDownloadDialog store={makeStore(1)} />);

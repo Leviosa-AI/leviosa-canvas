@@ -1,5 +1,10 @@
 "use client"
 
+/**
+ * 말풍선 도움말. 어두운 판(`dpe-ink-900`) 위 `dpe-on-accent` 글자다. 원본의
+ * `bg-foreground` · `text-background` 는 소비자 앱의 이름이라, 그 앱이 안 두면
+ * 판이 투명해지고 글자가 흰 배경에 흰색으로 남는다(select.tsx 주석 참고).
+ */
 import * as React from "react"
 import { Tooltip as TooltipPrimitive } from "radix-ui"
 
@@ -42,13 +47,13 @@ function TooltipContent({
         data-slot="tooltip-content"
         sideOffset={sideOffset}
         className={cn(
-          "z-50 w-fit origin-(--radix-tooltip-content-transform-origin) animate-in rounded-dpe-md bg-foreground px-3 py-1.5 text-xs text-balance text-background fade-in-0 zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95",
+          "z-50 w-fit origin-(--radix-tooltip-content-transform-origin) animate-in rounded-dpe-md bg-dpe-ink-900 px-3 py-1.5 text-xs text-balance text-dpe-on-accent fade-in-0 zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95",
           className
         )}
         {...props}
       >
         {children}
-        <TooltipPrimitive.Arrow className="z-50 size-2.5 translate-y-[calc(-50%_-_2px)] rotate-45 rounded-[2px] bg-foreground fill-foreground" />
+        <TooltipPrimitive.Arrow className="z-50 size-2.5 translate-y-[calc(-50%_-_2px)] rotate-45 rounded-[2px] bg-dpe-ink-900 fill-dpe-ink-900" />
       </TooltipPrimitive.Content>
     </TooltipPrimitive.Portal>
   )
