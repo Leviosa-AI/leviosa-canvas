@@ -31,6 +31,9 @@ import type { CanvasStore } from "@leviosa-ai/canvas/store";
 import { detailPageEditorProfile } from "../../lib/detail-page/editor-profile";
 import { setFrameDragStarter, setFrameInsert } from "./frame-drag-bus";
 
+/** 벌어지는 칸의 높이 — 끌고 있는 판 높이의 이만큼. */
+const SLOT_RATIO = 0.28;
+
 type Box = { left: number; top: number; width: number; height: number };
 
 type Drop = {
@@ -154,7 +157,9 @@ export function FrameDragLayer({
           ? {
               frameKey: drop.frameKey,
               at: drop.at,
-              height: dragBox.height,
+              // 판 한 장만큼 벌리면 열이 통째로 쿵 내려가서 놀란다. 자리가
+              // 생겼다는 것만 보이면 되므로 그보다 얕게 연다.
+              height: Math.max(24, dragBox.height * SLOT_RATIO),
               full: drop.full,
             }
           : null,
