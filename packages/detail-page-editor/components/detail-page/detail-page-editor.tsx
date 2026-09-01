@@ -117,6 +117,18 @@ export type DetailPageEditorProps = {
   structurePanel?: ReactNode;
   /** 헤더에 표시할 현재 상품/상세페이지 이름. 없으면 기본 라벨. */
   productName?: string;
+  /**
+   * 결과물이 될 벌 — 내려받기·발행이 향하는 곳.
+   *
+   * 문서에 안 적고 밖에서 받는다. 후보를 담은 화면은 이미 서버가 «고른 후보»를
+   * 들고 있고(목록 썸네일과 레퍼런스가 읽는 자리가 그것이다), 두 곳에 적어 두면
+   * 언젠가 서로 다른 답을 한다.
+   */
+  chosenFrame?: string;
+  /** 안 주면 벌 머리에 체크박스를 안 그린다. */
+  onChooseFrame?: (frameKey: string) => void;
+  /** 벌 이름 짓기. 안 주면 꼬리표를 그대로 쓴다. */
+  frameName?: (frameKey: string) => string;
   /** 헤더 좌측 "뒤로가기" 동작. 없으면 버튼을 숨긴다. */
   onBack?: () => void;
   /**
@@ -152,6 +164,9 @@ export function DetailPageEditor({
   generatedId,
   structurePanel,
   productName,
+  chosenFrame,
+  onChooseFrame,
+  frameName,
   onBack,
   headerActions,
 }: DetailPageEditorProps) {
@@ -289,14 +304,20 @@ export function DetailPageEditor({
           />
         )}
         <div className="relative min-w-0 flex-1">
-          <LeviosaCanvasWorkspace store={store} gap={4}>
+          <LeviosaCanvasWorkspace
+            store={store}
+            gap={4}
+            chosenFrame={chosenFrame}
+            onChooseFrame={onChooseFrame}
+            frameName={frameName}
+          >
             {findReplace}
             <DetailPagePagesTimeline store={store} />
           </LeviosaCanvasWorkspace>
         </div>
       </div>
     );
-  }, [store, sidebarSections, SidebarSlot]);
+  }, [store, sidebarSections, SidebarSlot, chosenFrame, onChooseFrame, frameName]);
 
   const aiValue = useMemo(
     () => ({

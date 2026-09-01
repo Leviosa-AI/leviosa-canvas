@@ -15,7 +15,15 @@ import "konva/lib/shapes/Line";
 import "konva/lib/shapes/Transformer";
 
 import type Konva from "konva";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type CSSProperties,
+  type ReactNode,
+} from "react";
 import { Layer, Line, Rect, Stage, Transformer } from "react-konva/es/ReactKonvaCore";
 
 import { shouldWatermark } from "../license";
@@ -453,6 +461,8 @@ export function CanvasView({
   gap = 0,
   interactive = false,
   center = false,
+  renderFrameHeader,
+  frameStyle,
   loadFont,
 }: {
   store: CanvasStore;
@@ -465,6 +475,13 @@ export function CanvasView({
    * 남는 자리가 없으면 0이 되어 그냥 왼쪽 위에 선다).
    */
   center?: boolean;
+  /**
+   * 열 하나 위에 얹을 것 — 이름표 같은 것. **무엇을 그릴지는 엔진이 모른다.**
+   * 확정이니 선택이니 하는 말은 편집기의 것이지 판을 그리는 쪽의 것이 아니다.
+   */
+  renderFrameHeader?: (frameKey: string) => ReactNode;
+  /** 열 상자에 얹을 모양(테두리·바탕·흐리기). 위와 같은 이유로 값만 받는다. */
+  frameStyle?: (frameKey: string) => CSSProperties | undefined;
   /** 폰트를 받아 오는 사람. 안 주면 브라우저가 이미 아는 서체만 그려진다 (G7 경계). */
   loadFont?: FontLoader;
 }) {
@@ -684,12 +701,17 @@ export function CanvasView({
                 key={frame.key}
                 data-lc-frame={frame.key}
                 style={{
+                  position: "relative",
                   display: "flex",
                   flexDirection: "column",
                   gap,
                   width: "min-content",
+                  ...frameStyle?.(frame.key),
                 }}
               >
+                {/* 이름표는 열의 **폭에 안 낀다**. 열은 판 너비만큼만 넓어야 하는데,
+                    글자가 흐름에 끼면 많이 줄였을 때 이름이 열을 벌려 놓는다. */}
+                {renderFrameHeader?.(frame.key)}
                 {frame.pages.map(renderPage)}
               </div>
             ))

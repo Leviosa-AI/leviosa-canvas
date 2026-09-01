@@ -43,7 +43,8 @@ import { CanvasSectionHeightHandle } from "./section-height-handle";
 import { loadEditorFont } from "../../lib/detail-page-canvas/editor-fonts";
 import { ZoomButtons } from "@leviosa-ai/canvas";
 import { CanvasView } from "@leviosa-ai/canvas/render/canvas-view";
-import { groupFrames } from "@leviosa-ai/canvas/render/frames";
+import { frameOf, groupFrames } from "@leviosa-ai/canvas/render/frames";
+import { DetailPageFrameHeader } from "./detail-page-frame-header";
 import { useCanvasVersion } from "@leviosa-ai/canvas/use-canvas";
 import type { CanvasStore } from "@leviosa-ai/canvas/store";
 
@@ -63,12 +64,21 @@ export function LeviosaCanvasWorkspace({
   gap = 4,
   paddingX = 16,
   backgroundColor = "rgb(241, 241, 241)",
+  chosenFrame,
+  onChooseFrame,
+  frameName,
   children,
 }: {
   store: CanvasStore;
   gap?: number;
   paddingX?: number;
   backgroundColor?: string;
+  /** 결과물이 될 벌. 내려받기·발행이 향하는 곳이다. */
+  chosenFrame?: string;
+  /** 안 주면 체크박스를 안 그린다 — 고를 것이 없는 문서도 있다. */
+  onChooseFrame?: (frameKey: string) => void;
+  /** 벌 이름 짓기. 안 주면 꼬리표를 그대로 쓴다. */
+  frameName?: (frameKey: string) => string;
   /** 작업 영역 위에 얹을 것(찾기·바꾸기 같은 편집기 고유 층). */
   children?: ReactNode;
 }) {
@@ -249,6 +259,8 @@ export function LeviosaCanvasWorkspace({
   }, [panelOpen, pageIds, store]);
 
   const frameCount = groupFrames(store.pages).length;
+  // 보고 있는 벌 — 활성 페이지가 속한 벌이다. 목록·아래 띠가 보는 것과 같다.
+  const activeFrame = frameOf(store.activePage ?? store.pages[0] ?? {});
 
   const pageWidth = useMemo(
     () => Math.max(1, ...store.pages.map((page) => page.width)),
@@ -305,6 +317,29 @@ export function LeviosaCanvasWorkspace({
           // 열이 여럿이면 가운데 정렬을 정렬 속성이 아니라 자동 여백으로 준다 —
           // 축소해서 남는 자리가 생겨도 가운데를 지키고, 커져도 스크롤이 산다.
           center={frameCount > 1}
+          renderFrameHeader={(key) => (
+            <DetailPageFrameHeader
+              name={frameName?.(key) ?? key}
+              selected={key === activeFrame}
+              chosen={key === chosenFrame}
+              onSelect={() => {
+                const first = store.pages.find((page) => frameOf(page) === key);
+                if (first) store.selectPage(first.id);
+              }}
+              onChoose={onChooseFrame ? () => onChooseFrame(key) : undefined}
+            />
+          )}
+          frameStyle={(key) => ({
+            padding: 10,
+            borderRadius: 10,
+            // 바탕 한 겹이 «이 판들은 한 덩이»를 말한다. 열만 벌려 놓으면 그냥
+            // 흩어져 보인다.
+            background: "rgba(0, 0, 0, 0.035)",
+            border: `1px solid ${key === activeFrame ? "rgba(0,0,0,0.45)" : "transparent"}`,
+            // 선명한 것은 «쓸모 있는 것»이다 — 보고 있거나, 결과물이 될 것.
+            opacity: key === activeFrame || key === chosenFrame ? 1 : 0.55,
+            transition: "opacity 0.15s ease, border-color 0.15s ease",
+          })}
           interactive
           loadFont={loadEditorFont}
         />
