@@ -101,3 +101,29 @@ describe("선택이 보고 있는 페이지를 옮긴다", () => {
     expect(store.activePage?.id).toBe("b");
   });
 });
+
+describe("되돌리기와 보고 있는 페이지", () => {
+  it("⌘Z 는 되돌리기 전에 보던 페이지로 돌아간다", () => {
+    // 되돌리기가 선택을 되살릴 때 그 선택이 활성 페이지를 옮기면, 문서는 돌아왔는데
+    // 화면만 엉뚱한 벌로 튄다 — «되돌려도 안 돌아온다»로 보이는 자리다.
+    const store = new CanvasStore({
+      pages: [
+        { id: "a", custom: { frame: "v1" }, children: [{ id: "a1", type: "text" }] },
+        { id: "b", custom: { frame: "v2" }, children: [] },
+      ],
+    });
+    store.selectPage("a");
+    store.selectElements(["a1"]);
+
+    store.history.startTransaction();
+    store.pages[1].addElement({ id: "copy", type: "text" });
+    store.history.endTransaction();
+    store.selectElements(["copy"]);
+    expect(store.activePage?.id).toBe("b");
+
+    store.selectElements([]);
+    store.history.undo();
+    expect(store.getElementById("copy")).toBeNull();
+    expect(store.activePage?.id).toBe("a");
+  });
+});

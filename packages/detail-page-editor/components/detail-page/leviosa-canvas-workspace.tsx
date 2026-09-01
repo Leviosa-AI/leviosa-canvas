@@ -229,11 +229,28 @@ export function LeviosaCanvasWorkspace({
     store.selectPage(id);
   }, [store]);
 
+  /**
+   * 고른 요소가 있으면 «보고 있는 벌»은 손이 가 있는 곳이지 화면 가운데가 아니다.
+   *
+   * 이게 없으면 4번 벌의 요소를 집는 순간 그 선택이 활성 페이지를 옮기고, 그 때문에
+   * 화면이 스르륵 움직이고, 그 스크롤이 가운데에 있는 2번 벌을 다시 활성으로 만든다 —
+   * 집은 것은 4번인데 «대표로 지정»은 2번 위에 뜬다.
+   */
+  const holding = store.selectedElementsIds.length > 0;
+  /** 고른 요소가 놓인 페이지. 활성 화면이 여기로 온 것이면 손으로 누른 것이다. */
+  const heldPageId =
+    store.pageOfElement(store.selectedElementsIds[0] ?? "")?.id ?? null;
+
   const scrollRaf = useRef<number | null>(null);
+  const holdingRef = useRef(holding);
+  holdingRef.current = holding;
+  const heldPageIdRef = useRef(heldPageId);
+  heldPageIdRef.current = heldPageId;
   const onScroll = useCallback(() => {
     if (scrollRaf.current != null) return;
     scrollRaf.current = requestAnimationFrame(() => {
       scrollRaf.current = null;
+      if (holdingRef.current) return;
       recomputeActive();
     });
   }, [recomputeActive]);
@@ -243,6 +260,13 @@ export function LeviosaCanvasWorkspace({
   useEffect(() => {
     const inner = innerRef.current;
     if (!inner || !activeId || activeId === scrollSetId.current) return;
+    // 캔버스에서 요소를 집어 활성 화면이 바뀐 것이면 옮기지 않는다. 방금 손으로
+    // 누른 것이라 이미 보고 있고, 여기서 화면을 움직이면 누를 때마다 밑이 흔들린다.
+    // 목록에서 고른 때만 데려간다.
+    if (activeId === heldPageIdRef.current) {
+      scrollSetId.current = activeId;
+      return;
+    }
     scrollSetId.current = activeId;
     const node = inner.querySelector<HTMLElement>(
       `[data-lc-page="${CSS.escape(activeId)}"]`,

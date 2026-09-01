@@ -482,6 +482,11 @@ export class CanvasHistory {
     this.push(pending);
   }
 
+  /** 되돌리는 중인가. 그 동안의 선택은 사람이 한 것이 아니다. */
+  get restoring(): boolean {
+    return this.applying;
+  }
+
   get canUndo(): boolean {
     return this.past.length > 0;
   }
@@ -671,8 +676,14 @@ export class CanvasStore {
       // 집은 요소가 있는 페이지가 «보고 있는 페이지»다. 이게 없으면 다른 벌의 요소를
       // 집어도 페이지 목록·아래 띠·벌 표시는 이전 벌에 머물러, 손이 가 있는 곳과
       // 화면이 말하는 곳이 갈린다.
-      const page = this.pageOfElement(next[0] ?? "");
-      if (page) this.activePageId = page.id;
+      //
+      // 되돌리는 중에는 안 옮긴다. 그때의 선택은 스냅샷을 되살리는 것이라 사람이 집은
+      // 것이 아니고, 바로 앞 줄에서 되살려 둔 «보고 있던 페이지»를 덮어써 ⌘Z 뒤에
+      // 엉뚱한 벌로 화면이 튄다.
+      if (!this.history.restoring) {
+        const page = this.pageOfElement(next[0] ?? "");
+        if (page) this.activePageId = page.id;
+      }
       return true;
     });
   }
