@@ -27,7 +27,7 @@ import {
 import { Layer, Line, Rect, Stage, Transformer } from "react-konva/es/ReactKonvaCore";
 
 import { shouldWatermark } from "../license";
-import { CanvasElement, type CanvasPage, type CanvasStore } from "../store";
+import { CanvasElement, withFreshIds, type CanvasPage, type CanvasStore } from "../store";
 import { num, str } from "../types";
 import { elementRect, type Rect as DocRect } from "../edit/rect";
 import { handleCanvasHotkey } from "../edit/hotkeys";
@@ -39,7 +39,7 @@ import {
 } from "../edit/snap";
 import { useCanvasVersion, usePageVersion, useSelectionKey } from "../use-canvas";
 import { EditContext, type EditHandlers } from "./edit-context";
-import { groupFrames } from "./frames";
+import { frameOf, groupFrames } from "./frames";
 import { ElementView } from "./element-view";
 import { elementPath, isTransformerPart, type HitNode } from "./hit-path";
 import {
@@ -455,6 +455,52 @@ function PageView({
   );
 }
 
+/**
+ * 다른 판 위에서 손을 뗐는가. 맞으면 그 판으로 옮겨 놓고 `true` 를 준다.
+ *
+ * 판마다 무대가 따로라 문서 좌표로는 알 수 없다 — 끌던 좌표는 여전히 «원래 판 안»을
+ * 가리킨다. 그래서 손이 있던 **화면 좌표** 아래에 무엇이 있는지 DOM 에 직접 묻는다.
+ *
+ * ## 벌을 넘으면 베끼고, 같은 벌 안이면 옮긴다
+ *
+ * 다른 벌에서 끌어오는 것은 «저 안의 저것을 여기도 쓰겠다»는 뜻이다. 원본을 가져와
+ * 버리면 견줄 것이 줄어든다. 반대로 같은 벌 안에서 판을 바꾸는 것은 자리를 옮기는
+ * 일이라, 두 개가 되면 지우는 일이 하나 는다.
+ */
+function dropOnOtherPage(
+  store: CanvasStore,
+  id: string,
+  client: { x: number; y: number },
+): boolean {
+  const under = document
+    .elementFromPoint(client.x, client.y)
+    ?.closest<HTMLElement>("[data-lc-page]");
+  const targetId = under?.dataset.lcPage;
+  if (!under || !targetId) return false;
+
+  const home = store.getPageOfElement(id);
+  const target = store.getPageById(targetId);
+  const el = store.getElementById(id);
+  if (!home || !target || !el || home.id === target.id) return false;
+
+  // 놓은 자리에 가운데를 맞춘다 — 손이 가리킨 곳이 곧 그 요소의 자리다.
+  const rect = under.getBoundingClientRect();
+  const scale = store.scale || 1;
+  const box = elementRect(el);
+  const json = withFreshIds(el.toJSON());
+  json.x = (client.x - rect.left) / scale - box.width / 2;
+  json.y = (client.y - rect.top) / scale - box.height / 2;
+
+  const moving = frameOf(home) === frameOf(target);
+  let made: CanvasElement | null = null;
+  applyInTransaction(store, () => {
+    made = target.addElement(json);
+    if (moving) store.deleteElements([id]);
+  });
+  if (made) store.selectElements([(made as CanvasElement).id]);
+  return true;
+}
+
 export function CanvasView({
   store,
   scale = 1,
@@ -621,11 +667,14 @@ export function CanvasView({
         );
         return { x: position.x + dx, y: position.y + dy };
       },
-      onDragEnd: (id, position, altClone) => {
+      onDragEnd: (id, position, altClone, client) => {
         dragRef.current = null;
         guideBus.set(null);
         const el = store.getElementById(id);
         if (!el) return;
+        // 남의 판 위에서 손을 뗐으면 그 판으로 옮긴다. 문서가 바뀌면 원래 판도 다시
+        // 그려지므로, 끌던 노드는 저절로 제자리로 돌아간다.
+        if (client && dropOnOtherPage(store, id, client)) return;
         // 여럿을 함께 끌면 Konva가 노드마다 dragEnd를 부른다 — 한 트랜잭션으로 묶어
         // ⌘Z 한 번에 전부 돌아오게 한다.
         applyInTransaction(store, () => {

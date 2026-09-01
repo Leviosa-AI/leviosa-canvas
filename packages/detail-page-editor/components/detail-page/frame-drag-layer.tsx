@@ -39,6 +39,8 @@ type Drop = {
   at: number;
   /** 자리 표시선을 그릴 곳(층 좌표). */
   line: { left: number; top: number; width: number };
+  /** 놓일 벌 전체(층 좌표). 여기를 통째로 밝혀 «저기로 간다»를 말한다. */
+  area: Box;
   /** 넘쳐서 못 놓는가. */
   full: boolean;
 };
@@ -123,7 +125,8 @@ export function FrameDragLayer({
       return {
         frameKey,
         at,
-        line: { left: frameBox.left + 8, top: edge, width: frameBox.width - 16 },
+        line: { left: frameBox.left + 6, top: edge, width: frameBox.width - 12 },
+        area: frameBox,
         full,
       };
     },
@@ -256,32 +259,55 @@ export function FrameDragLayer({
 
           {drag.drop ? (
             <>
+              {/* 놓일 벌을 통째로 밝힌다. 가는 선 하나로는 «어디로 가는지»가 안 읽힌다. */}
+              <div
+                style={{
+                  position: "absolute",
+                  left: drag.drop.area.left,
+                  top: drag.drop.area.top,
+                  width: drag.drop.area.width,
+                  height: drag.drop.area.height,
+                  zIndex: 39,
+                  pointerEvents: "none",
+                  borderRadius: 10,
+                  outline: `3px solid ${drag.drop.full ? "#c0392b" : "#2563eb"}`,
+                  background: drag.drop.full
+                    ? "rgba(192, 57, 43, 0.06)"
+                    : "rgba(37, 99, 235, 0.06)",
+                }}
+              />
               <div
                 style={{
                   position: "absolute",
                   left: drag.drop.line.left,
-                  top: drag.drop.line.top - 1,
+                  top: drag.drop.line.top - 3,
                   width: drag.drop.line.width,
-                  height: 3,
+                  height: 6,
                   zIndex: 41,
                   pointerEvents: "none",
-                  background: drag.drop.full ? "#c0392b" : "#1a1a1a",
+                  borderRadius: 3,
+                  background: drag.drop.full ? "#c0392b" : "#2563eb",
                 }}
               />
-              {drag.drop.full ? (
-                <span
-                  style={{
-                    position: "absolute",
-                    left: drag.x + 14,
-                    top: drag.y + 14,
-                    zIndex: 42,
-                    pointerEvents: "none",
-                  }}
-                  className="rounded-dpe-md bg-dpe-danger-600 px-2 py-1 text-[11px] font-dpe-semibold text-white"
-                >
-                  {detailPageEditorProfile().maxPages}장이 최대입니다
-                </span>
-              ) : null}
+              <span
+                style={{
+                  position: "absolute",
+                  left: drag.x + 16,
+                  top: drag.y + 16,
+                  zIndex: 42,
+                  pointerEvents: "none",
+                }}
+                className={[
+                  "rounded-dpe-md px-2 py-1 text-[11px] font-dpe-semibold text-dpe-on-accent",
+                  drag.drop.full ? "bg-dpe-danger-600" : "bg-dpe-ink-900",
+                ].join(" ")}
+              >
+                {drag.drop.full
+                  ? `${detailPageEditorProfile().maxPages}장이 최대입니다`
+                  : drag.drop.frameKey === drag.from
+                    ? "같은 벌 — 놓아도 그대로"
+                    : `${drag.drop.frameKey} · ${drag.drop.at + 1}번째로`}
+              </span>
             </>
           ) : null}
         </>

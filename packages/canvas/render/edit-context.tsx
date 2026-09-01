@@ -28,11 +28,17 @@ export type EditHandlers = {
     id: string,
     position: { x: number; y: number },
   ) => { x: number; y: number };
-  /** 끌기 끝. `altClone`이면 원래 자리에 복제본을 하나 남긴다(⌥ 끌기). */
+  /**
+   * 끌기 끝. `altClone`이면 원래 자리에 복제본을 하나 남긴다(⌥ 끌기).
+   *
+   * `client`는 손을 뗀 **화면 좌표**다. 판마다 무대가 따로라, 다른 판 위에 놓았는지는
+   * 문서 좌표로는 알 수 없다 — 그 좌표는 여전히 «원래 판 안»을 가리키기 때문이다.
+   */
   onDragEnd: (
     id: string,
     position: { x: number; y: number },
     altClone?: boolean,
+    client?: { x: number; y: number },
   ) => void;
   onTransformEnd: (id: string, result: TransformResult) => void;
 };

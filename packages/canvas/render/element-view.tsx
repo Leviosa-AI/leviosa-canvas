@@ -191,10 +191,14 @@ function ElementFrame({
           ? (event: DragEvent) => {
               const alt = altRef.current;
               altRef.current = false;
+              const native = event.evt as PointerEvent | MouseEvent | undefined;
               edit.onDragEnd(
                 el.id,
                 { x: event.target.x(), y: event.target.y() },
                 alt,
+                native
+                  ? { x: native.clientX, y: native.clientY }
+                  : undefined,
               );
             }
           : undefined
