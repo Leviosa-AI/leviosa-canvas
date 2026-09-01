@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { frameOf, groupFrames } from "../render/frames";
+import { frameInsertIndex, frameOf, groupFrames } from "../render/frames";
 
 const page = (id: string, frame?: string) => ({
   id,
@@ -45,5 +45,31 @@ describe("groupFrames", () => {
 
   it("빈 문서는 열이 없다", () => {
     expect(groupFrames([])).toEqual([]);
+  });
+});
+
+describe("frameInsertIndex", () => {
+  const pages = [
+    page("a1", "A"),
+    page("b1", "B"),
+    page("a2", "A"),
+    page("b2", "B"),
+  ];
+
+  it("벌 안의 자리를 문서 전체의 자리로 옮긴다", () => {
+    // A 는 문서에서 0, 2 번이다.
+    expect(frameInsertIndex(pages, "A", 0)).toBe(0);
+    expect(frameInsertIndex(pages, "A", 1)).toBe(2);
+    // 맨 뒤는 마지막 장 «다음»이다.
+    expect(frameInsertIndex(pages, "A", 2)).toBe(3);
+  });
+
+  it("범위를 벗어난 자리는 양 끝으로 접는다", () => {
+    expect(frameInsertIndex(pages, "B", -5)).toBe(1);
+    expect(frameInsertIndex(pages, "B", 99)).toBe(4);
+  });
+
+  it("한 장도 없는 벌은 맨 뒤에 선다", () => {
+    expect(frameInsertIndex(pages, "C", 0)).toBe(4);
   });
 });

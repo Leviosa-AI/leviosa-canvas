@@ -39,3 +39,27 @@ export function groupFrames<T extends FramedPage>(
   }
   return [...byKey].map(([key, group]) => ({ key, pages: group }));
 }
+
+/**
+ * 어떤 벌의 **몇 번째 자리**가 문서 전체에서 몇 번째인가.
+ *
+ * 페이지 배열은 벌과 무관하게 한 줄이다. «2안의 세 번째 앞에 끼워라»를 그 한 줄의
+ * 자리로 옮겨 줘야 스토어가 알아듣는다.
+ *
+ * @param at 그 벌 안에서의 자리(0 이면 맨 앞, 길이와 같으면 맨 뒤).
+ */
+export function frameInsertIndex<T extends FramedPage>(
+  pages: readonly T[],
+  frameKey: string,
+  at: number,
+): number {
+  const mine: number[] = [];
+  pages.forEach((page, index) => {
+    if (frameOf(page) === frameKey) mine.push(index);
+  });
+  // 아직 한 장도 없는 벌이면 맨 뒤에 새 열이 선다.
+  if (!mine.length) return pages.length;
+  if (at <= 0) return mine[0];
+  if (at >= mine.length) return mine[mine.length - 1] + 1;
+  return mine[at];
+}
