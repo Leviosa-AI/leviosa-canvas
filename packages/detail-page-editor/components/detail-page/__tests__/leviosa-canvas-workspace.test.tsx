@@ -135,6 +135,36 @@ describe("LeviosaCanvasWorkspace — 장 높이 손잡이", () => {
 });
 
 describe("LeviosaCanvasWorkspace", () => {
+  it("편집을 멈추면 바뀐 페이지만 썸네일을 다시 굽는다", async () => {
+    vi.useFakeTimers();
+    try {
+      const s = store();
+      const renderPage = vi
+        .spyOn(s, "toDataURL")
+        .mockImplementation(async ({ pageId } = {}) => `data:${pageId}`);
+      render(<LeviosaCanvasWorkspace store={s} />);
+
+      act(() => s.openSidePanel("pages"));
+      await act(async () => vi.advanceTimersByTimeAsync(250));
+      expect(renderPage).toHaveBeenCalledTimes(2);
+
+      act(() => {
+        s.getElementById("a")?.set({ text: "나" });
+        s.getElementById("a")?.set({ text: "다" });
+      });
+      await act(async () => vi.advanceTimersByTimeAsync(249));
+      expect(renderPage).toHaveBeenCalledTimes(2);
+      await act(async () => vi.advanceTimersByTimeAsync(1));
+      expect(renderPage).toHaveBeenCalledTimes(3);
+      expect(renderPage).toHaveBeenLastCalledWith({
+        pageId: "p1",
+        pixelRatio: 0.12,
+      });
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it("페이지를 세로로 건다", () => {
     const s = store();
     const { container } = render(<LeviosaCanvasWorkspace store={s} />);

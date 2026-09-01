@@ -15,11 +15,19 @@ import "konva/lib/shapes/Line";
 import "konva/lib/shapes/Transformer";
 
 import type Konva from "konva";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type CSSProperties,
+  type ReactNode,
+} from "react";
 import { Layer, Line, Rect, Stage, Transformer } from "react-konva/es/ReactKonvaCore";
 
 import { shouldWatermark } from "../license";
-import { CanvasElement, type CanvasPage, type CanvasStore } from "../store";
+import { CanvasElement, withFreshIds, type CanvasPage, type CanvasStore } from "../store";
 import { num, str } from "../types";
 import { elementRect, type Rect as DocRect } from "../edit/rect";
 import { handleCanvasHotkey } from "../edit/hotkeys";
@@ -31,6 +39,7 @@ import {
 } from "../edit/snap";
 import { useCanvasVersion, usePageVersion, useSelectionKey } from "../use-canvas";
 import { EditContext, type EditHandlers } from "./edit-context";
+import { frameOf, groupFrames } from "./frames";
 import { ElementView } from "./element-view";
 import { elementPath, isTransformerPart, type HitNode } from "./hit-path";
 import {
@@ -227,6 +236,8 @@ function PageView({
   interactive,
   scopeId,
   editingId,
+  raised,
+  chrome,
   guideBus,
   marqueeBus,
   onPick,
@@ -240,6 +251,10 @@ function PageView({
   interactive: boolean;
   scopeId: string | null;
   editingId: string | null;
+  /** 끌리는 중인 판. 다른 판 위로 올려 그려서 끌던 것이 안 가리게 한다. */
+  raised?: boolean;
+  /** 판 위에 얹을 것(손잡이 등). 판 상자 안에 그린다. */
+  chrome?: ReactNode;
   guideBus: ValueBus<GuideState>;
   marqueeBus: ValueBus<MarqueeState>;
   onPick: (id: string | null, shift: boolean) => void;
@@ -340,11 +355,13 @@ function PageView({
       data-lc-page={page.id}
       style={{
         position: "relative",
+        zIndex: raised ? 5 : undefined,
         width: width * scale,
         height: height * scale,
         background: str(page, "background", "#ffffff"),
       }}
     >
+      {chrome}
       {mount ? (
         <Stage
           width={width * scale}
@@ -446,17 +463,119 @@ function PageView({
   );
 }
 
+/**
+ * 다른 판 위에서 손을 뗐는가. 맞으면 그 판으로 옮겨 놓고 `true` 를 준다.
+ *
+ * 판마다 무대가 따로라 문서 좌표로는 알 수 없다 — 끌던 좌표는 여전히 «원래 판 안»을
+ * 가리킨다. 그래서 손이 있던 **화면 좌표** 아래에 무엇이 있는지 DOM 에 직접 묻는다.
+ *
+ * ## 벌을 넘으면 베끼고, 같은 벌 안이면 옮긴다
+ *
+ * 다른 벌에서 끌어오는 것은 «저 안의 저것을 여기도 쓰겠다»는 뜻이다. 원본을 가져와
+ * 버리면 견줄 것이 줄어든다. 반대로 같은 벌 안에서 판을 바꾸는 것은 자리를 옮기는
+ * 일이라, 두 개가 되면 지우는 일이 하나 는다.
+ */
+function dropOnOtherPage(
+  store: CanvasStore,
+  id: string,
+  client: { x: number; y: number },
+  grab: { dx: number; dy: number } | null,
+): boolean {
+  const under = document
+    .elementFromPoint(client.x, client.y)
+    ?.closest<HTMLElement>("[data-lc-page]");
+  const targetId = under?.dataset.lcPage;
+  if (!under || !targetId) return false;
+
+  const home = store.getPageOfElement(id);
+  const target = store.getPageById(targetId);
+  const el = store.getElementById(id);
+  if (!home || !target || !el || home.id === target.id) return false;
+
+  // 놓은 자리에 가운데를 맞춘다 — 손이 가리킨 곳이 곧 그 요소의 자리다.
+  const rect = under.getBoundingClientRect();
+  const scale = store.scale || 1;
+  const box = elementRect(el);
+  // **잡았던 자리가 손끝에 그대로 붙어 있어야** 옮긴 것이 옮긴 대로 앉는다. 가운데를
+  // 커서에 맞추면 손을 떼는 순간 요소가 튄다. 잡은 자리를 못 받았을 때만 가운데로.
+  // 판 밖으로는 안 나가게 가둔다 — 가장자리에 놓으면 절반이 걸려서 «넘어가긴 했는데
+  // 안 보이는» 것이 된다.
+  const fit = (value: number, span: number, limit: number) =>
+    span >= limit ? value : Math.max(0, Math.min(limit - span, value));
+  const json = withFreshIds(el.toJSON());
+  json.x = fit(
+    (client.x - rect.left) / scale - (grab ? grab.dx : box.width / 2),
+    box.width,
+    target.width,
+  );
+  json.y = fit(
+    (client.y - rect.top) / scale - (grab ? grab.dy : box.height / 2),
+    box.height,
+    target.height,
+  );
+
+  const moving = frameOf(home) === frameOf(target);
+  let made: CanvasElement | null = null;
+  applyInTransaction(store, () => {
+    made = target.addElement(json);
+    if (moving) store.deleteElements([id]);
+  });
+  if (made) store.selectElements([(made as CanvasElement).id]);
+  return true;
+}
+
 export function CanvasView({
   store,
   scale = 1,
   gap = 0,
   interactive = false,
+  center = false,
+  frameGap,
+  renderFrameHeader,
+  renderPageChrome,
+  frameInsert,
+  frameStyle,
   loadFont,
 }: {
   store: CanvasStore;
   scale?: number;
   gap?: number;
   interactive?: boolean;
+  /**
+   * 남는 자리에서 가운데로 설 것인가. **자동 여백으로** 세운다 — 부모의 정렬로
+   * 세우면 내용이 화면보다 커졌을 때 시작 쪽으로 스크롤을 못 하게 된다(자동 여백은
+   * 남는 자리가 없으면 0이 되어 그냥 왼쪽 위에 선다).
+   */
+  center?: boolean;
+  /** 벌 사이 거리(화면 px). 안 주면 장 사이의 두 배. */
+  frameGap?: number;
+  /**
+   * 열 하나 위에 얹을 것 — 이름표 같은 것. **무엇을 그릴지는 엔진이 모른다.**
+   * 확정이니 선택이니 하는 말은 편집기의 것이지 판을 그리는 쪽의 것이 아니다.
+   */
+  renderFrameHeader?: (frameKey: string) => ReactNode;
+  /**
+   * 판 하나 위에 얹을 것 — 끌기 손잡이 같은 것.
+   *
+   * **판 상자 안에** 그린다. 밖에서 마우스 자리를 재어 띄우면 손이 손잡이 쪽으로
+   * 다가가는 동안 «판 밖»을 지나며 깜빡인다. 안에 있으면 잴 것이 없고 깜빡일 일도
+   * 없다 — 보이고 안 보이고는 CSS 가 정한다.
+   */
+  renderPageChrome?: (pageId: string) => ReactNode;
+  /**
+   * 지금 끼어들 자리. 그 자리에 빈칸을 하나 끼워 넣어 **판들이 밀려나게** 한다.
+   *
+   * 위에 겹쳐 그리면 밑의 판을 가릴 뿐이라 «사이가 벌어졌다»가 안 된다. 열은
+   * 세로로 쌓인 흐름이라, 빈칸을 흐름 안에 넣으면 미는 일은 배치가 알아서 한다.
+   */
+  frameInsert?: {
+    frameKey: string;
+    at: number;
+    height: number;
+    full: boolean;
+  } | null;
+  /** 열 상자에 얹을 모양(테두리·바탕·흐리기). 위와 같은 이유로 값만 받는다. */
+  frameStyle?: (frameKey: string) => CSSProperties | undefined;
   /** 폰트를 받아 오는 사람. 안 주면 브라우저가 이미 아는 서체만 그려진다 (G7 경계). */
   loadFont?: FontLoader;
 }) {
@@ -473,6 +592,51 @@ export function CanvasView({
   const marqueeBus = useMemo(() => createValueBus<MarqueeState>(null), []);
   /** 지금 글자를 고치고 있는 요소. */
   const [editingId, setEditingId] = useState<string | null>(null);
+  /**
+   * 지금 끌리고 있는 요소.
+   *
+   * 판마다 무대가 따로라, 요소를 판 밖으로 끌면 그 캔버스에 **잘려서 사라진다** —
+   * 어디에 놓이는지 안 보이는 채로 손을 떼게 된다. 그래서 끄는 동안 두 가지를 한다:
+   * 그 판을 다른 판 위로 올리고, 커서를 따라다니는 자국을 모든 판 위에 그린다.
+   */
+  const [dragging, setDragging] = useState<{
+    pageId: string;
+    width: number;
+    height: number;
+    /** 끌리는 요소를 그 자리에서 뜬 그림. 못 뜨면 없다(테두리만 그린다). */
+    image?: string;
+  } | null>(null);
+  const [ghost, setGhost] = useState<{ x: number; y: number } | null>(null);
+  const rootRef = useRef<HTMLDivElement>(null);
+  /**
+   * 요소의 어디를 잡았는가(판 좌표).
+   *
+   * 이걸 안 들고 있으면 놓을 때 «커서에 가운데를 맞추는» 수밖에 없고, 그러면 손을
+   * 떼는 순간 요소가 잡았던 자리에서 튄다. 잡은 자리가 손끝에 그대로 붙어 있어야
+   * 옮긴 것이 옮긴 대로 앉는다.
+   */
+  const grabRef = useRef<{ dx: number; dy: number } | null>(null);
+
+  useEffect(() => {
+    if (!dragging) return;
+    const onMove = (event: PointerEvent) => {
+      const box = rootRef.current?.getBoundingClientRect();
+      if (!box) return;
+      // 제 판 위에서는 자국을 그리지 않는다. 거기서는 진짜 요소가 이미 손을 따라
+      // 잘 움직이고 있어서, 자국까지 겹치면 같은 것이 두 겹으로 보인다. 자국은
+      // 무대 밖으로 나가 **잘려서 안 보이는 동안**만 필요하다.
+      const over = document
+        .elementFromPoint(event.clientX, event.clientY)
+        ?.closest<HTMLElement>("[data-lc-page]")?.dataset.lcPage;
+      setGhost(
+        over === dragging.pageId
+          ? null
+          : { x: event.clientX - box.left, y: event.clientY - box.top },
+      );
+    };
+    window.addEventListener("pointermove", onMove);
+    return () => window.removeEventListener("pointermove", onMove);
+  }, [dragging]);
 
   const onPick = useCallback(
     (id: string | null, shift: boolean) => {
@@ -549,7 +713,39 @@ export function CanvasView({
       interactive,
       scopeId,
       editingId,
-      onDragStart: (id) => {
+      onDragStart: (id, node, client) => {
+        const dragged = store.getElementById(id);
+        const home = store.getPageOfElement(id);
+        if (dragged && home) {
+          const size = elementRect(dragged);
+          const homeBox = document
+            .querySelector<HTMLElement>(`[data-lc-page="${CSS.escape(home.id)}"]`)
+            ?.getBoundingClientRect();
+          grabRef.current =
+            client && homeBox
+              ? {
+                  dx: (client.x - homeBox.left) / (store.scale || 1) - size.x,
+                  dy: (client.y - homeBox.top) / (store.scale || 1) - size.y,
+                }
+              : null;
+          // 무대 밖에서 보여 줄 것은 «테두리»가 아니라 그 요소 자체다. 끌기가
+          // 시작되는 이 한 번만 그림으로 뜬다 — 남의 그림이 섞여 캔버스가 오염된
+          // 경우에는 못 뜨므로, 그때는 테두리로 물러난다.
+          let image: string | undefined;
+          try {
+            // 배율은 **그림이 들고 온 크기 그대로** 쓴다. 상자 크기를 따로
+            // 셈해서 씌우면 한 군데만 어긋나도 통째로 커지거나 작아진다.
+            image = node?.toDataURL();
+          } catch {
+            image = undefined;
+          }
+          setDragging({
+            pageId: home.id,
+            width: size.width,
+            height: size.height,
+            image,
+          });
+        }
         const el = store.getElementById(id);
         const page = store.getPageOfElement(id);
         if (!el || !page) return;
@@ -593,11 +789,16 @@ export function CanvasView({
         );
         return { x: position.x + dx, y: position.y + dy };
       },
-      onDragEnd: (id, position, altClone) => {
+      onDragEnd: (id, position, altClone, client) => {
         dragRef.current = null;
         guideBus.set(null);
+        setDragging(null);
+        setGhost(null);
         const el = store.getElementById(id);
         if (!el) return;
+        // 남의 판 위에서 손을 뗐으면 그 판으로 옮긴다. 문서가 바뀌면 원래 판도 다시
+        // 그려지므로, 끌던 노드는 저절로 제자리로 돌아간다.
+        if (client && dropOnOtherPage(store, id, client, grabRef.current)) return;
         // 여럿을 함께 끌면 Konva가 노드마다 dragEnd를 부른다 — 한 트랜잭션으로 묶어
         // ⌘Z 한 번에 전부 돌아오게 한다.
         applyInTransaction(store, () => {
@@ -629,35 +830,123 @@ export function CanvasView({
     return <div data-lc-canvas="pending" style={{ width: store.width * scale }} />;
   }
 
+  const frames = groupFrames(store.pages);
+  const framePagesWithSlot = (key: string, kids: ReactNode[]): ReactNode[] => {
+    if (!frameInsert || frameInsert.frameKey !== key) return kids;
+    const at = Math.max(0, Math.min(kids.length, frameInsert.at));
+    const slot = (
+      <div
+        key="lc-insert-slot"
+        data-lc-insert-slot=""
+        style={{
+          height: frameInsert.height,
+          borderRadius: 6,
+          border: `2px dashed ${frameInsert.full ? "#c0392b" : "#2563eb"}`,
+          background: frameInsert.full
+            ? "rgba(192, 57, 43, 0.10)"
+            : "rgba(37, 99, 235, 0.12)",
+        }}
+      />
+    );
+    return [...kids.slice(0, at), slot, ...kids.slice(at)];
+  };
+  const renderPage = (page: CanvasPage) => (
+    <PageView
+      key={page.id}
+      store={store}
+      page={page}
+      scale={scale}
+      fontsVersion={fontsVersion}
+      interactive={interactive}
+      scopeId={scopeId}
+      editingId={editingId}
+      raised={dragging?.pageId === page.id}
+      chrome={renderPageChrome?.(page.id)}
+      guideBus={guideBus}
+      marqueeBus={marqueeBus}
+      onPick={onPick}
+      onDrill={onDrill}
+      onEditDone={() => setEditingId(null)}
+    />
+  );
+
   return (
     <EditContext.Provider value={handlers}>
       <div
+        ref={rootRef}
         data-lc-canvas="ready"
         data-lc-scope={scopeId ?? ""}
         style={{
+          position: "relative",
           display: "flex",
-          flexDirection: "column",
-          gap,
           width: "min-content",
+          // 자동 여백이 남는 자리를 반씩 먹어 가운데로 세운다.
+          ...(center ? { margin: "auto" } : {}),
+          ...(frames.length > 1
+            ? {
+                flexDirection: "row" as const,
+                alignItems: "flex-start" as const,
+                // 열 사이는 장 사이보다 넓어야 한 벌이 한 덩이로 읽힌다.
+                gap: frameGap ?? gap * 2,
+              }
+            : { flexDirection: "column" as const, gap }),
         }}
       >
-        {store.pages.map((page) => (
-          <PageView
-            key={page.id}
-            store={store}
-            page={page}
-            scale={scale}
-            fontsVersion={fontsVersion}
-            interactive={interactive}
-            scopeId={scopeId}
-            editingId={editingId}
-            guideBus={guideBus}
-            marqueeBus={marqueeBus}
-            onPick={onPick}
-            onDrill={onDrill}
-            onEditDone={() => setEditingId(null)}
-          />
-        ))}
+        {/* 프레임이 하나뿐이면 열로 감싸지 않는다 — 꼬리표가 없는 기존 문서는 예전과
+            **똑같은 마크업**으로 그려져야 한다. 그것이 이 기능의 안전선이다. */}
+        {frames.length > 1
+          ? frames.map((frame) => (
+              <div
+                key={frame.key}
+                data-lc-frame={frame.key}
+                style={{
+                  position: "relative",
+                  display: "flex",
+                  flexDirection: "column",
+                  gap,
+                  width: "min-content",
+                  ...frameStyle?.(frame.key),
+                }}
+              >
+                {/* 이름표는 열의 **폭에 안 낀다**. 열은 판 너비만큼만 넓어야 하는데,
+                    글자가 흐름에 끼면 많이 줄였을 때 이름이 열을 벌려 놓는다. */}
+                {renderFrameHeader?.(frame.key)}
+                {framePagesWithSlot(frame.key, frame.pages.map(renderPage))}
+              </div>
+            ))
+          : store.pages.map(renderPage)}
+
+        {/* 끌리는 요소의 자국. 무대 밖에서도 보여야 하므로 판이 아니라 여기서 그린다. */}
+        {dragging && ghost ? (
+          <div
+            style={{
+              position: "absolute",
+              left: ghost.x,
+              top: ghost.y,
+              // 크기를 안 정한다 — 그림이 들고 온 크기가 곧 화면에 있던 크기다.
+              // 잡은 자리를 손끝에 맞춰 걸어야 «보이는 곳»과 «놓일 곳»이 같아진다.
+              transform: grabRef.current
+                ? `translate(${-grabRef.current.dx * scale}px, ${-grabRef.current.dy * scale}px)`
+                : "translate(-50%, -50%)",
+              zIndex: 20,
+              pointerEvents: "none",
+              ...(dragging.image
+                ? { opacity: 0.9 }
+                : {
+                    width: dragging.width * scale,
+                    height: dragging.height * scale,
+                    border: "2px dashed rgba(37, 99, 235, 0.9)",
+                    background: "rgba(37, 99, 235, 0.08)",
+                    borderRadius: 4,
+                  }),
+            }}
+          >
+            {dragging.image ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={dragging.image} alt="" draggable={false} style={{ display: "block" }} />
+            ) : null}
+          </div>
+        ) : null}
       </div>
     </EditContext.Provider>
   );

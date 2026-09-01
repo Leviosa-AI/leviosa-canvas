@@ -15,6 +15,7 @@ import { useSyncExternalStore } from "react";
 
 import { detailPageThumbnailBus } from "./detail-page-thumbnail-bus";
 import { observer } from "./canvas-observer";
+import { activeFramePages } from "../../lib/detail-page/frame-pages";
 
 type PageLike = { id: string; name?: unknown };
 type StoreLike = {
@@ -48,6 +49,8 @@ export const DetailPagePagesTimeline = observer(function DetailPagePagesTimeline
     () => 0,
   );
   const activeId = s.activePage?.id;
+  // 아래 띠도 목록과 같은 것을 본다 — 둘 다 «지금 어디 있나»를 말하는 물건이다.
+  const pages = activeFramePages(s.pages, activeId);
 
   if (!pagesTimelineVisible(s)) return null;
 
@@ -57,9 +60,9 @@ export const DetailPagePagesTimeline = observer(function DetailPagePagesTimeline
       style={{ minHeight: PAGES_TIMELINE_HEIGHT }}
       className="pointer-events-auto absolute inset-x-0 bottom-0 z-20 flex items-center gap-1.5 overflow-x-auto border-t border-dpe-ink-200 bg-dpe-surface/95 px-3 py-1.5 backdrop-blur-sm"
     >
-      {s.pages.map((page, index) => {
+      {pages.map((page, index) => {
         const active = page.id === activeId;
-        const thumb = detailPageThumbnailBus.get(page.id);
+        const thumb = detailPageThumbnailBus.get(s, page.id);
         return (
           <button
             key={page.id}

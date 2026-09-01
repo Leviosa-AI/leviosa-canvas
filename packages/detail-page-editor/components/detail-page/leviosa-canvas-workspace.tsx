@@ -22,6 +22,7 @@ import {
   useMemo,
   useRef,
   useState,
+  useSyncExternalStore,
   type ReactNode,
 } from "react";
 
@@ -36,6 +37,12 @@ import {
   pagesTimelineVisible,
 } from "./detail-page-pages-timeline";
 import { detailPageThumbnailBus } from "./detail-page-thumbnail-bus";
+import { FrameDragGrip } from "./frame-drag-grip";
+import {
+  getFrameInsert,
+  subscribeFrameInsert,
+} from "./frame-drag-bus";
+import { FrameDragLayer } from "./frame-drag-layer";
 import { GifAnimator } from "./gif-animator";
 import { GroupDrillIn } from "./group-drill-in";
 import { HoverHighlightOverlay } from "./hover-highlight-overlay";
@@ -43,6 +50,11 @@ import { CanvasSectionHeightHandle } from "./section-height-handle";
 import { loadEditorFont } from "../../lib/detail-page-canvas/editor-fonts";
 import { ZoomButtons } from "@leviosa-ai/canvas";
 import { CanvasView } from "@leviosa-ai/canvas/render/canvas-view";
+import { frameOf, groupFrames } from "@leviosa-ai/canvas/render/frames";
+import {
+  DetailPageFrameHeader,
+  FRAME_HEAD_HEIGHT,
+} from "./detail-page-frame-header";
 import { useCanvasVersion } from "@leviosa-ai/canvas/use-canvas";
 import type { CanvasStore } from "@leviosa-ai/canvas/store";
 
@@ -50,6 +62,24 @@ const MIN_SCALE = 0.05;
 const MAX_SCALE = 5;
 const clamp = (v: number, lo: number, hi: number) =>
   Math.max(lo, Math.min(hi, v));
+
+/**
+ * 벌 사이 거리 — **판 좌표**로 잰다.
+ *
+ * 화면 px 로 고정하면 확대했을 때는 붙어 보이고 축소했을 때는 벌어져 보인다. 판
+ * 하나가 1080 인 캐러셀에서 이 값은 판의 4분의 1쯤이라, 어느 배율에서 보든 «저건
+ * 다른 벌»이 한눈에 잡힌다.
+ */
+const FRAME_GAP_DOC = 240;
+
+/**
+ * 벌 위의 줄이 설 자리(화면 px).
+ *
+ * 그 줄은 흰 판 **밖**, 회색 바닥 위에 앉는다 — 작업물을 안 가리는 자리이고 피그마가
+ * 프레임 이름을 두는 자리다. 대신 작업 영역 위쪽에 그만큼을 비워 둬야 한다. 안 그러면
+ * 스크롤 영역 바깥으로 잘려서 아예 안 보인다(실제로 그렇게 사라져 있었다).
+ */
+const FRAME_HEAD = FRAME_HEAD_HEIGHT + 6;
 
 /** 썸네일 해상도. 페이지 패널의 칸이 작아 이 정도면 충분하다. */
 const THUMB_PIXEL_RATIO = 0.12;
@@ -62,12 +92,18 @@ export function LeviosaCanvasWorkspace({
   gap = 4,
   paddingX = 16,
   backgroundColor = "rgb(241, 241, 241)",
+  chosenFrame,
+  onChooseFrame,
   children,
 }: {
   store: CanvasStore;
   gap?: number;
   paddingX?: number;
   backgroundColor?: string;
+  /** 결과물이 될 벌. 내려받기·발행이 향하는 곳이다. */
+  chosenFrame?: string;
+  /** 안 주면 체크박스를 안 그린다 — 고를 것이 없는 문서도 있다. */
+  onChooseFrame?: (frameKey: string) => void;
   /** 작업 영역 위에 얹을 것(찾기·바꾸기 같은 편집기 고유 층). */
   children?: ReactNode;
 }) {
@@ -108,8 +144,21 @@ export function LeviosaCanvasWorkspace({
     const page = store.activePage ?? store.pages[0];
     const usableW = Math.max(1, viewport.width - 2 * paddingX);
     const usableH = Math.max(1, viewport.height - 2 * gap);
+    // 프레임이 여럿이면 **열 전체**가 가로로 들어와야 한다 — 한 벌만 보이면
+    // 나란히 놓은 뜻이 없다. 세로는 여전히 한 장 기준이다: 시안 하나가 스무
+    // 장이 넘는 상세페이지에서 기둥 전체를 넣으면 아무것도 안 읽힌다.
+    const frames = groupFrames(store.pages);
+    const spread =
+      frames.length > 1
+        ? frames.reduce(
+            (sum, frame) =>
+              sum + Math.max(1, ...frame.pages.map((one) => one.width)),
+            0,
+          ) +
+          (frames.length - 1) * FRAME_GAP_DOC
+        : page.width;
     const next = clamp(
-      Math.min(usableW / page.width, usableH / page.height) * 0.94,
+      Math.min(usableW / spread, usableH / page.height) * 0.94,
       MIN_SCALE,
       MAX_SCALE,
     );
@@ -152,15 +201,28 @@ export function LeviosaCanvasWorkspace({
   const recomputeActive = useCallback(() => {
     const inner = innerRef.current;
     if (!inner) return;
-    const middle = inner.getBoundingClientRect().top + inner.clientHeight / 2;
+    // 화면 한가운데를 **점으로** 잡는다. 열이 하나뿐이던 때는 세로만 봐도 답이
+    // 하나였지만, 열이 여럿이면 그 높이를 지나는 페이지가 열 수만큼 나온다 —
+    // 세로만 보면 언제나 맨 왼쪽 열이 이겨서 다른 벌을 고를 수가 없다.
+    const frame = inner.getBoundingClientRect();
+    const cx = frame.left + inner.clientWidth / 2;
+    const cy = frame.top + inner.clientHeight / 2;
     const nodes = Array.from(
       inner.querySelectorAll<HTMLElement>("[data-lc-page]"),
     );
-    const hit =
-      nodes.find((node) => {
-        const box = node.getBoundingClientRect();
-        return box.top <= middle && box.bottom >= middle;
-      }) ?? nodes[0];
+    const distance = (node: HTMLElement) => {
+      const box = node.getBoundingClientRect();
+      const dx = Math.max(box.left - cx, 0, cx - box.right);
+      const dy = Math.max(box.top - cy, 0, cy - box.bottom);
+      return dx * dx + dy * dy;
+    };
+    // 가운데를 품은 페이지는 거리가 0이라 그대로 이긴다. 아무것도 안 품으면
+    // (확대해서 빈 자리를 보고 있을 때) 제일 가까운 것으로 떨어진다.
+    const hit = nodes.reduce<HTMLElement | undefined>(
+      (best, node) =>
+        !best || distance(node) < distance(best) ? node : best,
+      undefined,
+    );
     const id = hit?.dataset.lcPage;
     if (!id || store.activePage?.id === id) return;
     scrollSetId.current = id;
@@ -197,29 +259,66 @@ export function LeviosaCanvasWorkspace({
   // 굽는 동안 그 페이지를 화면 밖에서도 그려야 해서다 — 30장을 한꺼번에 띄우면
   // 브라우저가 멈춘다.
   const panelOpen = store.openedSidePanel === "pages";
+  const panelOpenRef = useRef(panelOpen);
+  panelOpenRef.current = panelOpen;
+  const dirtyThumbnailIds = useRef(new Set<string>());
+  const [thumbnailRevision, setThumbnailRevision] = useState(0);
+
+  // 요소 속성 변경은 page.version을 올리지 않는다. 문서 변경 알림에서 현재 페이지만
+  // 더럽다고 적어 두고, 패널이 열려 있을 때만 아래 굽기 작업을 깨운다.
+  useEffect(
+    () =>
+      store.on("change", () => {
+        const id = store.activePage?.id;
+        if (id) dirtyThumbnailIds.current.add(id);
+        if (panelOpenRef.current) setThumbnailRevision((value) => value + 1);
+      }),
+    [store],
+  );
+
   useEffect(() => {
     if (!panelOpen) return;
     let cancelled = false;
-    void (async () => {
-      for (const page of store.pages) {
-        if (cancelled) return;
-        if (detailPageThumbnailBus.has(page.id)) continue;
-        try {
-          const uri = await store.toDataURL({
-            pageId: page.id,
-            pixelRatio: THUMB_PIXEL_RATIO,
-          });
+    // 타이핑·드래그 중 매 프레임 다시 굽지 않고, 손을 잠깐 놓았을 때 바뀐 페이지만 굽는다.
+    const timer = window.setTimeout(() => {
+      void (async () => {
+        for (const page of store.pages) {
           if (cancelled) return;
-          detailPageThumbnailBus.set(page.id, uri);
-        } catch {
-          // 못 구운 페이지는 다음에 다시 시도한다(패널을 다시 열면 온다).
+          if (
+            !dirtyThumbnailIds.current.has(page.id) &&
+            detailPageThumbnailBus.has(store, page.id)
+          ) {
+            continue;
+          }
+          try {
+            const uri = await store.toDataURL({
+              pageId: page.id,
+              pixelRatio: THUMB_PIXEL_RATIO,
+            });
+            if (cancelled) return;
+            dirtyThumbnailIds.current.delete(page.id);
+            detailPageThumbnailBus.set(store, page.id, uri);
+          } catch {
+            // 못 구운 페이지는 다음에 다시 시도한다(패널을 다시 열면 온다).
+          }
         }
-      }
-    })();
+      })();
+    }, 250);
     return () => {
       cancelled = true;
+      window.clearTimeout(timer);
     };
-  }, [panelOpen, pageIds, store]);
+  }, [panelOpen, pageIds, store, thumbnailRevision]);
+
+  const frameCount = groupFrames(store.pages).length;
+  // 끼어들 자리는 끌기 층이 정하고, 빈칸은 판을 그리는 쪽이 흐름 안에 넣는다.
+  const frameInsert = useSyncExternalStore(
+    subscribeFrameInsert,
+    getFrameInsert,
+    () => null,
+  );
+  // 보고 있는 벌 — 활성 페이지가 속한 벌이다. 목록·아래 띠가 보는 것과 같다.
+  const activeFrame = frameOf(store.activePage ?? store.pages[0] ?? {});
 
   const pageWidth = useMemo(
     () => Math.max(1, ...store.pages.map((page) => page.width)),
@@ -249,27 +348,68 @@ export function LeviosaCanvasWorkspace({
           // 페이지 바깥의 빈 자리를 누르면 선택 해제. 페이지 안은 캔버스가 처리한다.
           const target = event.target as HTMLElement;
           if (
-            !target.closest("[data-lc-page]") &&
-            !target.closest("[data-dp-quicktoolbar]")
+            target.closest("[data-lc-page]") ||
+            target.closest("[data-dp-quicktoolbar]")
           ) {
-            store.selectElements([]);
+            return;
           }
+          store.selectElements([]);
+          // 판 밖이어도 벌의 빈 자리를 눌렀으면 그 벌로 간다 — 이름표를 없앴으니
+          // 여기가 «저 벌을 보겠다»고 말하는 유일한 자리다.
+          const key = target.closest<HTMLElement>("[data-lc-frame]")?.dataset
+            .lcFrame;
+          if (key === undefined) return;
+          const first = store.pages.find((page) => frameOf(page) === key);
+          if (first) store.selectPage(first.id);
         }}
         style={{
           position: "absolute",
           inset: 0,
-          overflowX: "hidden",
+          // 프레임이 하나뿐이면 예전 그대로다. 가운데 정렬은 내용이 넘칠 때
+          // 왼쪽으로 스크롤을 못 하게 만드는 자리라, 열이 여럿일 때는 왼쪽에
+          // 붙여 놓고 가로 스크롤을 연다.
+          overflowX: frameCount > 1 ? "auto" : "hidden",
           overflowY: "auto",
           display: "flex",
           flexDirection: "column",
-          alignItems: "center",
-          padding: `${gap}px ${paddingX}px`,
+          alignItems: frameCount > 1 ? "flex-start" : "center",
+          padding: `${frameCount > 1 ? gap + FRAME_HEAD : gap}px ${paddingX}px ${gap}px`,
         }}
       >
         <CanvasView
           store={store}
           scale={scale}
           gap={gap}
+          // 열이 여럿이면 가운데 정렬을 정렬 속성이 아니라 자동 여백으로 준다 —
+          // 축소해서 남는 자리가 생겨도 가운데를 지키고, 커져도 스크롤이 산다.
+          center={frameCount > 1}
+          // 손잡이는 판 상자 **안**에 산다. 밖에서 자리를 재어 띄우면 손이 다가가는
+          // 동안 «판 밖»을 지나며 깜빡인다.
+          renderPageChrome={
+            frameCount > 1 ? (id) => <FrameDragGrip pageId={id} /> : undefined
+          }
+          frameGap={FRAME_GAP_DOC * scale}
+          frameInsert={frameInsert}
+          renderFrameHeader={(key) => (
+            <DetailPageFrameHeader
+              chosen={key === chosenFrame}
+              selected={key === activeFrame}
+              onChoose={onChooseFrame ? () => onChooseFrame(key) : undefined}
+            />
+          )}
+          frameStyle={(key) => ({
+            padding: 8,
+            borderRadius: 10,
+            // 회색 바닥 위의 **흰 판** — 피그마의 프레임이 그렇다. 판을 얹을 자리가
+            // 밝아야 «저기서 저기까지가 한 벌»이 읽힌다.
+            background: "#ffffff",
+            border: `1px solid ${key === activeFrame ? "rgba(0,0,0,0.45)" : "rgba(0,0,0,0.10)"}`,
+            // **흐리게 하지 않는다.** 한때 «보고 있거나 대표인 것만 선명»으로 뒀는데,
+            // 이 화면은 후보를 **견주는** 자리다 — 넷 중 둘이 바래 있으면 견줄 수가
+            // 없고, 판을 옮기면 색이 달라져서 옮긴 것이 변한 것처럼 보인다.
+            // 무엇이 나가는지는 «대표» 표가, 무엇을 보고 있는지는 테두리가 이미 말한다.
+            transition: "border-color 0.15s ease",
+          })}
           interactive
           loadFont={loadEditorFont}
         />
@@ -295,6 +435,9 @@ export function LeviosaCanvasWorkspace({
         scrollRef={innerRef}
       />
       <GroupDrillIn store={store} containerRef={outerRef} />
+      {/* 판을 다른 벌로 끌어오는 층. 무대마다 캔버스가 따로라, 끌리는 동안 보이는
+          것은 무대가 아니라 그 위에 뜬 이 층이 그린다. */}
+      <FrameDragLayer store={store} containerRef={outerRef} />
       <GifAnimator store={store} />
       {/* 활성 화면의 아래 끝을 잡아 끌어 길이를 바꾸는 손잡이. 우측 패널의 숫자와
           같은 함수를 거친다(`section-height.ts`) — 배경 요소까지 같이 늘리고 서버

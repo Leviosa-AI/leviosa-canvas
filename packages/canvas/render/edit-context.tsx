@@ -19,7 +19,15 @@ export type EditHandlers = {
   /** 지금 글자를 고치고 있는 요소 — 캔버스는 그 글자를 안 그린다(편집기가 그린다). */
   editingId: string | null;
   /** 끌기 시작 — 스냅 상대를 이때 한 번만 모은다(움직일 때마다 다시 모으면 느리다). */
-  onDragStart: (id: string) => void;
+  /**
+   * 끌기 시작. `node` 는 끌리는 Konva 노드다 — 그 자리에서 그림 한 장으로 떠서
+   * 무대 밖에서도 «그 요소 그대로» 보여 주는 데 쓴다.
+   */
+  onDragStart: (
+    id: string,
+    node?: { toDataURL: (config?: { pixelRatio?: number }) => string },
+    client?: { x: number; y: number },
+  ) => void;
   /**
    * 끄는 중. **붙일 자리를 되돌려 준다** — 부르는 쪽(요소 뷰)이 그 자리로 노드를 옮긴다.
    * 문서는 아직 안 고친다(끌기 한 번이 히스토리 한 줄이어야 한다).
@@ -28,11 +36,17 @@ export type EditHandlers = {
     id: string,
     position: { x: number; y: number },
   ) => { x: number; y: number };
-  /** 끌기 끝. `altClone`이면 원래 자리에 복제본을 하나 남긴다(⌥ 끌기). */
+  /**
+   * 끌기 끝. `altClone`이면 원래 자리에 복제본을 하나 남긴다(⌥ 끌기).
+   *
+   * `client`는 손을 뗀 **화면 좌표**다. 판마다 무대가 따로라, 다른 판 위에 놓았는지는
+   * 문서 좌표로는 알 수 없다 — 그 좌표는 여전히 «원래 판 안»을 가리키기 때문이다.
+   */
   onDragEnd: (
     id: string,
     position: { x: number; y: number },
     altClone?: boolean,
+    client?: { x: number; y: number },
   ) => void;
   onTransformEnd: (id: string, result: TransformResult) => void;
 };

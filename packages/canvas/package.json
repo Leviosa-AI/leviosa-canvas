@@ -1,6 +1,6 @@
 {
   "name": "@leviosa-ai/canvas",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "description": "Leviosa in-house Konva editor engine. Source-only: consumers compile it through Next transpilePackages. Zero runtime dependencies beyond konva/react/react-konva, zero server calls.",
   "type": "module",
   "license": "UNLICENSED",
@@ -36,6 +36,7 @@
     "./render/attrs": "./render/attrs.ts",
     "./render/canvas-view": "./render/canvas-view.tsx",
     "./render/element-view": "./render/element-view.tsx",
+    "./render/frames": "./render/frames.ts",
     "./render/hit-path": "./render/hit-path.ts",
     "./render/image-cache": "./render/image-cache.ts",
     "./render/image-frame": "./render/image-frame.ts",
