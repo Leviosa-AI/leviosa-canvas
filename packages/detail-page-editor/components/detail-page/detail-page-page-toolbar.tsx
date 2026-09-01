@@ -102,9 +102,9 @@ export const DetailPagePageToolbar = observer(function DetailPagePageToolbar({
         requestSectionReauthor(p.id);
       }}
       style={{ transform: `translate(${offset.x}px, ${offset.y}px)` }}
-      className="flex h-10 w-10 cursor-grab touch-none items-center justify-center rounded-full border border-dpe-ink-200 bg-dpe-surface/95 shadow-md backdrop-blur-sm transition-colors hover:bg-dpe-ink-100 active:cursor-grabbing"
+      className="flex h-10 w-10 cursor-grab touch-none items-center justify-center rounded-full border border-le-ink-200 bg-le-surface/95 shadow-md backdrop-blur-sm transition-colors hover:bg-le-ink-100 active:cursor-grabbing"
     >
-      <Wand2 size={17} className="text-dpe-ai-alt" />
+      <Wand2 size={17} className="text-le-ai-alt" />
     </button>
   );
 });

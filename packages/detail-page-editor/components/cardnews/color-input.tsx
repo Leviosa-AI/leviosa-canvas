@@ -161,7 +161,7 @@ export function ColorInput({
       <PopoverPrimitive.Trigger asChild>
         <button
           type="button"
-          className={`${swatchPx} rounded-dpe-md border border-dpe-ink-200 cursor-pointer shrink-0 transition-colors hover:border-dpe-ink-400`}
+          className={`${swatchPx} rounded-le-md border border-le-ink-200 cursor-pointer shrink-0 transition-colors hover:border-le-ink-400`}
           style={{
             backgroundColor: isTransparentValue ? undefined : safeColor,
             backgroundImage: isTransparentValue ? CHECKER_BG : undefined,
@@ -177,17 +177,17 @@ export function ColorInput({
           어긋난 자리에 떴다.
 
           포털은 body 로 나가므로 편집기 뿌리 딱지를 다시 달아 준다 — 안 달면 소비자 앱이
-          `[data-dpe-root]` 로 좁혀 둔 색·모서리 토큰이 이 팝오버에만 안 먹어서, 각진
+          `[data-le-root]` 로 좁혀 둔 색·모서리 토큰이 이 팝오버에만 안 먹어서, 각진
           인스펙터 위에 둥근 카드가 하나 뜬다. */}
       <PopoverPrimitive.Portal>
         <PopoverPrimitive.Content
           data-layer-panel
-          data-dpe-root=""
+          data-le-root=""
           side="bottom"
           align="start"
           sideOffset={6}
           collisionPadding={8}
-          className="z-[200] w-56 bg-dpe-surface border border-dpe-ink-200 rounded-dpe-md shadow-[0_12px_40px_rgba(0,0,0,0.16)] p-3 space-y-2.5"
+          className="z-[200] w-56 bg-le-surface border border-le-ink-200 rounded-le-md shadow-[0_12px_40px_rgba(0,0,0,0.16)] p-3 space-y-2.5"
         >
           {/* Transparent + Preset palette */}
           <div className="grid grid-cols-6 gap-1.5">
@@ -195,7 +195,7 @@ export function ColorInput({
               <button
                 type="button"
                 onClick={() => selectColor("transparent")}
-                className={`w-7 h-7 rounded-dpe-md border transition-colors relative overflow-hidden ${
+                className={`w-7 h-7 rounded-le-md border transition-colors relative overflow-hidden ${
                   isTransparentValue ? "border-[var(--color-primary)] ring-1 ring-[var(--color-primary)]" : "border-[var(--color-border)]"
                 }`}
                 style={{ backgroundImage: CHECKER_BG, backgroundSize: "8px 8px" }}
@@ -203,7 +203,7 @@ export function ColorInput({
               >
                 {/* Diagonal line to indicate "none/transparent" */}
                 <span className="absolute inset-0 flex items-center justify-center">
-                  <span className="block w-[130%] h-px bg-dpe-danger-500 rotate-45" />
+                  <span className="block w-[130%] h-px bg-le-danger-500 rotate-45" />
                 </span>
               </button>
             )}
@@ -212,7 +212,7 @@ export function ColorInput({
                 key={color}
                 type="button"
                 onClick={() => selectColor(color)}
-                className={`w-7 h-7 rounded-dpe-md border transition-colors ${
+                className={`w-7 h-7 rounded-le-md border transition-colors ${
                   !isTransparentValue && safeColor.toUpperCase() === color ? "border-[var(--color-primary)] ring-1 ring-[var(--color-primary)]" : "border-[var(--color-border)]"
                 }`}
                 style={{ backgroundColor: color }}
@@ -231,13 +231,13 @@ export function ColorInput({
                     key={color}
                     type="button"
                     onClick={() => selectColor(color)}
-                    className={`size-5 rounded-dpe-md border transition-colors ${
+                    className={`size-5 rounded-le-md border transition-colors ${
                       !isTransparentValue && safeColor.toUpperCase() === color ? "border-[var(--color-primary)] ring-1 ring-[var(--color-primary)]" : "border-[var(--color-border)]"
                     }`}
                     style={{ backgroundColor: color }}
                   />
                 ) : (
-                  <span key={idx} className="size-5 rounded-dpe-md border border-transparent" />
+                  <span key={idx} className="size-5 rounded-le-md border border-transparent" />
                 );
               })}
             </div>
@@ -249,7 +249,7 @@ export function ColorInput({
               <button
                 type="button"
                 onClick={openEyeDropper}
-                className="flex shrink-0 items-center gap-1 rounded-dpe-md px-1.5 py-1.5 text-[11px] text-[var(--color-text-secondary)] transition-colors hover:bg-[var(--color-surface)] hover:text-[var(--color-text-primary)]"
+                className="flex shrink-0 items-center gap-1 rounded-le-md px-1.5 py-1.5 text-[11px] text-[var(--color-text-secondary)] transition-colors hover:bg-[var(--color-surface)] hover:text-[var(--color-text-primary)]"
                 title={t("cardnews.colorInput.eyedropper")}
               >
                 <Pipette className="w-3.5 h-3.5" />
@@ -262,7 +262,7 @@ export function ColorInput({
               onChange={(e) => setHexInput(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && handleHexSubmit()}
               placeholder="#000000"
-              className="min-w-0 flex-1 rounded-dpe-md border border-dpe-ink-200 bg-dpe-surface px-2 py-1.5 text-xs font-mono text-dpe-ink-900 focus:outline-none focus:border-dpe-ink-400"
+              className="min-w-0 flex-1 rounded-le-md border border-le-ink-200 bg-le-surface px-2 py-1.5 text-xs font-mono text-le-ink-900 focus:outline-none focus:border-le-ink-400"
             />
           </div>
         </PopoverPrimitive.Content>

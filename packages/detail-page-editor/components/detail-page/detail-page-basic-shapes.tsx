@@ -66,7 +66,7 @@ export const FIGURE_PATCH: Record<string, Record<string, unknown>> = {
 };
 
 const CELL =
-  "flex aspect-square items-center justify-center rounded-dpe-lg border border-dpe-ink-200 p-2 hover:border-dpe-ink-400";
+  "flex aspect-square items-center justify-center rounded-le-lg border border-le-ink-200 p-2 hover:border-le-ink-400";
 
 function FigureCell({ id, store }: { id: string; store: unknown }) {
   const { t } = useTranslation("branding");
@@ -80,7 +80,7 @@ function FigureCell({ id, store }: { id: string; store: unknown }) {
     >
       <span
         aria-hidden="true"
-        className="block h-7 w-7 bg-dpe-ink-300"
+        className="block h-7 w-7 bg-le-ink-300"
         style={{
           borderRadius: id === "circle" ? "9999px" : id === "rounded" ? 8 : 0,
         }}
@@ -136,7 +136,7 @@ export function DetailPageBasicShapes({ store }: { store: unknown }) {
       <div className="min-h-0 flex-1 overflow-y-auto p-3">
         {found ? (
           found.figures.length + found.shapes.length === 0 ? (
-            <div className="flex flex-col items-center gap-2 py-6 text-center text-dpe-ink-400">
+            <div className="flex flex-col items-center gap-2 py-6 text-center text-le-ink-400">
               <ImageOff aria-hidden="true" size={20} />
               <p className="text-xs">{t("detailPage.shapes.searchEmpty")}</p>
             </div>
@@ -158,7 +158,7 @@ export function DetailPageBasicShapes({ store }: { store: unknown }) {
             if (!shapes.length) return null;
             return (
               <div key={category} className="mb-4 last:mb-0">
-                <p className="mb-2 text-xs font-dpe-medium text-dpe-ink-500">
+                <p className="mb-2 text-xs font-le-medium text-le-ink-500">
                   {t(`detailPage.shapes.categories.${category}`)}
                 </p>
                 <div className="grid grid-cols-4 gap-2">

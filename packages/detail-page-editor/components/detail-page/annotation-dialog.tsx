@@ -210,18 +210,18 @@ export function AnnotationDialog({
   const canSubmit = !busy && (hasMarks || instruction.trim().length > 0);
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-dpe-ink-900/60 p-4">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-le-ink-900/60 p-4">
       <div
         role="dialog"
         aria-modal="true"
         aria-label={title}
-        className="flex h-full max-h-[92vh] w-full max-w-5xl flex-col overflow-hidden rounded-2xl bg-dpe-surface shadow-2xl"
+        className="flex h-full max-h-[92vh] w-full max-w-5xl flex-col overflow-hidden rounded-2xl bg-le-surface shadow-2xl"
       >
-        <div className="flex items-start justify-between gap-4 border-b border-dpe-ink-200 px-5 py-3">
+        <div className="flex items-start justify-between gap-4 border-b border-le-ink-200 px-5 py-3">
           <div className="min-w-0">
-            <h2 className="text-sm font-dpe-semibold text-dpe-ink-900">{title}</h2>
+            <h2 className="text-sm font-le-semibold text-le-ink-900">{title}</h2>
             {description ? (
-              <p className="mt-0.5 text-xs text-dpe-ink-500">{description}</p>
+              <p className="mt-0.5 text-xs text-le-ink-500">{description}</p>
             ) : null}
           </div>
           <button
@@ -229,7 +229,7 @@ export function AnnotationDialog({
             aria-label={t("detailPage.annotate.close", { defaultValue: "닫기" })}
             onClick={onClose}
             disabled={busy}
-            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-dpe-lg text-dpe-ink-400 transition-colors hover:bg-dpe-ink-100 hover:text-dpe-ink-900 disabled:opacity-40"
+            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-le-lg text-le-ink-400 transition-colors hover:bg-le-ink-100 hover:text-le-ink-900 disabled:opacity-40"
           >
             <X size={16} />
           </button>
@@ -255,7 +255,7 @@ export function AnnotationDialog({
           />
         </div>
 
-        <div className="border-t border-dpe-ink-200 px-5 py-3">
+        <div className="border-t border-le-ink-200 px-5 py-3">
           <textarea
             value={instruction}
             onChange={(e) => setInstruction(e.target.value)}
@@ -268,16 +268,16 @@ export function AnnotationDialog({
                   "표시한 곳을 어떻게 바꿀지 적어주세요. 그림 위에 손글씨로 적어도 돼요.",
               })
             }
-            className="w-full resize-none rounded-dpe-lg border border-dpe-ink-200 px-3 py-2 text-sm text-dpe-ink-900 outline-none placeholder:text-dpe-ink-400 focus:border-dpe-ink-400 disabled:bg-dpe-ink-50"
+            className="w-full resize-none rounded-le-lg border border-le-ink-200 px-3 py-2 text-sm text-le-ink-900 outline-none placeholder:text-le-ink-400 focus:border-le-ink-400 disabled:bg-le-ink-50"
           />
           {maxReferences > 0 ? (
             <div className="mt-2 flex flex-wrap items-start gap-2">
               {references.map((ref, index) => (
                 <div
                   key={ref.id}
-                  className="flex items-start gap-2 rounded-dpe-lg border border-dpe-ink-200 p-1.5"
+                  className="flex items-start gap-2 rounded-le-lg border border-le-ink-200 p-1.5"
                 >
-                  <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-dpe-md bg-dpe-ink-100">
+                  <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-le-md bg-le-ink-100">
                     {/* 붙인 사진은 data URI라 next/image 로 최적화할 것이 없다. */}
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
@@ -289,7 +289,7 @@ export function AnnotationDialog({
                     />
                     {/* 번호는 프롬프트에 쓰는 이름이다 — 화면에 없으면 "2번 이미지"라고
                         적을 근거가 없다. */}
-                    <span className="absolute left-0.5 top-0.5 rounded bg-dpe-ink-900/75 px-1 text-[10px] font-dpe-semibold leading-4 text-dpe-on-accent">
+                    <span className="absolute left-0.5 top-0.5 rounded bg-le-ink-900/75 px-1 text-[10px] font-le-semibold leading-4 text-le-on-accent">
                       {referenceOrdinal(index)}
                     </span>
                     <button
@@ -301,7 +301,7 @@ export function AnnotationDialog({
                       aria-label={t("detailPage.reauthor.referenceRemove", {
                         defaultValue: "참고 사진 빼기",
                       })}
-                      className="absolute right-0.5 top-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-dpe-ink-900/70 text-dpe-on-accent disabled:opacity-40"
+                      className="absolute right-0.5 top-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-le-ink-900/70 text-le-on-accent disabled:opacity-40"
                     >
                       <X size={10} />
                     </button>
@@ -320,8 +320,8 @@ export function AnnotationDialog({
                           onClick={() => toggleAspect(ref.id, aspect.key)}
                           className={`rounded-full border px-2 py-0.5 text-[11px] transition-colors disabled:opacity-40 ${
                             on
-                              ? "border-dpe-ink-900 bg-dpe-ink-900 text-dpe-on-accent"
-                              : "border-dpe-ink-200 text-dpe-ink-500 hover:border-dpe-ink-400 hover:text-dpe-ink-700"
+                              ? "border-le-ink-900 bg-le-ink-900 text-le-on-accent"
+                              : "border-le-ink-200 text-le-ink-500 hover:border-le-ink-400 hover:text-le-ink-700"
                           }`}
                         >
                           {aspect.label}
@@ -336,7 +336,7 @@ export function AnnotationDialog({
                   type="button"
                   disabled={busy}
                   onClick={() => fileRef.current?.click()}
-                  className="flex h-[4.75rem] items-center gap-1.5 rounded-dpe-lg border border-dashed border-dpe-ink-300 px-3 text-xs text-dpe-ink-500 transition-colors hover:border-dpe-ink-400 hover:text-dpe-ink-700 disabled:opacity-40"
+                  className="flex h-[4.75rem] items-center gap-1.5 rounded-le-lg border border-dashed border-le-ink-300 px-3 text-xs text-le-ink-500 transition-colors hover:border-le-ink-400 hover:text-le-ink-700 disabled:opacity-40"
                 >
                   <ImagePlus size={14} />
                   {t("detailPage.reauthor.referenceAdd", {
@@ -353,7 +353,7 @@ export function AnnotationDialog({
                 onChange={(e) => void attach(e.target.files)}
               />
               {references.length ? (
-                <p className="w-full text-[11px] text-dpe-ink-400">
+                <p className="w-full text-[11px] text-le-ink-400">
                   {t("detailPage.reauthor.referenceHint", {
                     defaultValue:
                       "축을 고르면 그 장에서는 고른 것만 따라가요(안 고르면 배치와 구성만). " +
@@ -365,12 +365,12 @@ export function AnnotationDialog({
             </div>
           ) : null}
           {error || flattenError || attachError ? (
-            <p className="mt-2 text-xs text-dpe-danger-600">
+            <p className="mt-2 text-xs text-le-danger-600">
               {error ?? flattenError ?? attachError}
             </p>
           ) : null}
           <div className="mt-3 flex items-center justify-between gap-3">
-            <p className="text-xs text-dpe-ink-400">
+            <p className="text-xs text-le-ink-400">
               {hasMarks
                 ? t("detailPage.annotate.marked", {
                     defaultValue: "표시한 자리를 기준으로 고쳐요.",

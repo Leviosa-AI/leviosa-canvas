@@ -74,7 +74,7 @@ export function DetailPageChartsPanel({ store }: { store: unknown }) {
 
   return (
     <div className="flex h-full flex-col overflow-y-auto p-3">
-      <p className="mb-2 text-xs font-dpe-medium text-dpe-ink-500">
+      <p className="mb-2 text-xs font-le-medium text-le-ink-500">
         {t("detailPage.chart.panelTitle")}
       </p>
       <div className="grid grid-cols-2 gap-2">
@@ -84,7 +84,7 @@ export function DetailPageChartsPanel({ store }: { store: unknown }) {
             type="button"
             onClick={() => insert(preset)}
             title={t("detailPage.chart.insertHint")}
-            className="flex flex-col items-center gap-1.5 rounded-dpe-lg border border-dpe-ink-200 p-2 hover:border-dpe-ink-400"
+            className="flex flex-col items-center gap-1.5 rounded-le-lg border border-le-ink-200 p-2 hover:border-le-ink-400"
           >
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
@@ -92,11 +92,11 @@ export function DetailPageChartsPanel({ store }: { store: unknown }) {
               alt={t(preset.labelKey)}
               className="h-20 w-full object-contain"
             />
-            <span className="text-[11px] text-dpe-ink-500">{t(preset.labelKey)}</span>
+            <span className="text-[11px] text-le-ink-500">{t(preset.labelKey)}</span>
           </button>
         ))}
       </div>
-      <p className="mt-3 text-[11px] leading-relaxed text-dpe-ink-400">
+      <p className="mt-3 text-[11px] leading-relaxed text-le-ink-400">
         {t("detailPage.chart.panelHint")}
       </p>
     </div>

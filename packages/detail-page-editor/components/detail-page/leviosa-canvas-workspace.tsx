@@ -518,12 +518,12 @@ export function LeviosaCanvasWorkspace({
             zIndex: 45,
             boxShadow: "0 6px 20px rgba(0, 0, 0, 0.25)",
           }}
-          className="flex items-center gap-2 rounded-dpe-md bg-dpe-ink-900 px-3 py-2 text-[12px] text-dpe-on-accent"
+          className="flex items-center gap-2 rounded-le-md bg-le-ink-900 px-3 py-2 text-[12px] text-le-on-accent"
         >
           <span>한 벌이 비어 사라졌습니다.</span>
           <button
             type="button"
-            className="font-dpe-semibold underline underline-offset-2"
+            className="font-le-semibold underline underline-offset-2"
             onClick={() => {
               store.history.undo();
               setEmptied(false);
@@ -571,7 +571,7 @@ export function LeviosaCanvasWorkspace({
         <div
           data-dp-zoom-dock=""
           style={{ position: "absolute", right: DOCK_GAP, pointerEvents: "auto" }}
-          className="rounded-dpe-lg border border-dpe-ink-200 bg-dpe-surface/95 px-2 py-1 shadow-sm backdrop-blur-sm"
+          className="rounded-le-lg border border-le-ink-200 bg-le-surface/95 px-2 py-1 shadow-sm backdrop-blur-sm"
         >
           <ZoomButtons store={store} />
         </div>

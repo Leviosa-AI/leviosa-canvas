@@ -64,7 +64,7 @@ function Popover({
       data-dp-quick-popover-side={side}
       style={{ width, maxHeight: `min(60vh, 520px, ${maxHeight}px)` }}
       className={[
-        "overflow-y-auto rounded-dpe-xl border border-dpe-ink-200 bg-dpe-surface shadow-lg",
+        "overflow-y-auto rounded-le-xl border border-le-ink-200 bg-le-surface shadow-lg",
         side === "above" ? "absolute bottom-full left-0 mb-1.5" : "mt-1.5",
       ].join(" ")}
     >
@@ -142,7 +142,7 @@ export const CanvasSelectionTools = observer(function CanvasSelectionTools({
       return {
         key: id,
         label: label[id],
-        icon: <Sparkles aria-hidden="true" size={15} className="text-dpe-ai" />,
+        icon: <Sparkles aria-hidden="true" size={15} className="text-le-ai" />,
         active: open === id,
         onClick: () => toggle(id),
       };
@@ -203,7 +203,7 @@ export const CanvasSelectionTools = observer(function CanvasSelectionTools({
               return (
                 <div key={item.action}>
                   {item.separated ? (
-                    <div className="my-1 border-t border-dpe-ink-100" />
+                    <div className="my-1 border-t border-le-ink-100" />
                   ) : null}
                   <button
                     type="button"
@@ -214,9 +214,9 @@ export const CanvasSelectionTools = observer(function CanvasSelectionTools({
                       runCanvasMenuAction(s, item.action);
                       setOpen(null);
                     }}
-                    className="flex h-[30px] w-full items-center gap-2.5 px-3 text-left text-[13px] text-dpe-ink-700 transition-colors hover:bg-dpe-ink-100 disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:bg-transparent"
+                    className="flex h-[30px] w-full items-center gap-2.5 px-3 text-left text-[13px] text-le-ink-700 transition-colors hover:bg-le-ink-100 disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:bg-transparent"
                   >
-                    <Icon size={14} className="shrink-0 text-dpe-ink-500" />
+                    <Icon size={14} className="shrink-0 text-le-ink-500" />
                     {t(`detailPage.canvasMenu.${item.action}`)}
                   </button>
                 </div>

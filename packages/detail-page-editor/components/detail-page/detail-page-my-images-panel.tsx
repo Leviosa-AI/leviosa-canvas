@@ -61,7 +61,7 @@ export function DetailPageMyImagesPanel({ store }: { store: unknown }) {
 
   return (
     <div className="flex h-full flex-col">
-      <div className="flex gap-1 border-b border-dpe-ink-200 px-4 pt-3">
+      <div className="flex gap-1 border-b border-le-ink-200 px-4 pt-3">
         <SourceTab
           label={t("detailPage.brandAssets.sourceBrand")}
           active={source === "brand"}
@@ -99,10 +99,10 @@ function SourceTab({
       onClick={onClick}
       aria-pressed={active}
       className={
-        "-mb-px border-b-2 px-2.5 pb-2 text-[11px] font-dpe-medium " +
+        "-mb-px border-b-2 px-2.5 pb-2 text-[11px] font-le-medium " +
         (active
-          ? "border-dpe-ink-800 text-dpe-ink-800"
-          : "border-transparent text-dpe-ink-400 hover:text-dpe-ink-600")
+          ? "border-le-ink-800 text-le-ink-800"
+          : "border-transparent text-le-ink-400 hover:text-le-ink-600")
       }
     >
       {label}
@@ -174,14 +174,14 @@ function FilterChip({
       onClick={onClick}
       aria-pressed={active}
       className={
-        "rounded-dpe-lg border px-2 py-0.5 text-[11px] font-dpe-medium transition " +
+        "rounded-le-lg border px-2 py-0.5 text-[11px] font-le-medium transition " +
         (active
-          ? "border-dpe-ink-800 bg-dpe-ink-800 text-dpe-on-accent"
-          : "border-dpe-ink-200 text-dpe-ink-500 hover:border-dpe-ink-400 hover:text-dpe-ink-700")
+          ? "border-le-ink-800 bg-le-ink-800 text-le-on-accent"
+          : "border-le-ink-200 text-le-ink-500 hover:border-le-ink-400 hover:text-le-ink-700")
       }
     >
       {label}
-      <span className="ml-1 font-dpe-normal opacity-60">{count}</span>
+      <span className="ml-1 font-le-normal opacity-60">{count}</span>
     </button>
   );
 }
@@ -209,8 +209,8 @@ function BrandImageCard({
 
   return (
     <div
-      data-dpe-part="asset-card"
-      className="group relative overflow-hidden rounded-dpe-md border border-dpe-ink-200 hover:border-dpe-ink-500"
+      data-le-part="asset-card"
+      className="group relative overflow-hidden rounded-le-md border border-le-ink-200 hover:border-le-ink-500"
     >
       <button
         type="button"
@@ -221,7 +221,7 @@ function BrandImageCard({
           asset.download_url &&
           insertPersonalImage(store, brand.brandAssetDocumentSrc(asset))
         }
-        className="block h-24 w-full bg-dpe-ink-100 disabled:opacity-50"
+        className="block h-24 w-full bg-le-ink-100 disabled:opacity-50"
         title={t("detailPage.brandAssets.insertHint")}
       >
         {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -234,13 +234,13 @@ function BrandImageCard({
           className="h-full w-full object-cover transition group-hover:opacity-90"
         />
       </button>
-      <span className="pointer-events-none absolute bottom-1.5 left-1.5 max-w-[calc(100%-12px)] truncate rounded-dpe-sm bg-dpe-scrim/70 px-1.5 py-0.5 text-[10px] text-dpe-on-accent">
+      <span className="pointer-events-none absolute bottom-1.5 left-1.5 max-w-[calc(100%-12px)] truncate rounded-le-sm bg-le-scrim/70 px-1.5 py-0.5 text-[10px] text-le-on-accent">
         {asset.display_name ?? asset.filename}
       </span>
       <button
         type="button"
         onClick={onDelete}
-        className="absolute right-1 top-1 hidden h-6 w-6 items-center justify-center rounded-dpe-md bg-dpe-surface/95 text-dpe-ink-400 shadow-sm hover:text-dpe-danger-600 group-hover:flex"
+        className="absolute right-1 top-1 hidden h-6 w-6 items-center justify-center rounded-le-md bg-le-surface/95 text-le-ink-400 shadow-sm hover:text-le-danger-600 group-hover:flex"
         aria-label={t("detailPage.brandAssets.delete")}
       >
         <Trash2 aria-hidden="true" size={13} />
@@ -341,7 +341,7 @@ function BrandAssetGallery({ store }: { store: unknown }) {
     <div className="flex h-full flex-col p-4">
       <BrandPanelHeader onRefresh={() => void assetsQuery.refetch()} />
 
-      <label className="mb-3 flex h-16 cursor-pointer flex-col items-center justify-center gap-1 rounded-dpe-md border border-dashed border-dpe-ink-300 text-dpe-ink-400 hover:border-dpe-ink-400 hover:text-dpe-ink-600">
+      <label className="mb-3 flex h-16 cursor-pointer flex-col items-center justify-center gap-1 rounded-le-md border border-dashed border-le-ink-300 text-le-ink-400 hover:border-le-ink-400 hover:text-le-ink-600">
         {uploadMutation.isPending ? (
           <Loader2 aria-hidden="true" className="animate-spin" size={18} />
         ) : (
@@ -360,24 +360,24 @@ function BrandAssetGallery({ store }: { store: unknown }) {
       </label>
 
       {brandsLoading || assetsQuery.isLoading ? (
-        <div className="flex flex-1 items-center justify-center text-dpe-ink-400">
+        <div className="flex flex-1 items-center justify-center text-le-ink-400">
           <Loader2 aria-hidden="true" className="animate-spin" size={22} />
         </div>
       ) : error || assetsQuery.error ? (
-        <p className="text-xs font-dpe-medium text-dpe-danger-600">
+        <p className="text-xs font-le-medium text-le-danger-600">
           {error ?? t("detailPage.brandAssets.loadFailed")}
         </p>
       ) : !activeBrand ? (
-        <p className="text-xs text-dpe-ink-400">
+        <p className="text-xs text-le-ink-400">
           {t("detailPage.brandAssets.noBrand")}
         </p>
       ) : items.length === 0 ? (
-        <div className="flex flex-1 flex-col items-center justify-center gap-2 text-center text-dpe-ink-400">
+        <div className="flex flex-1 flex-col items-center justify-center gap-2 text-center text-le-ink-400">
           <ImageOff aria-hidden="true" size={22} />
           <p className="text-xs">{t("detailPage.brandAssets.imagesEmpty")}</p>
           <Link
             href="/branding/moodboard"
-            className="inline-flex items-center gap-1 text-[11px] font-dpe-medium text-dpe-ink-600 underline underline-offset-2"
+            className="inline-flex items-center gap-1 text-[11px] font-le-medium text-le-ink-600 underline underline-offset-2"
           >
             {t("detailPage.brandAssets.openMoodboard")}
             <ExternalLink size={11} />
@@ -396,9 +396,9 @@ function BrandAssetGallery({ store }: { store: unknown }) {
               <section key={section.category} className="mb-4 last:mb-0">
                 {/* 갈래를 하나만 볼 때는 제목이 토글과 같은 말을 두 번 한다. */}
                 {category === "all" && (
-                  <h3 className="mb-1.5 text-[11px] font-dpe-semibold text-dpe-ink-500">
+                  <h3 className="mb-1.5 text-[11px] font-le-semibold text-le-ink-500">
                     {t(BRAND_IMAGE_CATEGORY_LABEL_KEY[section.category])}
-                    <span className="ml-1 font-dpe-normal text-dpe-ink-300">
+                    <span className="ml-1 font-le-normal text-le-ink-300">
                       {counts[section.category]}
                     </span>
                   </h3>
@@ -419,7 +419,7 @@ function BrandAssetGallery({ store }: { store: unknown }) {
               <div
                 ref={reveal.sentinelRef}
                 data-testid="brand-assets-sentinel"
-                className="flex h-10 items-center justify-center text-dpe-ink-300"
+                className="flex h-10 items-center justify-center text-le-ink-300"
               >
                 <Loader2 aria-hidden="true" className="animate-spin" size={16} />
               </div>

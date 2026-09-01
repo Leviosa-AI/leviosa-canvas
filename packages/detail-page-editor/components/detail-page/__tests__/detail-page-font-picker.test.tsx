@@ -202,7 +202,7 @@ describe("DetailPageFontPicker", () => {
 
     await user.click(screen.getByRole("button", { name: "detailPage.properties.chooseFont" }));
     for (const option of screen.getAllByRole("option")) {
-      expect(option.className).toContain("data-[selected=true]:bg-dpe-ink-100");
+      expect(option.className).toContain("data-[selected=true]:bg-le-ink-100");
       expect(option.className).not.toMatch(/bg-accent|accent-foreground/);
     }
   });

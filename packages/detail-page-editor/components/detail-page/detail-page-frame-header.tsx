@@ -69,7 +69,7 @@ export function DetailPageFrameHeader({
       <span
         style={place}
         title={COPY.hint}
-        className="flex items-center gap-1 text-[11px] font-dpe-bold text-dpe-ink-900"
+        className="flex items-center gap-1 text-[11px] font-le-bold text-le-ink-900"
       >
         <svg width="11" height="11" viewBox="0 0 16 16" aria-hidden="true">
           <path
@@ -95,7 +95,7 @@ export function DetailPageFrameHeader({
       style={place}
       title={COPY.hint}
       onClick={onChoose}
-      className="flex items-center rounded-full border border-dpe-ink-400 bg-dpe-surface px-2 text-[11px] font-dpe-semibold text-dpe-ink-700 transition-colors hover:border-dpe-ink-900 hover:text-dpe-ink-900"
+      className="flex items-center rounded-full border border-le-ink-400 bg-le-surface px-2 text-[11px] font-le-semibold text-le-ink-700 transition-colors hover:border-le-ink-900 hover:text-le-ink-900"
     >
       {COPY.choose}
     </button>

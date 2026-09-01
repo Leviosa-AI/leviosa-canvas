@@ -34,7 +34,7 @@ export function PanelSearchInput({
       <Search
         aria-hidden="true"
         size={14}
-        className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-dpe-ink-400"
+        className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-le-ink-400"
       />
       <input
         type="search"
@@ -42,7 +42,7 @@ export function PanelSearchInput({
         onChange={(event) => onChange(event.target.value)}
         placeholder={placeholder}
         aria-label={label}
-        className="w-full appearance-none rounded-dpe-lg border border-dpe-ink-200 py-2 pl-8 pr-2.5 text-sm leading-5 placeholder:text-dpe-ink-400 focus:border-dpe-ink-400 focus:outline-none [&::-webkit-search-cancel-button]:appearance-none"
+        className="w-full appearance-none rounded-le-lg border border-le-ink-200 py-2 pl-8 pr-2.5 text-sm leading-5 placeholder:text-le-ink-400 focus:border-le-ink-400 focus:outline-none [&::-webkit-search-cancel-button]:appearance-none"
       />
     </div>
   );

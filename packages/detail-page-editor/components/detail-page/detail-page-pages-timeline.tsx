@@ -58,7 +58,7 @@ export const DetailPagePagesTimeline = observer(function DetailPagePagesTimeline
     <div
       data-dp-pages-timeline=""
       style={{ minHeight: PAGES_TIMELINE_HEIGHT }}
-      className="pointer-events-auto absolute inset-x-0 bottom-0 z-20 flex items-center gap-1.5 overflow-x-auto border-t border-dpe-ink-200 bg-dpe-surface/95 px-3 py-1.5 backdrop-blur-sm"
+      className="pointer-events-auto absolute inset-x-0 bottom-0 z-20 flex items-center gap-1.5 overflow-x-auto border-t border-le-ink-200 bg-le-surface/95 px-3 py-1.5 backdrop-blur-sm"
     >
       {pages.map((page, index) => {
         const active = page.id === activeId;
@@ -71,10 +71,10 @@ export const DetailPagePagesTimeline = observer(function DetailPagePagesTimeline
             aria-current={active ? "true" : undefined}
             title={typeof page.name === "string" ? page.name : `${index + 1}`}
             className={[
-              "flex h-10 w-8 shrink-0 items-center justify-center overflow-hidden rounded border text-[11px] font-dpe-semibold transition-colors",
+              "flex h-10 w-8 shrink-0 items-center justify-center overflow-hidden rounded border text-[11px] font-le-semibold transition-colors",
               active
-                ? "border-dpe-ink-900 bg-dpe-ink-900 text-dpe-on-accent"
-                : "border-dpe-ink-200 bg-dpe-surface text-dpe-ink-500 hover:border-dpe-ink-400",
+                ? "border-le-ink-900 bg-le-ink-900 text-le-on-accent"
+                : "border-le-ink-200 bg-le-surface text-le-ink-500 hover:border-le-ink-400",
             ].join(" ")}
           >
             {thumb ? (

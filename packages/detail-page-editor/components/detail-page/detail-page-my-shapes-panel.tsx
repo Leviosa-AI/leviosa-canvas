@@ -84,7 +84,7 @@ export function DetailPageMyShapesPanel({ store }: { store: unknown }) {
     <div className="flex h-full flex-col p-4">
       <BrandPanelHeader onRefresh={() => void assetsQuery.refetch()} />
 
-      <label className="mb-3 flex h-16 cursor-pointer flex-col items-center justify-center gap-1 rounded-dpe-md border border-dashed border-dpe-ink-300 text-dpe-ink-400 hover:border-dpe-ink-400 hover:text-dpe-ink-600">
+      <label className="mb-3 flex h-16 cursor-pointer flex-col items-center justify-center gap-1 rounded-le-md border border-dashed border-le-ink-300 text-le-ink-400 hover:border-le-ink-400 hover:text-le-ink-600">
         {uploadMutation.isPending ? (
           <Loader2 aria-hidden="true" className="animate-spin" size={18} />
         ) : (
@@ -115,19 +115,19 @@ export function DetailPageMyShapesPanel({ store }: { store: unknown }) {
       </label>
 
       {brandsLoading || assetsQuery.isLoading ? (
-        <div className="flex flex-1 items-center justify-center text-dpe-ink-400">
+        <div className="flex flex-1 items-center justify-center text-le-ink-400">
           <Loader2 aria-hidden="true" className="animate-spin" size={22} />
         </div>
       ) : assetsQuery.error ? (
-        <p className="text-xs font-dpe-medium text-dpe-danger-600">
+        <p className="text-xs font-le-medium text-le-danger-600">
           {t("detailPage.brandAssets.loadFailed")}
         </p>
       ) : !activeBrand ? (
-        <p className="text-xs text-dpe-ink-400">
+        <p className="text-xs text-le-ink-400">
           {t("detailPage.brandAssets.noBrand")}
         </p>
       ) : items.length === 0 ? (
-        <div className="flex flex-1 flex-col items-center justify-center gap-2 text-center text-dpe-ink-400">
+        <div className="flex flex-1 flex-col items-center justify-center gap-2 text-center text-le-ink-400">
           <Shapes aria-hidden="true" size={22} />
           <p className="text-xs">{t("detailPage.brandAssets.shapesEmpty")}</p>
         </div>
@@ -136,7 +136,7 @@ export function DetailPageMyShapesPanel({ store }: { store: unknown }) {
           {items.map((asset) => (
             <div
               key={asset.id}
-              className="group relative aspect-square rounded-dpe-md border border-dpe-ink-200 hover:border-dpe-ink-500"
+              className="group relative aspect-square rounded-le-md border border-le-ink-200 hover:border-le-ink-500"
             >
               <button
                 type="button"
@@ -146,7 +146,7 @@ export function DetailPageMyShapesPanel({ store }: { store: unknown }) {
                 title={t("detailPage.brandAssets.insertHint")}
               >
                 {insertingId === asset.id ? (
-                  <Loader2 className="animate-spin text-dpe-ink-400" size={18} />
+                  <Loader2 className="animate-spin text-le-ink-400" size={18} />
                 ) : (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img
@@ -160,7 +160,7 @@ export function DetailPageMyShapesPanel({ store }: { store: unknown }) {
               <button
                 type="button"
                 onClick={() => deleteMutation.mutate(asset)}
-                className="absolute right-1 top-1 hidden h-6 w-6 items-center justify-center rounded-dpe-md bg-dpe-surface/95 text-dpe-ink-400 shadow-sm hover:text-dpe-danger-600 group-hover:flex"
+                className="absolute right-1 top-1 hidden h-6 w-6 items-center justify-center rounded-le-md bg-le-surface/95 text-le-ink-400 shadow-sm hover:text-le-danger-600 group-hover:flex"
                 aria-label={t("detailPage.brandAssets.delete")}
               >
                 <Trash2 aria-hidden="true" size={13} />
