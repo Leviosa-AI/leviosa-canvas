@@ -668,8 +668,22 @@ export class CanvasStore {
         return false;
       }
       this.selectedElementsIds = next;
+      // 집은 요소가 있는 페이지가 «보고 있는 페이지»다. 이게 없으면 다른 벌의 요소를
+      // 집어도 페이지 목록·아래 띠·벌 표시는 이전 벌에 머물러, 손이 가 있는 곳과
+      // 화면이 말하는 곳이 갈린다.
+      const page = this.pageOfElement(next[0] ?? "");
+      if (page) this.activePageId = page.id;
       return true;
     });
+  }
+
+  /** 이 요소가 놓인 페이지. 그룹 안에 들어 있어도 찾는다. */
+  pageOfElement(id: string): CanvasPage | null {
+    if (!id) return null;
+    for (const page of this.pages) {
+      if (findInList(page.children, id)) return page;
+    }
+    return null;
   }
 
   /**

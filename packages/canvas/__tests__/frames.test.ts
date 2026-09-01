@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 
+import { CanvasStore } from "../store";
 import { frameInsertIndex, frameOf, groupFrames } from "../render/frames";
 
 const page = (id: string, frame?: string) => ({
@@ -71,5 +72,32 @@ describe("frameInsertIndex", () => {
 
   it("한 장도 없는 벌은 맨 뒤에 선다", () => {
     expect(frameInsertIndex(pages, "C", 0)).toBe(4);
+  });
+});
+
+describe("선택이 보고 있는 페이지를 옮긴다", () => {
+  it("다른 벌의 요소를 집으면 그 벌의 페이지가 활성이 된다", () => {
+    const store = new CanvasStore({
+      pages: [
+        { id: "a", custom: { frame: "v1" }, children: [{ id: "a1", type: "text" }] },
+        { id: "b", custom: { frame: "v2" }, children: [{ id: "b1", type: "text" }] },
+      ],
+    });
+    store.selectPage("a");
+    store.selectElements(["b1"]);
+    expect(store.activePage?.id).toBe("b");
+    expect(frameOf(store.activePage!)).toBe("v2");
+  });
+
+  it("선택을 비우면 보고 있던 페이지는 그대로다", () => {
+    const store = new CanvasStore({
+      pages: [
+        { id: "a", children: [{ id: "a1", type: "text" }] },
+        { id: "b", children: [] },
+      ],
+    });
+    store.selectPage("b");
+    store.selectElements([]);
+    expect(store.activePage?.id).toBe("b");
   });
 });
