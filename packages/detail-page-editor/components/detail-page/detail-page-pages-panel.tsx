@@ -359,7 +359,7 @@ export const DetailPagePagesPanel = observer(function DetailPagePagesPanel({
                     page={page}
                     index={index}
                     canDuplicate={canAdd}
-                    thumb={detailPageThumbnailBus.get(page.id)}
+                    thumb={detailPageThumbnailBus.get(s, page.id)}
                   />
                   {/* 새 화면은 «어디에» 가 먼저다. 목록 끝에 버튼 하나를 두면 넣고 나서
                       다시 끌어 옮기게 되므로, 넣을 자리마다 하나씩 둔다. */}

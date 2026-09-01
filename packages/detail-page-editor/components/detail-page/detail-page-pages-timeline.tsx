@@ -62,7 +62,7 @@ export const DetailPagePagesTimeline = observer(function DetailPagePagesTimeline
     >
       {pages.map((page, index) => {
         const active = page.id === activeId;
-        const thumb = detailPageThumbnailBus.get(page.id);
+        const thumb = detailPageThumbnailBus.get(s, page.id);
         return (
           <button
             key={page.id}
