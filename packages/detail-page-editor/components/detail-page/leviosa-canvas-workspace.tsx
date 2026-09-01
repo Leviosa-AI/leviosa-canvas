@@ -46,7 +46,7 @@ import { CanvasView } from "@leviosa-ai/canvas/render/canvas-view";
 import { frameOf, groupFrames } from "@leviosa-ai/canvas/render/frames";
 import {
   DetailPageFrameHeader,
-  FRAME_CHECK_SIZE,
+  FRAME_HEAD_HEIGHT,
 } from "./detail-page-frame-header";
 import { useCanvasVersion } from "@leviosa-ai/canvas/use-canvas";
 import type { CanvasStore } from "@leviosa-ai/canvas/store";
@@ -65,8 +65,8 @@ const clamp = (v: number, lo: number, hi: number) =>
  */
 const FRAME_GAP_DOC = 240;
 
-/** 체크가 앉을 자리(화면 px). 배율과 무관하게 눌려야 하므로 안 줄인다. */
-const FRAME_HEAD = FRAME_CHECK_SIZE + 10;
+/** 알약이 앉을 자리(화면 px). 배율과 무관하게 읽혀야 하므로 안 줄인다. */
+const FRAME_HEAD = FRAME_HEAD_HEIGHT + 10;
 
 /** 썸네일 해상도. 페이지 패널의 칸이 작아 이 정도면 충분하다. */
 const THUMB_PIXEL_RATIO = 0.12;
