@@ -475,15 +475,54 @@ function PageView({
  * 버리면 견줄 것이 줄어든다. 반대로 같은 벌 안에서 판을 바꾸는 것은 자리를 옮기는
  * 일이라, 두 개가 되면 지우는 일이 하나 는다.
  */
+/** 판을 살짝 벗어나 놓아도 받아 주는 거리(화면 픽셀). */
+const DROP_REACH_PX = 80;
+
+/**
+ * 이 화면 좌표가 가리키는 판.
+ *
+ * 두 가지를 견딘다.
+ *
+ * **위에 얹힌 겹.** `elementFromPoint` 하나만 쓰면 맨 위 한 겹만 답이라, 판 위에 뭔가가
+ * 손끝을 가리는 순간 «판이 없다»가 된다. 겹을 다 받아 그 중 첫 판을 고른다.
+ *
+ * **판과 판 사이의 여백.** 판 사이나 벌의 테두리 안쪽에 놓으면 그 자리는 판이 아니다.
+ * 사람은 «이 벌에 놓았다»고 생각하는데 끌기는 실패하고, 예전에는 그 다음 줄이 판 밖
+ * 좌표를 요소에 찍어 **요소가 목록에만 남고 사라졌다.** 손끝에서 가장 가까운 판이
+ * 코앞에 있으면 그 판으로 받는다.
+ */
+function pageUnder(client: { x: number; y: number }): HTMLElement | null {
+  const stack =
+    typeof document.elementsFromPoint === "function"
+      ? document.elementsFromPoint(client.x, client.y)
+      : [document.elementFromPoint(client.x, client.y)];
+  for (const node of stack) {
+    const page = (node as HTMLElement | null)?.closest<HTMLElement>("[data-lc-page]");
+    if (page?.dataset.lcPage) return page;
+  }
+
+  let best: HTMLElement | null = null;
+  let bestGap = DROP_REACH_PX;
+  for (const node of document.querySelectorAll<HTMLElement>("[data-lc-page]")) {
+    const box = node.getBoundingClientRect();
+    const dx = Math.max(box.left - client.x, 0, client.x - box.right);
+    const dy = Math.max(box.top - client.y, 0, client.y - box.bottom);
+    const gap = Math.hypot(dx, dy);
+    if (gap < bestGap) {
+      best = node;
+      bestGap = gap;
+    }
+  }
+  return best;
+}
+
 function dropOnOtherPage(
   store: CanvasStore,
   id: string,
   client: { x: number; y: number },
   grab: { dx: number; dy: number } | null,
 ): boolean {
-  const under = document
-    .elementFromPoint(client.x, client.y)
-    ?.closest<HTMLElement>("[data-lc-page]");
+  const under = pageUnder(client);
   const targetId = under?.dataset.lcPage;
   if (!under || !targetId) return false;
 
@@ -799,6 +838,14 @@ export function CanvasView({
         // 남의 판 위에서 손을 뗐으면 그 판으로 옮긴다. 문서가 바뀌면 원래 판도 다시
         // 그려지므로, 끌던 노드는 저절로 제자리로 돌아간다.
         if (client && dropOnOtherPage(store, id, client, grabRef.current)) return;
+        // **판 밖에서 손을 뗐으면 아무것도 안 한다.** 벌 사이의 빈 자리나 화면 여백에
+        // 놓았다는 뜻인데, 거기에 요소를 둘 자리는 없다. 그래도 좌표를 찍어 버리면
+        // 판 밖으로 나가 **보이지 않게 되고**, 목록에는 남아 있어 «옮겨지지도 않고
+        // 숨었다»가 된다. 손을 놓은 자리가 판이 아니면 제자리로 돌려보낸다.
+        if (client && !pageUnder(client)) {
+          store.refreshElement(id);
+          return;
+        }
         // 여럿을 함께 끌면 Konva가 노드마다 dragEnd를 부른다 — 한 트랜잭션으로 묶어
         // ⌘Z 한 번에 전부 돌아오게 한다.
         applyInTransaction(store, () => {

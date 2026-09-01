@@ -688,6 +688,21 @@ export class CanvasStore {
     });
   }
 
+  /**
+   * 이 요소를 다시 그리게 한다. 문서는 안 바뀐다.
+   *
+   * Konva 노드를 손으로 끌어 놓고 문서에 안 반영하면, 속성이 그대로라 React 가 다시
+   * 그리지 않아 **노드가 끌려간 자리에 남는다.** 끌기를 무르는 자리(판 밖에 놓았을 때)
+   * 가 그렇다. 히스토리에는 안 남는다 — 편집이 아니라 화면을 문서에 맞추는 일이다.
+   */
+  refreshElement(id: string): void {
+    const el = this.getElementById(id);
+    if (!el) return;
+    el.version += 1;
+    this.version += 1;
+    this.notify();
+  }
+
   /** 이 요소가 놓인 페이지. 그룹 안에 들어 있어도 찾는다. */
   pageOfElement(id: string): CanvasPage | null {
     if (!id) return null;
