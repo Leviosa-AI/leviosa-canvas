@@ -29,7 +29,7 @@ import { Layer, Line, Rect, Stage, Transformer } from "react-konva/es/ReactKonva
 import { shouldWatermark } from "../license";
 import { CanvasElement, withFreshIds, type CanvasPage, type CanvasStore } from "../store";
 import { num, str } from "../types";
-import { elementRect, type Rect as DocRect } from "../edit/rect";
+import { elementRect, moveElementTo, type Rect as DocRect } from "../edit/rect";
 import { handleCanvasHotkey } from "../edit/hotkeys";
 import {
   rectFromPoints,
@@ -543,21 +543,27 @@ function dropOnOtherPage(
   // 안 보이는» 것이 된다.
   const fit = (value: number, span: number, limit: number) =>
     span >= limit ? value : Math.max(0, Math.min(limit - span, value));
-  const json = withFreshIds(el.toJSON());
-  json.x = fit(
+  // **보이는 네모의 왼쪽 위**가 놓일 자리다. `x/y` 속성이 아니다 — 그룹은 자식들이
+  // 차지한 자리만큼, 돌려 둔 요소는 돌아간 만큼 그 둘이 다르다. 여기서 속성에 바로
+  // 써 넣으면 그 차이만큼 어긋나 앉는다(잡을 때도 보이는 네모로 쟀으니 짝이 안 맞는다).
+  const left = fit(
     (client.x - rect.left) / scale - (grab ? grab.dx : box.width / 2),
     box.width,
     target.width,
   );
-  json.y = fit(
+  const top = fit(
     (client.y - rect.top) / scale - (grab ? grab.dy : box.height / 2),
     box.height,
     target.height,
   );
 
+  const json = withFreshIds(el.toJSON());
   let made: CanvasElement | null = null;
   applyInTransaction(store, () => {
     made = target.addElement(json);
+    // 앉힌 **뒤에** 옮긴다. 자리는 자식까지 아우른 네모로 재야 해서, 요소가 스토어에
+    // 붙어 있어야 잴 수 있다.
+    moveElementTo(made, left, top);
     if (!clone) store.deleteElements([id]);
   });
   if (made) store.selectElements([(made as CanvasElement).id]);
