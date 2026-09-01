@@ -44,7 +44,10 @@ import { loadEditorFont } from "../../lib/detail-page-canvas/editor-fonts";
 import { ZoomButtons } from "@leviosa-ai/canvas";
 import { CanvasView } from "@leviosa-ai/canvas/render/canvas-view";
 import { frameOf, groupFrames } from "@leviosa-ai/canvas/render/frames";
-import { DetailPageFrameHeader } from "./detail-page-frame-header";
+import {
+  DetailPageFrameHeader,
+  FRAME_CHECK_SIZE,
+} from "./detail-page-frame-header";
 import { useCanvasVersion } from "@leviosa-ai/canvas/use-canvas";
 import type { CanvasStore } from "@leviosa-ai/canvas/store";
 
@@ -62,8 +65,8 @@ const clamp = (v: number, lo: number, hi: number) =>
  */
 const FRAME_GAP_DOC = 240;
 
-/** 이름표가 설 자리(화면 px). 배율과 무관하게 읽혀야 하므로 안 줄인다. */
-const FRAME_HEAD = 24;
+/** 체크가 앉을 자리(화면 px). 배율과 무관하게 눌려야 하므로 안 줄인다. */
+const FRAME_HEAD = FRAME_CHECK_SIZE + 10;
 
 /** 썸네일 해상도. 페이지 패널의 칸이 작아 이 정도면 충분하다. */
 const THUMB_PIXEL_RATIO = 0.12;
@@ -78,7 +81,6 @@ export function LeviosaCanvasWorkspace({
   backgroundColor = "rgb(241, 241, 241)",
   chosenFrame,
   onChooseFrame,
-  frameName,
   children,
 }: {
   store: CanvasStore;
@@ -89,8 +91,6 @@ export function LeviosaCanvasWorkspace({
   chosenFrame?: string;
   /** 안 주면 체크박스를 안 그린다 — 고를 것이 없는 문서도 있다. */
   onChooseFrame?: (frameKey: string) => void;
-  /** 벌 이름 짓기. 안 주면 꼬리표를 그대로 쓴다. */
-  frameName?: (frameKey: string) => string;
   /** 작업 영역 위에 얹을 것(찾기·바꾸기 같은 편집기 고유 층). */
   children?: ReactNode;
 }) {
@@ -302,11 +302,19 @@ export function LeviosaCanvasWorkspace({
           // 페이지 바깥의 빈 자리를 누르면 선택 해제. 페이지 안은 캔버스가 처리한다.
           const target = event.target as HTMLElement;
           if (
-            !target.closest("[data-lc-page]") &&
-            !target.closest("[data-dp-quicktoolbar]")
+            target.closest("[data-lc-page]") ||
+            target.closest("[data-dp-quicktoolbar]")
           ) {
-            store.selectElements([]);
+            return;
           }
+          store.selectElements([]);
+          // 판 밖이어도 벌의 빈 자리를 눌렀으면 그 벌로 간다 — 이름표를 없앴으니
+          // 여기가 «저 벌을 보겠다»고 말하는 유일한 자리다.
+          const key = target.closest<HTMLElement>("[data-lc-frame]")?.dataset
+            .lcFrame;
+          if (key === undefined) return;
+          const first = store.pages.find((page) => frameOf(page) === key);
+          if (first) store.selectPage(first.id);
         }}
         style={{
           position: "absolute",
@@ -332,13 +340,7 @@ export function LeviosaCanvasWorkspace({
           frameGap={FRAME_GAP_DOC * scale}
           renderFrameHeader={(key) => (
             <DetailPageFrameHeader
-              name={frameName?.(key) ?? key}
-              selected={key === activeFrame}
               chosen={key === chosenFrame}
-              onSelect={() => {
-                const first = store.pages.find((page) => frameOf(page) === key);
-                if (first) store.selectPage(first.id);
-              }}
               onChoose={onChooseFrame ? () => onChooseFrame(key) : undefined}
             />
           )}
@@ -348,10 +350,10 @@ export function LeviosaCanvasWorkspace({
             padding: 8,
             paddingTop: FRAME_HEAD,
             borderRadius: 10,
-            // 바탕 한 겹이 «이 판들은 한 덩이»를 말한다. 열만 벌려 놓으면 그냥
-            // 흩어져 보인다.
-            background: "rgba(0, 0, 0, 0.05)",
-            border: `1px solid ${key === activeFrame ? "rgba(0,0,0,0.45)" : "rgba(0,0,0,0.12)"}`,
+            // 회색 바닥 위의 **흰 판** — 피그마의 프레임이 그렇다. 판을 얹을 자리가
+            // 밝아야 «저기서 저기까지가 한 벌»이 읽힌다.
+            background: "#ffffff",
+            border: `1px solid ${key === activeFrame ? "rgba(0,0,0,0.45)" : "rgba(0,0,0,0.10)"}`,
             // 선명한 것은 «쓸모 있는 것»이다 — 보고 있거나, 결과물이 될 것.
             opacity: key === activeFrame || key === chosenFrame ? 1 : 0.55,
             transition: "opacity 0.15s ease, border-color 0.15s ease",

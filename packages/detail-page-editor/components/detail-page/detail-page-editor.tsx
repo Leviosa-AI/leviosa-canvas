@@ -125,10 +125,8 @@ export type DetailPageEditorProps = {
    * 언젠가 서로 다른 답을 한다.
    */
   chosenFrame?: string;
-  /** 안 주면 벌 머리에 체크박스를 안 그린다. */
+  /** 안 주면 벌에 체크를 안 그린다. */
   onChooseFrame?: (frameKey: string) => void;
-  /** 벌 이름 짓기. 안 주면 꼬리표를 그대로 쓴다. */
-  frameName?: (frameKey: string) => string;
   /** 헤더 좌측 "뒤로가기" 동작. 없으면 버튼을 숨긴다. */
   onBack?: () => void;
   /**
@@ -166,7 +164,6 @@ export function DetailPageEditor({
   productName,
   chosenFrame,
   onChooseFrame,
-  frameName,
   onBack,
   headerActions,
 }: DetailPageEditorProps) {
@@ -309,7 +306,6 @@ export function DetailPageEditor({
             gap={4}
             chosenFrame={chosenFrame}
             onChooseFrame={onChooseFrame}
-            frameName={frameName}
           >
             {findReplace}
             <DetailPagePagesTimeline store={store} />
@@ -317,7 +313,7 @@ export function DetailPageEditor({
         </div>
       </div>
     );
-  }, [store, sidebarSections, SidebarSlot, chosenFrame, onChooseFrame, frameName]);
+  }, [store, sidebarSections, SidebarSlot, chosenFrame, onChooseFrame]);
 
   const aiValue = useMemo(
     () => ({
