@@ -26,7 +26,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { copyPageToFrame } from "@leviosa-ai/canvas/edit/commands";
-import { frameOf, groupFrames } from "@leviosa-ai/canvas/render/frames";
+import { frameInsertIndex, frameOf } from "@leviosa-ai/canvas/render/frames";
 import type { CanvasStore } from "@leviosa-ai/canvas/store";
 import { detailPageEditorProfile } from "../../lib/detail-page/editor-profile";
 import { setFrameDragStarter } from "./frame-drag-bus";
@@ -172,8 +172,18 @@ export function FrameDragLayer({
       const current = dragRef.current;
       setDrag(null);
       if (!current?.drop || current.drop.full) return;
-      // 제자리에 도로 놓는 것은 아무 일도 아니다.
-      if (current.drop.frameKey === current.from) return;
+      // 같은 벌 안이면 순서를 바꾼다. 예전에는 아무 일도 안 일어나서 «놓아도
+      // 그대로»라고 적어 줘야 했는데, 그건 설명이 필요한 동작이라는 뜻이었다.
+      if (current.drop.frameKey === current.from) {
+        const page = store.getPageById(current.pageId);
+        if (!page) return;
+        const from = store.pages.indexOf(page);
+        let to = frameInsertIndex(store.pages, current.drop.frameKey, current.drop.at);
+        // 빼고 나면 뒤쪽 자리는 한 칸 당겨진다.
+        if (from < to) to -= 1;
+        if (from !== to) page.setZIndex(to);
+        return;
+      }
       copyPageToFrame(store, current.pageId, current.drop.frameKey, current.drop.at);
     };
     window.addEventListener("pointermove", onMove);
@@ -221,38 +231,39 @@ export function FrameDragLayer({
                 : "rgba(37, 99, 235, 0.06)",
             }}
           />
+          {/* 들어갈 자리에 **판 한 장**을 그린다. 어디로 가는지는 글로 적을 것이
+              아니라 그 자리에 보이면 된다. */}
           <div
             style={{
               position: "absolute",
               left: drag.drop.line.left,
-              top: drag.drop.line.top - 3,
+              top: drag.drop.line.top,
               width: drag.drop.line.width,
-              height: 6,
+              height: drag.box.height,
               zIndex: 41,
               pointerEvents: "none",
-              borderRadius: 3,
-              background: drag.drop.full ? "#c0392b" : "#2563eb",
+              borderRadius: 6,
+              border: `2px dashed ${drag.drop.full ? "#c0392b" : "#2563eb"}`,
+              background: drag.drop.full
+                ? "rgba(192, 57, 43, 0.10)"
+                : "rgba(37, 99, 235, 0.14)",
             }}
           />
-          <span
-            style={{
-              position: "absolute",
-              left: drag.x + 16,
-              top: drag.y + 16,
-              zIndex: 42,
-              pointerEvents: "none",
-            }}
-            className={[
-              "rounded-dpe-md px-2 py-1 text-[11px] font-dpe-semibold text-dpe-on-accent",
-              drag.drop.full ? "bg-dpe-danger-600" : "bg-dpe-ink-900",
-            ].join(" ")}
-          >
-            {drag.drop.full
-              ? `${detailPageEditorProfile().maxPages}장이 최대입니다`
-              : drag.drop.frameKey === drag.from
-                ? "같은 벌 — 놓아도 그대로"
-                : `${drag.drop.frameKey} · ${drag.drop.at + 1}번째로`}
-          </span>
+          {/* 못 놓는 경우에만 이유를 적는다. 되는 경우는 자리가 대신 말한다. */}
+          {drag.drop.full ? (
+            <span
+              style={{
+                position: "absolute",
+                left: drag.x + 16,
+                top: drag.y + 16,
+                zIndex: 42,
+                pointerEvents: "none",
+              }}
+              className="rounded-dpe-md bg-dpe-danger-600 px-2 py-1 text-[11px] font-dpe-semibold text-dpe-on-accent"
+            >
+              {detailPageEditorProfile().maxPages}장이 최대입니다
+            </span>
+          ) : null}
         </>
       ) : null}
     </>
