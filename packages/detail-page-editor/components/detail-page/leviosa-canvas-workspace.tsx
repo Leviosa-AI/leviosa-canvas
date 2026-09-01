@@ -302,6 +302,9 @@ export function LeviosaCanvasWorkspace({
           store={store}
           scale={scale}
           gap={gap}
+          // 열이 여럿이면 가운데 정렬을 정렬 속성이 아니라 자동 여백으로 준다 —
+          // 축소해서 남는 자리가 생겨도 가운데를 지키고, 커져도 스크롤이 산다.
+          center={frameCount > 1}
           interactive
           loadFont={loadEditorFont}
         />

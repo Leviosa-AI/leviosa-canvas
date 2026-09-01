@@ -452,12 +452,19 @@ export function CanvasView({
   scale = 1,
   gap = 0,
   interactive = false,
+  center = false,
   loadFont,
 }: {
   store: CanvasStore;
   scale?: number;
   gap?: number;
   interactive?: boolean;
+  /**
+   * 남는 자리에서 가운데로 설 것인가. **자동 여백으로** 세운다 — 부모의 정렬로
+   * 세우면 내용이 화면보다 커졌을 때 시작 쪽으로 스크롤을 못 하게 된다(자동 여백은
+   * 남는 자리가 없으면 0이 되어 그냥 왼쪽 위에 선다).
+   */
+  center?: boolean;
   /** 폰트를 받아 오는 사람. 안 주면 브라우저가 이미 아는 서체만 그려진다 (G7 경계). */
   loadFont?: FontLoader;
 }) {
@@ -654,23 +661,20 @@ export function CanvasView({
       <div
         data-lc-canvas="ready"
         data-lc-scope={scopeId ?? ""}
-        style={
-          frames.length > 1
+        style={{
+          display: "flex",
+          width: "min-content",
+          // 자동 여백이 남는 자리를 반씩 먹어 가운데로 세운다.
+          ...(center ? { margin: "auto" } : {}),
+          ...(frames.length > 1
             ? {
-                display: "flex",
-                flexDirection: "row",
-                alignItems: "flex-start",
+                flexDirection: "row" as const,
+                alignItems: "flex-start" as const,
                 // 열 사이는 장 사이보다 넓어야 한 벌이 한 덩이로 읽힌다.
                 gap: gap * 2,
-                width: "min-content",
               }
-            : {
-                display: "flex",
-                flexDirection: "column",
-                gap,
-                width: "min-content",
-              }
-        }
+            : { flexDirection: "column" as const, gap }),
+        }}
       >
         {/* 프레임이 하나뿐이면 열로 감싸지 않는다 — 꼬리표가 없는 기존 문서는 예전과
             **똑같은 마크업**으로 그려져야 한다. 그것이 이 기능의 안전선이다. */}

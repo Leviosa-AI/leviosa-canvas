@@ -1,6 +1,7 @@
 "use client";
 
 import { detailPageEditorProfile } from "../../lib/detail-page/editor-profile";
+import { activeFramePages } from "../../lib/detail-page/frame-pages";
 
 import { Fragment, useCallback, useSyncExternalStore } from "react";
 import { observer } from "./canvas-observer";
@@ -151,11 +152,14 @@ const PageRow = observer(function PageRow({
   store,
   page,
   index,
+  canDuplicate,
   thumb,
 }: {
   store: StoreLike;
   page: PageLike;
   index: number;
+  /** 이 벌에 한 장을 더 넣을 수 있는가. 세는 것은 목록이 한다. */
+  canDuplicate: boolean;
   thumb: string | undefined;
 }) {
   const { t } = useTranslation("branding");
@@ -171,7 +175,6 @@ const PageRow = observer(function PageRow({
   const active = store.activePage?.id === page.id;
   const ratio = page.computedHeight / Math.max(1, page.computedWidth);
   const { role, title } = pageLabel(page, index, t);
-  const maxPages = detailPageEditorProfile().maxPages;
 
   const style: React.CSSProperties = {
     transform: CSS.Transform.toString(transform),
@@ -238,7 +241,7 @@ const PageRow = observer(function PageRow({
         <div className="flex shrink-0 flex-col gap-1">
           <button
             type="button"
-            disabled={store.pages.length >= maxPages}
+            disabled={!canDuplicate}
             onClick={(event) => {
               event.stopPropagation();
               page.clone?.();
@@ -311,22 +314,26 @@ export const DetailPagePagesPanel = observer(function DetailPagePagesPanel({
   // 합계가 곧 문서 높이지만, 캐러셀은 판이 따로따로라 합계가 아무 뜻이 없다 —
   // 8판짜리가 1080×10800 으로 보였다.
   const profile = detailPageEditorProfile();
-  const width = Math.round(s.pages[0]?.computedWidth ?? 0);
+  // 목록은 «지금 보고 있는 한 벌»만 담는다. 후보 넷을 담은 문서에서 마흔 줄을
+  // 늘어놓으면 어느 줄이 어느 벌인지 알 수가 없다.
+  const pages = activeFramePages(s.pages, s.activePage?.id);
+  const width = Math.round(pages[0]?.computedWidth ?? 0);
   const shownHeight = profile.page.fixed
     ? Math.round(
         typeof profile.page.height === "number"
           ? profile.page.height
-          : (s.pages[0]?.computedHeight ?? 0),
+          : (pages[0]?.computedHeight ?? 0),
       )
-    : Math.round(s.pages.reduce((acc, p) => acc + p.computedHeight, 0));
+    : Math.round(pages.reduce((acc, p) => acc + p.computedHeight, 0));
 
-  const canAdd = s.pages.length < profile.maxPages;
+  // 장 수 상한도 프레임마다다 — 한 벌이 열 장이라고 다른 벌까지 막을 이유가 없다.
+  const canAdd = pages.length < profile.maxPages;
 
   return (
     <div className="flex h-full flex-col">
       <div className="flex items-baseline justify-between px-4 py-3">
         <p className="text-base font-dpe-bold text-dpe-ink-900">
-          {t("detailPage.pages.totalPages", { count: s.pages.length })}
+          {t("detailPage.pages.totalPages", { count: pages.length })}
         </p>
         <p className="text-xs text-dpe-ink-400">
           {width} × {shownHeight} px
@@ -341,16 +348,17 @@ export const DetailPagePagesPanel = observer(function DetailPagePagesPanel({
           onDragEnd={handleDragEnd}
         >
           <SortableContext
-            items={s.pages.map((p) => p.id)}
+            items={pages.map((p) => p.id)}
             strategy={verticalListSortingStrategy}
           >
             <div className="space-y-2">
-              {s.pages.map((page, index) => (
+              {pages.map((page, index) => (
                 <Fragment key={page.id}>
                   <PageRow
                     store={s}
                     page={page}
                     index={index}
+                    canDuplicate={canAdd}
                     thumb={detailPageThumbnailBus.get(page.id)}
                   />
                   {/* 새 화면은 «어디에» 가 먼저다. 목록 끝에 버튼 하나를 두면 넣고 나서
