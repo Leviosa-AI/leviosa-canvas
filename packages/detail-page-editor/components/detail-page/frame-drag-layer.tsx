@@ -36,6 +36,14 @@ import { detailPageEditorProfile } from "../../lib/detail-page/editor-profile";
  */
 const GRIP = 32;
 
+/**
+ * 판을 벗어나도 손잡이를 이만큼은 붙잡아 둔다(화면 px).
+ *
+ * 손잡이가 판 모서리에 있어서, 바깥에서 다가가는 손은 «판 밖»을 지나 온다. 그때마다
+ * 지우면 잡으러 가는 내내 눈앞에서 사라진다.
+ */
+const HOVER_SLACK = 56;
+
 type Box = { left: number; top: number; width: number; height: number };
 
 type Drop = {
@@ -148,13 +156,28 @@ export function FrameDragLayer({
       // 손잡이 위로 올라간 것은 «판을 벗어난 것»이 아니다. 이걸 안 봐 주면 손이
       // 닿는 순간 손잡이가 사라져서 영영 못 잡는다.
       if (target?.closest("[data-dp-frame-grip]")) return;
+      const hostBox = host.getBoundingClientRect();
       const page = target?.closest<HTMLElement>("[data-lc-page]");
       const id = page?.dataset.lcPage;
-      if (!page || !id) {
-        setHover(null);
+      if (page && id) {
+        setHover({ id, box: boxIn(page, hostBox) });
         return;
       }
-      setHover({ id, box: boxIn(page, host.getBoundingClientRect()) });
+      // 판 밖이라고 곧장 지우면, 손잡이는 판 **모서리**에 있으므로 바깥에서
+      // 다가가는 동안 눈앞에서 사라진다 — 그래서 깜빡이는 것처럼 보인다.
+      // 방금 보던 판 언저리면 그대로 둔다.
+      const x = event.clientX - hostBox.left;
+      const y = event.clientY - hostBox.top;
+      setHover((current) => {
+        if (!current) return null;
+        const box = current.box;
+        const near =
+          x >= box.left - HOVER_SLACK &&
+          x <= box.left + box.width + HOVER_SLACK &&
+          y >= box.top - HOVER_SLACK &&
+          y <= box.top + box.height + HOVER_SLACK;
+        return near ? current : null;
+      });
     };
     const onLeave = () => {
       if (!dragRef.current) setHover(null);

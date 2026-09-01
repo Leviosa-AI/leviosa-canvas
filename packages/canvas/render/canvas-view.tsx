@@ -562,6 +562,8 @@ export function CanvasView({
     pageId: string;
     width: number;
     height: number;
+    /** 끌리는 요소를 그 자리에서 뜬 그림. 못 뜨면 없다(테두리만 그린다). */
+    image?: string;
   } | null>(null);
   const [ghost, setGhost] = useState<{ x: number; y: number } | null>(null);
   const rootRef = useRef<HTMLDivElement>(null);
@@ -652,15 +654,25 @@ export function CanvasView({
       interactive,
       scopeId,
       editingId,
-      onDragStart: (id) => {
+      onDragStart: (id, node) => {
         const dragged = store.getElementById(id);
         const home = store.getPageOfElement(id);
         if (dragged && home) {
           const size = elementRect(dragged);
+          // 무대 밖에서 보여 줄 것은 «테두리»가 아니라 그 요소 자체다. 끌기가
+          // 시작되는 이 한 번만 그림으로 뜬다 — 남의 그림이 섞여 캔버스가 오염된
+          // 경우에는 못 뜨므로, 그때는 테두리로 물러난다.
+          let image: string | undefined;
+          try {
+            image = node?.toDataURL({ pixelRatio: 2 });
+          } catch {
+            image = undefined;
+          }
           setDragging({
             pageId: home.id,
             width: size.width,
             height: size.height,
+            image,
           });
         }
         const el = store.getElementById(id);
@@ -822,13 +834,27 @@ export function CanvasView({
               top: ghost.y - (dragging.height * scale) / 2,
               width: dragging.width * scale,
               height: dragging.height * scale,
-              border: "2px dashed rgba(37, 99, 235, 0.9)",
-              background: "rgba(37, 99, 235, 0.08)",
-              borderRadius: 4,
               zIndex: 20,
               pointerEvents: "none",
+              ...(dragging.image
+                ? { opacity: 0.9 }
+                : {
+                    border: "2px dashed rgba(37, 99, 235, 0.9)",
+                    background: "rgba(37, 99, 235, 0.08)",
+                    borderRadius: 4,
+                  }),
             }}
-          />
+          >
+            {dragging.image ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={dragging.image}
+                alt=""
+                draggable={false}
+                style={{ width: "100%", height: "100%", display: "block" }}
+              />
+            ) : null}
+          </div>
         ) : null}
       </div>
     </EditContext.Provider>
