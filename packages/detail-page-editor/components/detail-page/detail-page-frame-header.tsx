@@ -1,68 +1,75 @@
 "use client";
 
 /**
- * 벌 하나의 표시 — **이게 결과물인가.**
+ * 벌 위에 붙는 것 — **이게 결과물인가**, 그리고 **바꾸는 길**.
  *
- * ## 왜 네모 하나로는 안 되나
+ * ## 화면에 라벨은 최대 둘
  *
- * 우상단에 체크박스만 두면 «이걸 켜면 무슨 일이 일어나는가»를 알 길이 없다. 켜 보기
- * 전에는 모르고, 켜 봐도 옅기만 바뀌니 여전히 모른다. 그래서 **글자가 붙는다** —
- * 벌의 이름이 아니라(그건 판이 말한다) 지금 무엇인지·누르면 무엇이 되는지를 말하는
- * 글자다.
+ * 넷에 다 라벨을 달면 «라벨 넷»으로 읽히고, 무엇이 상태이고 무엇이 행동인지 모양으로
+ * 구분이 안 된다. Shopify 의 테마 목록도 Vercel 의 배포 목록도 반대로 한다 — 지금
+ * 나가는 것 **하나에만** 표를 달고, 바꾸는 행동은 조용한 곳에 둔다.
  *
- *   고른 벌   →  ✓ 최종안        (검게 찬 알약. 누를 것이 아니라 «상태»다)
- *   나머지    →    최종안으로     (테두리 알약. 누르면 이게 최종안이 된다)
+ *   최종안인 벌   →  «최종안»          글씨. 누를 것이 아니라 상태다
+ *   보고 있는 벌  →  «최종안으로 지정»  테두리 버튼. 누르면 바뀐다
+ *   나머지        →  아무것도 없음
  *
- * 하나만 검게 차 있으므로 무엇이 켜져 있는지 세지 않아도 되고, 나머지의 «…으로»가
- * 바꿀 수 있다는 사실을 알려 준다.
+ * 고르려면 먼저 그 벌을 본다 — 이미 하던 동작이라 클릭이 하나 느는 것이 아니다.
  *
- * ## 선택과 최종안은 다른 것이다
+ * ## 뱃지에 손잡이를 달지 않는다
  *
- * **선택**은 지금 보고 있는 벌, **최종안**은 결과물이 될 벌이다. 둘은 자주 다르다 —
- * 2안을 들여다보면서 1안을 최종안으로 둘 수 있어야 한다. 선택은 **테두리**가, 최종안은
- * 이 알약이 말한다.
+ * 상태를 나타내는 표는 누르는 것이 아니고, 누르는 것은 버튼처럼 생겨야 한다. 둘을
+ * 같은 모양으로 두면 어느 쪽이 무엇인지 읽어 봐야 안다. 그래서 최종안은 **글씨**,
+ * 지정은 **테두리 있는 버튼**이다.
  *
- * 상자 **안** 우상단에 앉힌다. 밖에 두면 스크롤 영역 바깥으로 잘려 아예 안 보인다.
+ * ## 흰 판 위가 아니라 회색 바닥 위
+ *
+ * 작업물을 가리지 않는 자리다. 피그마가 프레임 이름을 두는 그 자리이기도 하다.
  */
 
-/** 알약이 앉을 자리의 높이(화면 px). 배율과 무관하게 읽고 눌러야 하므로 안 줄인다. */
-export const FRAME_HEAD_HEIGHT = 24;
+/** 이 줄이 차지하는 높이(화면 px). 배율과 무관하게 읽혀야 하므로 안 줄인다. */
+export const FRAME_HEAD_HEIGHT = 22;
 
 const COPY = {
   chosen: "최종안",
-  choose: "최종안으로",
+  choose: "최종안으로 지정",
   hint: "내려받기와 발행은 최종안만 나갑니다",
 };
 
 export function DetailPageFrameHeader({
   chosen,
+  selected,
   onChoose,
 }: {
   chosen: boolean;
+  /** 지금 보고 있는 벌인가. 여기에만 바꾸는 버튼이 뜬다. */
+  selected: boolean;
   /** 안 주면 아무것도 안 그린다 — 고를 것이 없는 문서도 있다. */
   onChoose?: () => void;
 }) {
   if (!onChoose) return null;
 
-  const base =
-    "absolute flex items-center gap-1 rounded-full px-2.5 text-[11px] font-dpe-semibold whitespace-nowrap transition-colors";
-  const place = { top: 6, right: 8, height: FRAME_HEAD_HEIGHT - 4 } as const;
+  const place = {
+    position: "absolute" as const,
+    left: 2,
+    bottom: "100%" as const,
+    marginBottom: 4,
+    height: FRAME_HEAD_HEIGHT - 4,
+    whiteSpace: "nowrap" as const,
+  };
 
-  // 이미 최종안인 것은 누를 것이 아니라 **상태**다. 버튼으로 두면 «끄면 어떻게 되지»를
-  // 묻게 되는데, 최종안 없는 상태라는 것은 없다.
   if (chosen) {
     return (
       <span
         style={place}
         title={COPY.hint}
-        className={`${base} border border-dpe-ink-900 bg-dpe-ink-900 text-dpe-on-accent`}
+        className="flex items-center gap-1 text-[11px] font-dpe-bold text-dpe-ink-900"
       >
         <svg width="11" height="11" viewBox="0 0 16 16" aria-hidden="true">
           <path
             d="M3 8.5 6.5 12 13 4.5"
             fill="none"
             stroke="currentColor"
-            strokeWidth="2.4"
+            strokeWidth="2.6"
             strokeLinecap="round"
             strokeLinejoin="round"
           />
@@ -72,13 +79,16 @@ export function DetailPageFrameHeader({
     );
   }
 
+  // 보고 있지 않은 벌은 아무 말도 안 한다. 누르면 보게 되고, 그때 이 버튼이 뜬다.
+  if (!selected) return null;
+
   return (
     <button
       type="button"
       style={place}
       title={COPY.hint}
       onClick={onChoose}
-      className={`${base} border border-dpe-ink-300 bg-dpe-surface text-dpe-ink-500 opacity-70 hover:border-dpe-ink-900 hover:text-dpe-ink-900 hover:opacity-100`}
+      className="flex items-center rounded-full border border-dpe-ink-400 bg-dpe-surface px-2 text-[11px] font-dpe-semibold text-dpe-ink-700 transition-colors hover:border-dpe-ink-900 hover:text-dpe-ink-900"
     >
       {COPY.choose}
     </button>

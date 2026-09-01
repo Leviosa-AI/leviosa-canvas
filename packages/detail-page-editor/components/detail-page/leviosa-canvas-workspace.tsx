@@ -65,8 +65,14 @@ const clamp = (v: number, lo: number, hi: number) =>
  */
 const FRAME_GAP_DOC = 240;
 
-/** 알약이 앉을 자리(화면 px). 배율과 무관하게 읽혀야 하므로 안 줄인다. */
-const FRAME_HEAD = FRAME_HEAD_HEIGHT + 10;
+/**
+ * 벌 위의 줄이 설 자리(화면 px).
+ *
+ * 그 줄은 흰 판 **밖**, 회색 바닥 위에 앉는다 — 작업물을 안 가리는 자리이고 피그마가
+ * 프레임 이름을 두는 자리다. 대신 작업 영역 위쪽에 그만큼을 비워 둬야 한다. 안 그러면
+ * 스크롤 영역 바깥으로 잘려서 아예 안 보인다(실제로 그렇게 사라져 있었다).
+ */
+const FRAME_HEAD = FRAME_HEAD_HEIGHT + 6;
 
 /** 썸네일 해상도. 페이지 패널의 칸이 작아 이 정도면 충분하다. */
 const THUMB_PIXEL_RATIO = 0.12;
@@ -246,29 +252,56 @@ export function LeviosaCanvasWorkspace({
   // 굽는 동안 그 페이지를 화면 밖에서도 그려야 해서다 — 30장을 한꺼번에 띄우면
   // 브라우저가 멈춘다.
   const panelOpen = store.openedSidePanel === "pages";
+  const panelOpenRef = useRef(panelOpen);
+  panelOpenRef.current = panelOpen;
+  const dirtyThumbnailIds = useRef(new Set<string>());
+  const [thumbnailRevision, setThumbnailRevision] = useState(0);
+
+  // 요소 속성 변경은 page.version을 올리지 않는다. 문서 변경 알림에서 현재 페이지만
+  // 더럽다고 적어 두고, 패널이 열려 있을 때만 아래 굽기 작업을 깨운다.
+  useEffect(
+    () =>
+      store.on("change", () => {
+        const id = store.activePage?.id;
+        if (id) dirtyThumbnailIds.current.add(id);
+        if (panelOpenRef.current) setThumbnailRevision((value) => value + 1);
+      }),
+    [store],
+  );
+
   useEffect(() => {
     if (!panelOpen) return;
     let cancelled = false;
-    void (async () => {
-      for (const page of store.pages) {
-        if (cancelled) return;
-        if (detailPageThumbnailBus.has(page.id)) continue;
-        try {
-          const uri = await store.toDataURL({
-            pageId: page.id,
-            pixelRatio: THUMB_PIXEL_RATIO,
-          });
+    // 타이핑·드래그 중 매 프레임 다시 굽지 않고, 손을 잠깐 놓았을 때 바뀐 페이지만 굽는다.
+    const timer = window.setTimeout(() => {
+      void (async () => {
+        for (const page of store.pages) {
           if (cancelled) return;
-          detailPageThumbnailBus.set(page.id, uri);
-        } catch {
-          // 못 구운 페이지는 다음에 다시 시도한다(패널을 다시 열면 온다).
+          if (
+            !dirtyThumbnailIds.current.has(page.id) &&
+            detailPageThumbnailBus.has(store, page.id)
+          ) {
+            continue;
+          }
+          try {
+            const uri = await store.toDataURL({
+              pageId: page.id,
+              pixelRatio: THUMB_PIXEL_RATIO,
+            });
+            if (cancelled) return;
+            dirtyThumbnailIds.current.delete(page.id);
+            detailPageThumbnailBus.set(store, page.id, uri);
+          } catch {
+            // 못 구운 페이지는 다음에 다시 시도한다(패널을 다시 열면 온다).
+          }
         }
-      }
-    })();
+      })();
+    }, 250);
     return () => {
       cancelled = true;
+      window.clearTimeout(timer);
     };
-  }, [panelOpen, pageIds, store]);
+  }, [panelOpen, pageIds, store, thumbnailRevision]);
 
   const frameCount = groupFrames(store.pages).length;
   // 보고 있는 벌 — 활성 페이지가 속한 벌이다. 목록·아래 띠가 보는 것과 같다.
@@ -327,7 +360,7 @@ export function LeviosaCanvasWorkspace({
           display: "flex",
           flexDirection: "column",
           alignItems: frameCount > 1 ? "flex-start" : "center",
-          padding: `${gap}px ${paddingX}px`,
+          padding: `${frameCount > 1 ? gap + FRAME_HEAD : gap}px ${paddingX}px ${gap}px`,
         }}
       >
         <CanvasView
@@ -341,14 +374,12 @@ export function LeviosaCanvasWorkspace({
           renderFrameHeader={(key) => (
             <DetailPageFrameHeader
               chosen={key === chosenFrame}
+              selected={key === activeFrame}
               onChoose={onChooseFrame ? () => onChooseFrame(key) : undefined}
             />
           )}
           frameStyle={(key) => ({
-            // 위쪽은 이름표 자리다. 이름표를 상자 **밖**에 두면 스크롤 영역
-            // 바깥으로 잘려서 아예 안 보인다 — 체크박스까지 같이 사라졌다.
             padding: 8,
-            paddingTop: FRAME_HEAD,
             borderRadius: 10,
             // 회색 바닥 위의 **흰 판** — 피그마의 프레임이 그렇다. 판을 얹을 자리가
             // 밝아야 «저기서 저기까지가 한 벌»이 읽힌다.
