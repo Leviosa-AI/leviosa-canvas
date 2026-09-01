@@ -31,6 +31,7 @@ import {
 } from "../edit/snap";
 import { useCanvasVersion, usePageVersion, useSelectionKey } from "../use-canvas";
 import { EditContext, type EditHandlers } from "./edit-context";
+import { groupFrames } from "./frames";
 import { ElementView } from "./element-view";
 import { elementPath, isTransformerPart, type HitNode } from "./hit-path";
 import {
@@ -629,35 +630,66 @@ export function CanvasView({
     return <div data-lc-canvas="pending" style={{ width: store.width * scale }} />;
   }
 
+  const frames = groupFrames(store.pages);
+  const renderPage = (page: CanvasPage) => (
+    <PageView
+      key={page.id}
+      store={store}
+      page={page}
+      scale={scale}
+      fontsVersion={fontsVersion}
+      interactive={interactive}
+      scopeId={scopeId}
+      editingId={editingId}
+      guideBus={guideBus}
+      marqueeBus={marqueeBus}
+      onPick={onPick}
+      onDrill={onDrill}
+      onEditDone={() => setEditingId(null)}
+    />
+  );
+
   return (
     <EditContext.Provider value={handlers}>
       <div
         data-lc-canvas="ready"
         data-lc-scope={scopeId ?? ""}
-        style={{
-          display: "flex",
-          flexDirection: "column",
-          gap,
-          width: "min-content",
-        }}
+        style={
+          frames.length > 1
+            ? {
+                display: "flex",
+                flexDirection: "row",
+                alignItems: "flex-start",
+                // 열 사이는 장 사이보다 넓어야 한 벌이 한 덩이로 읽힌다.
+                gap: gap * 2,
+                width: "min-content",
+              }
+            : {
+                display: "flex",
+                flexDirection: "column",
+                gap,
+                width: "min-content",
+              }
+        }
       >
-        {store.pages.map((page) => (
-          <PageView
-            key={page.id}
-            store={store}
-            page={page}
-            scale={scale}
-            fontsVersion={fontsVersion}
-            interactive={interactive}
-            scopeId={scopeId}
-            editingId={editingId}
-            guideBus={guideBus}
-            marqueeBus={marqueeBus}
-            onPick={onPick}
-            onDrill={onDrill}
-            onEditDone={() => setEditingId(null)}
-          />
-        ))}
+        {/* 프레임이 하나뿐이면 열로 감싸지 않는다 — 꼬리표가 없는 기존 문서는 예전과
+            **똑같은 마크업**으로 그려져야 한다. 그것이 이 기능의 안전선이다. */}
+        {frames.length > 1
+          ? frames.map((frame) => (
+              <div
+                key={frame.key}
+                data-lc-frame={frame.key}
+                style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  gap,
+                  width: "min-content",
+                }}
+              >
+                {frame.pages.map(renderPage)}
+              </div>
+            ))
+          : store.pages.map(renderPage)}
       </div>
     </EditContext.Provider>
   );
