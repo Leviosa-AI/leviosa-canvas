@@ -26,7 +26,6 @@ import {
 } from "react";
 import { Layer, Line, Rect, Stage, Transformer } from "react-konva/es/ReactKonvaCore";
 
-import { shouldWatermark } from "../license";
 import { CanvasElement, withFreshIds, type CanvasPage, type CanvasStore } from "../store";
 import { num, str } from "../types";
 import { elementRect, moveElementTo, type Rect as DocRect } from "../edit/rect";
@@ -268,7 +267,6 @@ function PageView({
   // 내려받기·GIF가 부탁하면 화면 밖 페이지도 그린다(안 그리면 뽑을 픽셀이 없다).
   const mount = near || store.isPageForced(page.id);
   // 화면에 붙일 때 한 번만 묻는다. 렌더마다 물으면 콘솔 경고가 쏟아진다.
-  const watermark = useMemo(() => shouldWatermark(), []);
 
   const bindLayer = useCallback(
     (layer: Konva.Layer | null) => {
@@ -437,28 +435,6 @@ function PageView({
           onDone={onEditDone}
         />
       ) : null}
-      {watermark ? (
-        // 캔버스가 아니라 DOM에 얹는다 — 오리진을 못 읽는 자리에서 잘못 켜져도
-        // 우리 export 산출물은 안 건드린다(license.ts 규칙 2·3).
-        <div
-          data-lc-watermark=""
-          style={{
-            position: "absolute",
-            right: 8,
-            bottom: 8,
-            padding: "2px 6px",
-            borderRadius: 4,
-            background: "rgba(17,17,17,0.55)",
-            color: "#fff",
-            font: "11px/1.4 system-ui, sans-serif",
-            letterSpacing: "0.02em",
-            pointerEvents: "none",
-            userSelect: "none",
-          }}
-        >
-          leviosa-canvas
-        </div>
-      ) : null}
     </div>
   );
 }
@@ -517,11 +493,12 @@ function pageUnder(client: { x: number; y: number }): HTMLElement | null {
   return best;
 }
 
-function dropOnOtherPage(
+export function dropOnOtherPage(
   store: CanvasStore,
   id: string,
   client: { x: number; y: number },
-  grab: { dx: number; dy: number } | null,
+  /** 끌던 노드가 멈춘 자리(원래 판의 문서 좌표). Konva 가 손끝을 따라 옮겨 둔 값이다. */
+  position: { x: number; y: number } | null,
   clone: boolean,
 ): boolean {
   const under = pageUnder(client);
@@ -533,8 +510,10 @@ function dropOnOtherPage(
   const el = store.getElementById(id);
   if (!home || !target || !el || home.id === target.id) return false;
 
-  // 놓은 자리에 가운데를 맞춘다 — 손이 가리킨 곳이 곧 그 요소의 자리다.
   const rect = under.getBoundingClientRect();
+  const homeRect = document
+    .querySelector<HTMLElement>(`[data-lc-page="${CSS.escape(home.id)}"]`)
+    ?.getBoundingClientRect();
   const scale = store.scale || 1;
   const box = elementRect(el);
   // **잡았던 자리가 손끝에 그대로 붙어 있어야** 옮긴 것이 옮긴 대로 앉는다. 가운데를
@@ -543,19 +522,30 @@ function dropOnOtherPage(
   // 안 보이는» 것이 된다.
   const fit = (value: number, span: number, limit: number) =>
     span >= limit ? value : Math.max(0, Math.min(limit - span, value));
-  // **보이는 네모의 왼쪽 위**가 놓일 자리다. `x/y` 속성이 아니다 — 그룹은 자식들이
-  // 차지한 자리만큼, 돌려 둔 요소는 돌아간 만큼 그 둘이 다르다. 여기서 속성에 바로
-  // 써 넣으면 그 차이만큼 어긋나 앉는다(잡을 때도 보이는 네모로 쟀으니 짝이 안 맞는다).
-  const left = fit(
-    (client.x - rect.left) / scale - (grab ? grab.dx : box.width / 2),
-    box.width,
-    target.width,
-  );
-  const top = fit(
-    (client.y - rect.top) / scale - (grab ? grab.dy : box.height / 2),
-    box.height,
-    target.height,
-  );
+  // **그려져 있던 자리가 놓일 자리다.**
+  //
+  // 손끝에서 되짚지 않는다. 그러려면 끌기가 시작될 때의 손끝과 판 상자를 잡아 두고
+  // 끝날 때의 손끝과 짝을 맞춰야 하는데, 그 사이에 하나라도 어긋나면(끌기 시작
+  // 이벤트에 손끝이 안 실려 오거나, 그동안 화면이 움직이거나) 요소가 엉뚱한 데
+  // 앉는다. Konva 가 이미 손끝을 따라 노드를 옮겨 두었으니 그 값을 그대로 쓴다 —
+  // 화면에서 보이던 그 자리다.
+  //
+  // 기준은 **보이는 네모의 왼쪽 위**다. `x/y` 속성이 아니다 — 그룹은 자식들이 차지한
+  // 자리만큼, 돌려 둔 요소는 돌아간 만큼 그 둘이 다르다.
+  const skewX = box.x - num(el, "x", 0);
+  const skewY = box.y - num(el, "y", 0);
+  const drawn =
+    position && homeRect
+      ? {
+          x: (homeRect.left + (position.x + skewX) * scale - rect.left) / scale,
+          y: (homeRect.top + (position.y + skewY) * scale - rect.top) / scale,
+        }
+      : {
+          x: (client.x - rect.left) / scale - box.width / 2,
+          y: (client.y - rect.top) / scale - box.height / 2,
+        };
+  const left = fit(drawn.x, box.width, target.width);
+  const top = fit(drawn.y, box.height, target.height);
 
   const json = withFreshIds(el.toJSON());
   let made: CanvasElement | null = null;
@@ -649,6 +639,9 @@ export function CanvasView({
     pageId: string;
     width: number;
     height: number;
+    /** 보이는 네모와 `x/y` 속성의 차. 그룹·돌린 요소에서 둘이 다르다. */
+    skewX: number;
+    skewY: number;
     /** 끌리는 요소를 그 자리에서 뜬 그림. 못 뜨면 없다(테두리만 그린다). */
     image?: string;
   } | null>(null);
@@ -661,7 +654,13 @@ export function CanvasView({
    * 떼는 순간 요소가 잡았던 자리에서 튄다. 잡은 자리가 손끝에 그대로 붙어 있어야
    * 옮긴 것이 옮긴 대로 앉는다.
    */
-  const grabRef = useRef<{ dx: number; dy: number } | null>(null);
+  /**
+   * 끌던 노드가 지금 있는 자리(원래 판의 문서 좌표).
+   *
+   * 자국과 놓기가 **같은 값**을 봐야 한다. 자국은 손끝을, 놓기는 노드를 보고 있으면
+   * 눈에 보이던 자리와 앉는 자리가 갈린다.
+   */
+  const dragPosRef = useRef<{ x: number; y: number } | null>(null);
 
   useEffect(() => {
     if (!dragging) return;
@@ -674,15 +673,22 @@ export function CanvasView({
       const over = document
         .elementFromPoint(event.clientX, event.clientY)
         ?.closest<HTMLElement>("[data-lc-page]")?.dataset.lcPage;
+      const homeBox = document
+        .querySelector<HTMLElement>(`[data-lc-page="${CSS.escape(dragging.pageId)}"]`)
+        ?.getBoundingClientRect();
+      const pos = dragPosRef.current;
       setGhost(
-        over === dragging.pageId
+        over === dragging.pageId || !homeBox || !pos
           ? null
-          : { x: event.clientX - box.left, y: event.clientY - box.top },
+          : {
+              x: homeBox.left - box.left + (pos.x + dragging.skewX) * scale,
+              y: homeBox.top - box.top + (pos.y + dragging.skewY) * scale,
+            },
       );
     };
     window.addEventListener("pointermove", onMove);
     return () => window.removeEventListener("pointermove", onMove);
-  }, [dragging]);
+  }, [dragging, scale]);
 
   const onPick = useCallback(
     (id: string | null, shift: boolean) => {
@@ -764,16 +770,7 @@ export function CanvasView({
         const home = store.getPageOfElement(id);
         if (dragged && home) {
           const size = elementRect(dragged);
-          const homeBox = document
-            .querySelector<HTMLElement>(`[data-lc-page="${CSS.escape(home.id)}"]`)
-            ?.getBoundingClientRect();
-          grabRef.current =
-            client && homeBox
-              ? {
-                  dx: (client.x - homeBox.left) / (store.scale || 1) - size.x,
-                  dy: (client.y - homeBox.top) / (store.scale || 1) - size.y,
-                }
-              : null;
+          dragPosRef.current = { x: num(dragged, "x", 0), y: num(dragged, "y", 0) };
           // 무대 밖에서 보여 줄 것은 «테두리»가 아니라 그 요소 자체다. 끌기가
           // 시작되는 이 한 번만 그림으로 뜬다 — 남의 그림이 섞여 캔버스가 오염된
           // 경우에는 못 뜨므로, 그때는 테두리로 물러난다.
@@ -789,6 +786,8 @@ export function CanvasView({
             pageId: home.id,
             width: size.width,
             height: size.height,
+            skewX: size.x - num(dragged, "x", 0),
+            skewY: size.y - num(dragged, "y", 0),
             image,
           });
         }
@@ -813,6 +812,7 @@ export function CanvasView({
         };
       },
       onDragMove: (id, position) => {
+        dragPosRef.current = position;
         const drag = dragRef.current;
         if (!drag) return position;
         const moving: DocRect = {
@@ -844,10 +844,7 @@ export function CanvasView({
         if (!el) return;
         // 남의 판 위에서 손을 뗐으면 그 판으로 옮긴다. 문서가 바뀌면 원래 판도 다시
         // 그려지므로, 끌던 노드는 저절로 제자리로 돌아간다.
-        if (
-          client &&
-          dropOnOtherPage(store, id, client, grabRef.current, !!altClone)
-        ) {
+        if (client && dropOnOtherPage(store, id, client, position, !!altClone)) {
           return;
         }
         // **판 밖에서 손을 뗐으면 아무것도 안 한다.** 벌 사이의 빈 자리나 화면 여백에
@@ -983,10 +980,7 @@ export function CanvasView({
               left: ghost.x,
               top: ghost.y,
               // 크기를 안 정한다 — 그림이 들고 온 크기가 곧 화면에 있던 크기다.
-              // 잡은 자리를 손끝에 맞춰 걸어야 «보이는 곳»과 «놓일 곳»이 같아진다.
-              transform: grabRef.current
-                ? `translate(${-grabRef.current.dx * scale}px, ${-grabRef.current.dy * scale}px)`
-                : "translate(-50%, -50%)",
+              // 자리는 노드가 있는 곳에서 바로 왔으므로 손끝으로 되짚지 않는다.
               zIndex: 20,
               pointerEvents: "none",
               ...(dragging.image

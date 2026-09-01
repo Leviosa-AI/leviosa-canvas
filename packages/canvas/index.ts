@@ -28,7 +28,7 @@ export {
   useSelectionKey,
 } from "./use-canvas";
 
-export { configureCanvas, shouldWatermark, type CanvasConfig } from "./license";
+export { canvasKey, configureCanvas, type CanvasConfig } from "./license";
 
 export { CanvasView } from "./render/canvas-view";
 export {
