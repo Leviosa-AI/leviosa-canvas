@@ -36,6 +36,7 @@ import {
   pagesTimelineVisible,
 } from "./detail-page-pages-timeline";
 import { detailPageThumbnailBus } from "./detail-page-thumbnail-bus";
+import { FrameDragLayer } from "./frame-drag-layer";
 import { GifAnimator } from "./gif-animator";
 import { GroupDrillIn } from "./group-drill-in";
 import { HoverHighlightOverlay } from "./hover-highlight-overlay";
@@ -414,6 +415,9 @@ export function LeviosaCanvasWorkspace({
         scrollRef={innerRef}
       />
       <GroupDrillIn store={store} containerRef={outerRef} />
+      {/* 판을 다른 벌로 끌어오는 층. 무대마다 캔버스가 따로라, 끌리는 동안 보이는
+          것은 무대가 아니라 그 위에 뜬 이 층이 그린다. */}
+      <FrameDragLayer store={store} containerRef={outerRef} />
       <GifAnimator store={store} />
       {/* 활성 화면의 아래 끝을 잡아 끌어 길이를 바꾸는 손잡이. 우측 패널의 숫자와
           같은 함수를 거친다(`section-height.ts`) — 배경 요소까지 같이 늘리고 서버
