@@ -469,11 +469,12 @@ function PageView({
  * 판마다 무대가 따로라 문서 좌표로는 알 수 없다 — 끌던 좌표는 여전히 «원래 판 안»을
  * 가리킨다. 그래서 손이 있던 **화면 좌표** 아래에 무엇이 있는지 DOM 에 직접 묻는다.
  *
- * ## 벌을 넘으면 베끼고, 같은 벌 안이면 옮긴다
+ * ## 끄는 것은 언제나 «옮기는» 일이다
  *
- * 다른 벌에서 끌어오는 것은 «저 안의 저것을 여기도 쓰겠다»는 뜻이다. 원본을 가져와
- * 버리면 견줄 것이 줄어든다. 반대로 같은 벌 안에서 판을 바꾸는 것은 자리를 옮기는
- * 일이라, 두 개가 되면 지우는 일이 하나 는다.
+ * 한때 벌을 넘을 때만 베끼게 뒀다 — «저 안의 저것을 여기도 쓰겠다»는 뜻으로 읽은
+ * 것이다. 그런데 화면에서는 그 둘이 똑같은 손짓이라, 벌을 넘겼을 뿐인데 원본이 남아
+ * 두 개가 되는 것이 놀랍다. 끌기는 옮기고, 베끼려면 ⌥ 를 누른다 — 다른 편집기가
+ * 다 그렇고, 같은 판 안에서 이미 그렇게 돌고 있었다.
  */
 /** 판을 살짝 벗어나 놓아도 받아 주는 거리(화면 픽셀). */
 const DROP_REACH_PX = 80;
@@ -521,6 +522,7 @@ function dropOnOtherPage(
   id: string,
   client: { x: number; y: number },
   grab: { dx: number; dy: number } | null,
+  clone: boolean,
 ): boolean {
   const under = pageUnder(client);
   const targetId = under?.dataset.lcPage;
@@ -553,11 +555,10 @@ function dropOnOtherPage(
     target.height,
   );
 
-  const moving = frameOf(home) === frameOf(target);
   let made: CanvasElement | null = null;
   applyInTransaction(store, () => {
     made = target.addElement(json);
-    if (moving) store.deleteElements([id]);
+    if (!clone) store.deleteElements([id]);
   });
   if (made) store.selectElements([(made as CanvasElement).id]);
   return true;
@@ -837,7 +838,12 @@ export function CanvasView({
         if (!el) return;
         // 남의 판 위에서 손을 뗐으면 그 판으로 옮긴다. 문서가 바뀌면 원래 판도 다시
         // 그려지므로, 끌던 노드는 저절로 제자리로 돌아간다.
-        if (client && dropOnOtherPage(store, id, client, grabRef.current)) return;
+        if (
+          client &&
+          dropOnOtherPage(store, id, client, grabRef.current, !!altClone)
+        ) {
+          return;
+        }
         // **판 밖에서 손을 뗐으면 아무것도 안 한다.** 벌 사이의 빈 자리나 화면 여백에
         // 놓았다는 뜻인데, 거기에 요소를 둘 자리는 없다. 그래도 좌표를 찍어 버리면
         // 판 밖으로 나가 **보이지 않게 되고**, 목록에는 남아 있어 «옮겨지지도 않고

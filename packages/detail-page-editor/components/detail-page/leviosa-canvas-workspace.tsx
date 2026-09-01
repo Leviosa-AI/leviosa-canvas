@@ -207,9 +207,19 @@ export function LeviosaCanvasWorkspace({
     const frame = inner.getBoundingClientRect();
     const cx = frame.left + inner.clientWidth / 2;
     const cy = frame.top + inner.clientHeight / 2;
+    // **벌은 스크롤로 안 바뀐다.** 벌을 고르는 것은 그 안을 누르는 일이지 지나가는
+    // 일이 아니다 — 빈 자리를 잡아 화면을 옮겼을 뿐인데 «대표로 지정»이 다른 벌로
+    // 건너뛰면 어디를 보고 있는지 알 수가 없다. 같은 벌 안에서 어느 판을 보고 있는지만
+    // 따라간다. 꼬리표 없는 문서는 전부가 한 벌이라 지금까지와 똑같다.
+    const current = frameOf(store.activePage ?? store.pages[0] ?? {});
     const nodes = Array.from(
       inner.querySelectorAll<HTMLElement>("[data-lc-page]"),
-    );
+    ).filter((node) => {
+      const page = node.dataset.lcPage
+        ? store.getPageById(node.dataset.lcPage)
+        : null;
+      return page ? frameOf(page) === current : false;
+    });
     const distance = (node: HTMLElement) => {
       const box = node.getBoundingClientRect();
       const dx = Math.max(box.left - cx, 0, cx - box.right);
