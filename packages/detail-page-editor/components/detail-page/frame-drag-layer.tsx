@@ -28,8 +28,13 @@ import { frameOf, groupFrames } from "@leviosa-ai/canvas/render/frames";
 import type { CanvasStore } from "@leviosa-ai/canvas/store";
 import { detailPageEditorProfile } from "../../lib/detail-page/editor-profile";
 
-/** 손잡이 한 변(화면 px). */
-const GRIP = 22;
+/**
+ * 손잡이 한 변(화면 px).
+ *
+ * 아이콘보다 훨씬 크다. 작게 두면 «겨우 맞히는» 물건이 되는데, 이건 끌기의 시작점이라
+ * 한 번에 잡혀야 한다.
+ */
+const GRIP = 32;
 
 type Box = { left: number; top: number; width: number; height: number };
 
@@ -139,9 +144,11 @@ export function FrameDragLayer({
     if (!host || !many) return;
     const onMove = (event: PointerEvent) => {
       if (dragRef.current) return;
-      const page = (event.target as HTMLElement | null)?.closest<HTMLElement>(
-        "[data-lc-page]",
-      );
+      const target = event.target as HTMLElement | null;
+      // 손잡이 위로 올라간 것은 «판을 벗어난 것»이 아니다. 이걸 안 봐 주면 손이
+      // 닿는 순간 손잡이가 사라져서 영영 못 잡는다.
+      if (target?.closest("[data-dp-frame-grip]")) return;
+      const page = target?.closest<HTMLElement>("[data-lc-page]");
       const id = page?.dataset.lcPage;
       if (!page || !id) {
         setHover(null);
@@ -209,6 +216,7 @@ export function FrameDragLayer({
       {shown && !drag ? (
         <button
           type="button"
+          data-dp-frame-grip=""
           title="다른 벌로 끌어오기"
           aria-label="이 판을 다른 벌로 끌어오기"
           onPointerDown={(event) => {

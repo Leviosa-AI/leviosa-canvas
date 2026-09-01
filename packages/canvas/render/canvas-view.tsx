@@ -236,6 +236,7 @@ function PageView({
   interactive,
   scopeId,
   editingId,
+  raised,
   guideBus,
   marqueeBus,
   onPick,
@@ -249,6 +250,8 @@ function PageView({
   interactive: boolean;
   scopeId: string | null;
   editingId: string | null;
+  /** 끌리는 중인 판. 다른 판 위로 올려 그려서 끌던 것이 안 가리게 한다. */
+  raised?: boolean;
   guideBus: ValueBus<GuideState>;
   marqueeBus: ValueBus<MarqueeState>;
   onPick: (id: string | null, shift: boolean) => void;
@@ -349,6 +352,7 @@ function PageView({
       data-lc-page={page.id}
       style={{
         position: "relative",
+        zIndex: raised ? 5 : undefined,
         width: width * scale,
         height: height * scale,
         background: str(page, "background", "#ffffff"),
@@ -547,6 +551,31 @@ export function CanvasView({
   const marqueeBus = useMemo(() => createValueBus<MarqueeState>(null), []);
   /** 지금 글자를 고치고 있는 요소. */
   const [editingId, setEditingId] = useState<string | null>(null);
+  /**
+   * 지금 끌리고 있는 요소.
+   *
+   * 판마다 무대가 따로라, 요소를 판 밖으로 끌면 그 캔버스에 **잘려서 사라진다** —
+   * 어디에 놓이는지 안 보이는 채로 손을 떼게 된다. 그래서 끄는 동안 두 가지를 한다:
+   * 그 판을 다른 판 위로 올리고, 커서를 따라다니는 자국을 모든 판 위에 그린다.
+   */
+  const [dragging, setDragging] = useState<{
+    pageId: string;
+    width: number;
+    height: number;
+  } | null>(null);
+  const [ghost, setGhost] = useState<{ x: number; y: number } | null>(null);
+  const rootRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!dragging) return;
+    const onMove = (event: PointerEvent) => {
+      const box = rootRef.current?.getBoundingClientRect();
+      if (!box) return;
+      setGhost({ x: event.clientX - box.left, y: event.clientY - box.top });
+    };
+    window.addEventListener("pointermove", onMove);
+    return () => window.removeEventListener("pointermove", onMove);
+  }, [dragging]);
 
   const onPick = useCallback(
     (id: string | null, shift: boolean) => {
@@ -624,6 +653,16 @@ export function CanvasView({
       scopeId,
       editingId,
       onDragStart: (id) => {
+        const dragged = store.getElementById(id);
+        const home = store.getPageOfElement(id);
+        if (dragged && home) {
+          const size = elementRect(dragged);
+          setDragging({
+            pageId: home.id,
+            width: size.width,
+            height: size.height,
+          });
+        }
         const el = store.getElementById(id);
         const page = store.getPageOfElement(id);
         if (!el || !page) return;
@@ -670,6 +709,8 @@ export function CanvasView({
       onDragEnd: (id, position, altClone, client) => {
         dragRef.current = null;
         guideBus.set(null);
+        setDragging(null);
+        setGhost(null);
         const el = store.getElementById(id);
         if (!el) return;
         // 남의 판 위에서 손을 뗐으면 그 판으로 옮긴다. 문서가 바뀌면 원래 판도 다시
@@ -717,6 +758,7 @@ export function CanvasView({
       interactive={interactive}
       scopeId={scopeId}
       editingId={editingId}
+      raised={dragging?.pageId === page.id}
       guideBus={guideBus}
       marqueeBus={marqueeBus}
       onPick={onPick}
@@ -728,9 +770,11 @@ export function CanvasView({
   return (
     <EditContext.Provider value={handlers}>
       <div
+        ref={rootRef}
         data-lc-canvas="ready"
         data-lc-scope={scopeId ?? ""}
         style={{
+          position: "relative",
           display: "flex",
           width: "min-content",
           // 자동 여백이 남는 자리를 반씩 먹어 가운데로 세운다.
@@ -768,6 +812,24 @@ export function CanvasView({
               </div>
             ))
           : store.pages.map(renderPage)}
+
+        {/* 끌리는 요소의 자국. 무대 밖에서도 보여야 하므로 판이 아니라 여기서 그린다. */}
+        {dragging && ghost ? (
+          <div
+            style={{
+              position: "absolute",
+              left: ghost.x - (dragging.width * scale) / 2,
+              top: ghost.y - (dragging.height * scale) / 2,
+              width: dragging.width * scale,
+              height: dragging.height * scale,
+              border: "2px dashed rgba(37, 99, 235, 0.9)",
+              background: "rgba(37, 99, 235, 0.08)",
+              borderRadius: 4,
+              zIndex: 20,
+              pointerEvents: "none",
+            }}
+          />
+        ) : null}
       </div>
     </EditContext.Provider>
   );
