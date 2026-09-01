@@ -43,6 +43,7 @@ import { CanvasSectionHeightHandle } from "./section-height-handle";
 import { loadEditorFont } from "../../lib/detail-page-canvas/editor-fonts";
 import { ZoomButtons } from "@leviosa-ai/canvas";
 import { CanvasView } from "@leviosa-ai/canvas/render/canvas-view";
+import { groupFrames } from "@leviosa-ai/canvas/render/frames";
 import { useCanvasVersion } from "@leviosa-ai/canvas/use-canvas";
 import type { CanvasStore } from "@leviosa-ai/canvas/store";
 
@@ -108,8 +109,21 @@ export function LeviosaCanvasWorkspace({
     const page = store.activePage ?? store.pages[0];
     const usableW = Math.max(1, viewport.width - 2 * paddingX);
     const usableH = Math.max(1, viewport.height - 2 * gap);
+    // 프레임이 여럿이면 **열 전체**가 가로로 들어와야 한다 — 한 벌만 보이면
+    // 나란히 놓은 뜻이 없다. 세로는 여전히 한 장 기준이다: 시안 하나가 스무
+    // 장이 넘는 상세페이지에서 기둥 전체를 넣으면 아무것도 안 읽힌다.
+    const frames = groupFrames(store.pages);
+    const spread =
+      frames.length > 1
+        ? frames.reduce(
+            (sum, frame) =>
+              sum + Math.max(1, ...frame.pages.map((one) => one.width)),
+            0,
+          ) +
+          (frames.length - 1) * gap * 2
+        : page.width;
     const next = clamp(
-      Math.min(usableW / page.width, usableH / page.height) * 0.94,
+      Math.min(usableW / spread, usableH / page.height) * 0.94,
       MIN_SCALE,
       MAX_SCALE,
     );
@@ -152,15 +166,28 @@ export function LeviosaCanvasWorkspace({
   const recomputeActive = useCallback(() => {
     const inner = innerRef.current;
     if (!inner) return;
-    const middle = inner.getBoundingClientRect().top + inner.clientHeight / 2;
+    // 화면 한가운데를 **점으로** 잡는다. 열이 하나뿐이던 때는 세로만 봐도 답이
+    // 하나였지만, 열이 여럿이면 그 높이를 지나는 페이지가 열 수만큼 나온다 —
+    // 세로만 보면 언제나 맨 왼쪽 열이 이겨서 다른 벌을 고를 수가 없다.
+    const frame = inner.getBoundingClientRect();
+    const cx = frame.left + inner.clientWidth / 2;
+    const cy = frame.top + inner.clientHeight / 2;
     const nodes = Array.from(
       inner.querySelectorAll<HTMLElement>("[data-lc-page]"),
     );
-    const hit =
-      nodes.find((node) => {
-        const box = node.getBoundingClientRect();
-        return box.top <= middle && box.bottom >= middle;
-      }) ?? nodes[0];
+    const distance = (node: HTMLElement) => {
+      const box = node.getBoundingClientRect();
+      const dx = Math.max(box.left - cx, 0, cx - box.right);
+      const dy = Math.max(box.top - cy, 0, cy - box.bottom);
+      return dx * dx + dy * dy;
+    };
+    // 가운데를 품은 페이지는 거리가 0이라 그대로 이긴다. 아무것도 안 품으면
+    // (확대해서 빈 자리를 보고 있을 때) 제일 가까운 것으로 떨어진다.
+    const hit = nodes.reduce<HTMLElement | undefined>(
+      (best, node) =>
+        !best || distance(node) < distance(best) ? node : best,
+      undefined,
+    );
     const id = hit?.dataset.lcPage;
     if (!id || store.activePage?.id === id) return;
     scrollSetId.current = id;
@@ -221,6 +248,8 @@ export function LeviosaCanvasWorkspace({
     };
   }, [panelOpen, pageIds, store]);
 
+  const frameCount = groupFrames(store.pages).length;
+
   const pageWidth = useMemo(
     () => Math.max(1, ...store.pages.map((page) => page.width)),
     // 페이지 구성이 바뀔 때만 다시 잰다.
@@ -258,11 +287,14 @@ export function LeviosaCanvasWorkspace({
         style={{
           position: "absolute",
           inset: 0,
-          overflowX: "hidden",
+          // 프레임이 하나뿐이면 예전 그대로다. 가운데 정렬은 내용이 넘칠 때
+          // 왼쪽으로 스크롤을 못 하게 만드는 자리라, 열이 여럿일 때는 왼쪽에
+          // 붙여 놓고 가로 스크롤을 연다.
+          overflowX: frameCount > 1 ? "auto" : "hidden",
           overflowY: "auto",
           display: "flex",
           flexDirection: "column",
-          alignItems: "center",
+          alignItems: frameCount > 1 ? "flex-start" : "center",
           padding: `${gap}px ${paddingX}px`,
         }}
       >
