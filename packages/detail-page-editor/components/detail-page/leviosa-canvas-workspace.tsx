@@ -50,7 +50,11 @@ import { CanvasSectionHeightHandle } from "./section-height-handle";
 import { loadEditorFont } from "../../lib/detail-page-canvas/editor-fonts";
 import { ZoomButtons } from "@leviosa-ai/canvas";
 import { CanvasView } from "@leviosa-ai/canvas/render/canvas-view";
-import { frameOf, groupFrames } from "@leviosa-ai/canvas/render/frames";
+import {
+  frameOf,
+  frameVanished,
+  groupFrames,
+} from "@leviosa-ai/canvas/render/frames";
 import {
   DetailPageFrameHeader,
   FRAME_HEAD_HEIGHT,
@@ -344,7 +348,35 @@ export function LeviosaCanvasWorkspace({
     };
   }, [panelOpen, pageIds, store, thumbnailRevision]);
 
-  const frameCount = groupFrames(store.pages).length;
+  const frames = groupFrames(store.pages);
+  const frameCount = frames.length;
+
+  /**
+   * 벌 하나가 통째로 사라지면 **되돌릴 길을 띄운다.**
+   *
+   * 벌은 문서의 층이 아니라 판에 붙은 이름표라, 마지막 판을 옆 벌로 끌면 그 벌은 남을
+   * 자리가 없어 사라진다. 그게 틀린 결과는 아니다 — 남은 판이 없으니 열도 없다. 문제는
+   * 되돌릴 창이 짧다는 것이다: 자동저장은 이미 나갔고, 새로고침하면 되돌리기 기록이
+   * 없어져 실수로 끈 벌이 영영 안 돌아온다.
+   *
+   * 그래서 «막는» 대신 «돌아올 길»을 둔다. 끌기 층이 아니라 여기서 보는 이유는, 지우기와
+   * 끌기가 같은 자리에서 같은 결과를 내기 때문이다 — 벌이 몇 개 서 있는지는 이 화면이
+   * 이미 세고 있다.
+   */
+  const [emptied, setEmptied] = useState(false);
+  const frameKeys = frames.map((one) => one.key).join("\u0000");
+  const seenFrames = useRef(frameKeys);
+  useEffect(() => {
+    const before = seenFrames.current.split("\u0000").filter(Boolean);
+    const after = frameKeys.split("\u0000").filter(Boolean);
+    seenFrames.current = frameKeys;
+    if (frameVanished(before, after)) setEmptied(true);
+  }, [frameKeys]);
+  useEffect(() => {
+    if (!emptied) return;
+    const timer = window.setTimeout(() => setEmptied(false), 10_000);
+    return () => window.clearTimeout(timer);
+  }, [emptied]);
   // 끼어들 자리는 끌기 층이 정하고, 빈칸은 판을 그리는 쪽이 흐름 안에 넣는다.
   const frameInsert = useSyncExternalStore(
     subscribeFrameInsert,
@@ -473,6 +505,34 @@ export function LeviosaCanvasWorkspace({
           것은 무대가 아니라 그 위에 뜬 이 층이 그린다. */}
       <FrameDragLayer store={store} containerRef={outerRef} />
       <GifAnimator store={store} />
+
+      {/* 벌 하나가 사라졌을 때의 «되돌리기». 아래 띠 위에 앉힌다 — 그 자리는 배율과
+          삽입이 이미 쓰고 있어 눈이 가 있다. 열 초 뒤에 스스로 사라진다. */}
+      {emptied ? (
+        <div
+          style={{
+            position: "absolute",
+            left: "50%",
+            bottom: 64,
+            transform: "translateX(-50%)",
+            zIndex: 45,
+            boxShadow: "0 6px 20px rgba(0, 0, 0, 0.25)",
+          }}
+          className="flex items-center gap-2 rounded-dpe-md bg-dpe-ink-900 px-3 py-2 text-[12px] text-dpe-on-accent"
+        >
+          <span>한 벌이 비어 사라졌습니다.</span>
+          <button
+            type="button"
+            className="font-dpe-semibold underline underline-offset-2"
+            onClick={() => {
+              store.history.undo();
+              setEmptied(false);
+            }}
+          >
+            되돌리기
+          </button>
+        </div>
+      ) : null}
       {/* 활성 화면의 아래 끝을 잡아 끌어 길이를 바꾸는 손잡이. 우측 패널의 숫자와
           같은 함수를 거친다(`section-height.ts`) — 배경 요소까지 같이 늘리고 서버
           굽기 상한 안에 가둔다. */}

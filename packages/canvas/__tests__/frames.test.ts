@@ -1,7 +1,12 @@
 import { describe, expect, it } from "vitest";
 
 import { CanvasStore } from "../store";
-import { frameInsertIndex, frameOf, groupFrames } from "../render/frames";
+import {
+  frameInsertIndex,
+  frameOf,
+  frameVanished,
+  groupFrames,
+} from "../render/frames";
 
 const page = (id: string, frame?: string) => ({
   id,
@@ -125,5 +130,31 @@ describe("되돌리기와 보고 있는 페이지", () => {
     store.history.undo();
     expect(store.getElementById("copy")).toBeNull();
     expect(store.activePage?.id).toBe("a");
+  });
+});
+
+describe("frameVanished", () => {
+  it("한 벌이 빠지면 잡는다", () => {
+    expect(frameVanished(["v1", "v2", "v3"], ["v1", "v3"])).toBe(true);
+  });
+
+  it("원래 한 벌뿐이었으면 사라진 것이 아니다", () => {
+    expect(frameVanished(["v1"], [])).toBe(false);
+  });
+
+  it("문서를 갈아 끼워 이름이 다 바뀐 것은 아니다", () => {
+    expect(frameVanished(["v1", "v2"], ["lane-1", "lane-2"])).toBe(false);
+  });
+
+  it("새 벌이 함께 들었으면 옮긴 것이지 사라진 것이 아니다", () => {
+    expect(frameVanished(["v1", "v2"], ["v1", "v3"])).toBe(false);
+  });
+
+  it("아무것도 안 바뀌면 잡지 않는다", () => {
+    expect(frameVanished(["v1", "v2"], ["v1", "v2"])).toBe(false);
+  });
+
+  it("둘 이상 한꺼번에 빠지면 갈아 끼운 것으로 본다", () => {
+    expect(frameVanished(["v1", "v2", "v3"], ["v1"])).toBe(false);
   });
 });

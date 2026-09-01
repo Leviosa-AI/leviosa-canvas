@@ -63,3 +63,23 @@ export function frameInsertIndex<T extends FramedPage>(
   if (at >= mine.length) return mine[mine.length - 1] + 1;
   return mine[at];
 }
+
+/**
+ * 벌 하나가 **통째로 사라졌는가.**
+ *
+ * 벌은 판에 붙은 이름표라 마지막 판이 나가면 그 벌도 없어진다. 화면은 그 순간을 잡아
+ * 되돌릴 길을 띄운다.
+ *
+ * 두 가지를 함께 봐야 한다. 문서를 통째로 갈아 끼울 때도 이름은 다 바뀌므로 «딱 하나가
+ * 빠지고 새로 든 것은 없다»여야 하고, 원래 한 벌뿐이었다면 그건 사라진 것이 아니라 그냥
+ * 빈 문서다.
+ */
+export function frameVanished(
+  before: readonly string[],
+  after: readonly string[],
+): boolean {
+  if (before.length < 2) return false;
+  const gone = before.filter((key) => !after.includes(key));
+  const added = after.filter((key) => !before.includes(key));
+  return gone.length === 1 && added.length === 0;
+}
