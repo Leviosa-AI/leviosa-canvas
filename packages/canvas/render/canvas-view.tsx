@@ -461,6 +461,7 @@ export function CanvasView({
   gap = 0,
   interactive = false,
   center = false,
+  frameGap,
   renderFrameHeader,
   frameStyle,
   loadFont,
@@ -475,6 +476,8 @@ export function CanvasView({
    * 남는 자리가 없으면 0이 되어 그냥 왼쪽 위에 선다).
    */
   center?: boolean;
+  /** 벌 사이 거리(화면 px). 안 주면 장 사이의 두 배. */
+  frameGap?: number;
   /**
    * 열 하나 위에 얹을 것 — 이름표 같은 것. **무엇을 그릴지는 엔진이 모른다.**
    * 확정이니 선택이니 하는 말은 편집기의 것이지 판을 그리는 쪽의 것이 아니다.
@@ -688,7 +691,7 @@ export function CanvasView({
                 flexDirection: "row" as const,
                 alignItems: "flex-start" as const,
                 // 열 사이는 장 사이보다 넓어야 한 벌이 한 덩이로 읽힌다.
-                gap: gap * 2,
+                gap: frameGap ?? gap * 2,
               }
             : { flexDirection: "column" as const, gap }),
         }}

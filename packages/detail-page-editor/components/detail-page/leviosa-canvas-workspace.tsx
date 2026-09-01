@@ -53,6 +53,18 @@ const MAX_SCALE = 5;
 const clamp = (v: number, lo: number, hi: number) =>
   Math.max(lo, Math.min(hi, v));
 
+/**
+ * 벌 사이 거리 — **판 좌표**로 잰다.
+ *
+ * 화면 px 로 고정하면 확대했을 때는 붙어 보이고 축소했을 때는 벌어져 보인다. 판
+ * 하나가 1080 인 캐러셀에서 이 값은 판의 4분의 1쯤이라, 어느 배율에서 보든 «저건
+ * 다른 벌»이 한눈에 잡힌다.
+ */
+const FRAME_GAP_DOC = 240;
+
+/** 이름표가 설 자리(화면 px). 배율과 무관하게 읽혀야 하므로 안 줄인다. */
+const FRAME_HEAD = 24;
+
 /** 썸네일 해상도. 페이지 패널의 칸이 작아 이 정도면 충분하다. */
 const THUMB_PIXEL_RATIO = 0.12;
 
@@ -130,7 +142,7 @@ export function LeviosaCanvasWorkspace({
               sum + Math.max(1, ...frame.pages.map((one) => one.width)),
             0,
           ) +
-          (frames.length - 1) * gap * 2
+          (frames.length - 1) * FRAME_GAP_DOC
         : page.width;
     const next = clamp(
       Math.min(usableW / spread, usableH / page.height) * 0.94,
@@ -317,6 +329,7 @@ export function LeviosaCanvasWorkspace({
           // 열이 여럿이면 가운데 정렬을 정렬 속성이 아니라 자동 여백으로 준다 —
           // 축소해서 남는 자리가 생겨도 가운데를 지키고, 커져도 스크롤이 산다.
           center={frameCount > 1}
+          frameGap={FRAME_GAP_DOC * scale}
           renderFrameHeader={(key) => (
             <DetailPageFrameHeader
               name={frameName?.(key) ?? key}
@@ -330,12 +343,15 @@ export function LeviosaCanvasWorkspace({
             />
           )}
           frameStyle={(key) => ({
-            padding: 10,
+            // 위쪽은 이름표 자리다. 이름표를 상자 **밖**에 두면 스크롤 영역
+            // 바깥으로 잘려서 아예 안 보인다 — 체크박스까지 같이 사라졌다.
+            padding: 8,
+            paddingTop: FRAME_HEAD,
             borderRadius: 10,
             // 바탕 한 겹이 «이 판들은 한 덩이»를 말한다. 열만 벌려 놓으면 그냥
             // 흩어져 보인다.
-            background: "rgba(0, 0, 0, 0.035)",
-            border: `1px solid ${key === activeFrame ? "rgba(0,0,0,0.45)" : "transparent"}`,
+            background: "rgba(0, 0, 0, 0.05)",
+            border: `1px solid ${key === activeFrame ? "rgba(0,0,0,0.45)" : "rgba(0,0,0,0.12)"}`,
             // 선명한 것은 «쓸모 있는 것»이다 — 보고 있거나, 결과물이 될 것.
             opacity: key === activeFrame || key === chosenFrame ? 1 : 0.55,
             transition: "opacity 0.15s ease, border-color 0.15s ease",

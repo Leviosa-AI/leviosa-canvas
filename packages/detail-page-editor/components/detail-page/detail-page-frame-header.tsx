@@ -16,6 +16,9 @@
  *
  * 이름표는 **흐름에 안 낀다**(절대 위치). 열은 판 너비만큼만 넓어야 하는데, 많이
  * 줄이면 글자가 판보다 넓어져서 열을 벌려 놓는다.
+ *
+ * 그렇다고 상자 **밖** 위쪽에 두면 스크롤 영역 바깥으로 잘려서 아예 안 보인다 —
+ * 체크박스까지 같이 사라진다. 그래서 상자 안, 위쪽에 비워 둔 자리에 앉힌다.
  */
 
 export function DetailPageFrameHeader({
@@ -36,9 +39,8 @@ export function DetailPageFrameHeader({
     <div
       style={{
         position: "absolute",
-        left: 0,
-        bottom: "100%",
-        marginBottom: 6,
+        left: 9,
+        top: 4,
         display: "flex",
         alignItems: "center",
         gap: 6,
