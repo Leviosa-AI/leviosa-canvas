@@ -495,9 +495,21 @@ function dropOnOtherPage(
   const rect = under.getBoundingClientRect();
   const scale = store.scale || 1;
   const box = elementRect(el);
+  // 손이 가리킨 곳에 가운데를 맞추되, 판 밖으로는 안 나가게 가둔다 — 가장자리에
+  // 놓으면 절반이 판 밖에 걸려서 «넘어가긴 했는데 안 보이는» 것이 된다.
+  const fit = (value: number, span: number, limit: number) =>
+    span >= limit ? value : Math.max(0, Math.min(limit - span, value));
   const json = withFreshIds(el.toJSON());
-  json.x = (client.x - rect.left) / scale - box.width / 2;
-  json.y = (client.y - rect.top) / scale - box.height / 2;
+  json.x = fit(
+    (client.x - rect.left) / scale - box.width / 2,
+    box.width,
+    target.width,
+  );
+  json.y = fit(
+    (client.y - rect.top) / scale - box.height / 2,
+    box.height,
+    target.height,
+  );
 
   const moving = frameOf(home) === frameOf(target);
   let made: CanvasElement | null = null;
@@ -586,7 +598,17 @@ export function CanvasView({
     const onMove = (event: PointerEvent) => {
       const box = rootRef.current?.getBoundingClientRect();
       if (!box) return;
-      setGhost({ x: event.clientX - box.left, y: event.clientY - box.top });
+      // 제 판 위에서는 자국을 그리지 않는다. 거기서는 진짜 요소가 이미 손을 따라
+      // 잘 움직이고 있어서, 자국까지 겹치면 같은 것이 두 겹으로 보인다. 자국은
+      // 무대 밖으로 나가 **잘려서 안 보이는 동안**만 필요하다.
+      const over = document
+        .elementFromPoint(event.clientX, event.clientY)
+        ?.closest<HTMLElement>("[data-lc-page]")?.dataset.lcPage;
+      setGhost(
+        over === dragging.pageId
+          ? null
+          : { x: event.clientX - box.left, y: event.clientY - box.top },
+      );
     };
     window.addEventListener("pointermove", onMove);
     return () => window.removeEventListener("pointermove", onMove);
