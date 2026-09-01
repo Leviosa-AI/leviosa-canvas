@@ -8,8 +8,8 @@
  * 잡으러 가는 내내 깜빡였다. 크기를 키워도 그대로였다. 안에 있으면 잴 것이 없고
  * 깜빡일 일도 없다.
  *
- * 늘 있지만 옅다. 마우스가 그 판에 올라오면 진해진다 — CSS 가 정하는 일이라
- * 리액트가 끼어들 자리가 없다.
+ * **흐리게 두지 않는다.** 옅게 깔아 두면 «있는 줄 몰라서 못 잡는» 물건이 된다.
+ * 20px 짜리라 늘 또렷해도 시끄럽지 않다.
  */
 
 import { GripVertical } from "lucide-react";
@@ -29,9 +29,9 @@ export function FrameDragGrip({ pageId }: { pageId: string }) {
         startFrameDrag(pageId, event);
       }}
       style={{ position: "absolute", left: 5, top: 5, width: 20, height: 20, zIndex: 6 }}
-      className="flex cursor-grab items-center justify-center rounded border border-dpe-ink-200 bg-dpe-surface/90 text-dpe-ink-500 opacity-60 shadow-sm transition-opacity hover:opacity-100 focus-visible:opacity-100"
+      className="flex cursor-grab items-center justify-center rounded border border-dpe-ink-400 bg-dpe-surface text-dpe-ink-800 shadow-sm transition-colors hover:border-dpe-ink-900 hover:bg-dpe-ink-900 hover:text-dpe-on-accent"
     >
-      <GripVertical aria-hidden="true" size={12} />
+      <GripVertical aria-hidden="true" size={13} />
     </button>
   );
 }

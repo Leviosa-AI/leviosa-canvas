@@ -392,9 +392,11 @@ export function LeviosaCanvasWorkspace({
             // 밝아야 «저기서 저기까지가 한 벌»이 읽힌다.
             background: "#ffffff",
             border: `1px solid ${key === activeFrame ? "rgba(0,0,0,0.45)" : "rgba(0,0,0,0.10)"}`,
-            // 선명한 것은 «쓸모 있는 것»이다 — 보고 있거나, 결과물이 될 것.
-            opacity: key === activeFrame || key === chosenFrame ? 1 : 0.55,
-            transition: "opacity 0.15s ease, border-color 0.15s ease",
+            // **흐리게 하지 않는다.** 한때 «보고 있거나 대표인 것만 선명»으로 뒀는데,
+            // 이 화면은 후보를 **견주는** 자리다 — 넷 중 둘이 바래 있으면 견줄 수가
+            // 없고, 판을 옮기면 색이 달라져서 옮긴 것이 변한 것처럼 보인다.
+            // 무엇이 나가는지는 «대표» 표가, 무엇을 보고 있는지는 테두리가 이미 말한다.
+            transition: "border-color 0.15s ease",
           })}
           interactive
           loadFont={loadEditorFont}
