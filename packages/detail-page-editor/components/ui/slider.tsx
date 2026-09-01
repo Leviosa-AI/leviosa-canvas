@@ -1,5 +1,10 @@
 "use client"
 
+/**
+ * 해상도 배율 같은 값 슬라이더. 궤도·채움·손잡이 전부 편집기 토큰이다 — 원본의
+ * `bg-muted` · `bg-primary` 는 소비자 앱의 이름이라, 그 앱이 안 두면 채운 구간이
+ * 통째로 안 보인다(select.tsx 주석 참고).
+ */
 import * as React from "react"
 import { Slider as SliderPrimitive } from "radix-ui"
 

@@ -38,18 +38,18 @@ export function progressPercent(progress: number): number {
 
 /**
  * 밝은 배경 패널(카피·SVG 프롬프트 편집)의 하단에 얹는 얇은 프로그레스 라인.
- * 테마 토큰(primary) 기반이라 라이트/다크 모두 자연스럽다. 부모는 `relative`여야
- * 하며, 이 요소는 컨테이너 하단에 절대배치된다.
+ * 색은 AI 표식 토큰(`dpe-ai`)이다 — 이 선이 도는 동안 일어나는 일이 생성이기
+ * 때문이다. 부모는 `relative`여야 하며, 이 요소는 컨테이너 하단에 절대배치된다.
  */
 export function GenerationProgressLine({ progress }: { progress: number }) {
   const pct = progressPercent(progress);
   return (
     <span
       aria-hidden="true"
-      className="pointer-events-none absolute inset-x-0 bottom-0 h-[3px] bg-primary/15"
+      className="pointer-events-none absolute inset-x-0 bottom-0 h-[3px] bg-dpe-ai/15"
     >
       <span
-        className="block h-full bg-primary"
+        className="block h-full bg-dpe-ai"
         style={{ width: `${pct}%`, transition: "width 200ms ease-out" }}
       />
     </span>

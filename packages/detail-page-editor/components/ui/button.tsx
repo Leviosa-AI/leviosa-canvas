@@ -1,3 +1,16 @@
+/**
+ * 편집기 버튼.
+ *
+ * 색은 **편집기 토큰(`dpe-*`)만** 쓴다. `bg-primary` · `text-primary-foreground` 는
+ * 소비자 앱의 CSS 변수를 읽는 이름이고, leviosa-agency 는 `--color-primary-foreground`
+ * 를 안 둔다. 그래서 글자색 클래스가 한 줄도 안 구워졌고, 글자가 본문
+ * (`--color-fg: #1a1a1a`)을 물려받아 호출부가 덮은 배경(`bg-dpe-ink-900`, 같은 앱에서
+ * `#1a1a1a`)과 정확히 같은 값이 됐다 — 다운로드 팝오버의 저장 버튼이 검은 판때기로
+ * 보인 이유다.
+ *
+ * 테두리도 같다. 색 없는 `border` 는 currentColor 라, 글자색이 어두우면 테두리가
+ * 통째로 먹으로 나온다. 색을 쓰는 자리마다 토큰을 적는다.
+ */
 import * as React from "react"
 import { cva, type VariantProps } from "class-variance-authority"
 import { Slot } from "radix-ui"
@@ -13,7 +26,7 @@ const buttonVariants = cva(
         destructive:
           "bg-dpe-danger-500 text-dpe-on-accent hover:bg-dpe-danger-500/90 focus-visible:ring-dpe-danger-500/20 dark:focus-visible:ring-dpe-danger-500/40 dark:bg-dpe-danger-500/60",
         outline:
-          "border bg-dpe-surface shadow-xs hover:bg-dpe-ink-100 hover:text-dpe-ink-900 dark:bg-dpe-ink-100/30 dark:border-dpe-ink-200 dark:hover:bg-dpe-ink-100/50",
+          "border border-dpe-ink-200 bg-dpe-surface text-dpe-ink-900 shadow-xs hover:bg-dpe-ink-100 dark:bg-dpe-ink-100/30 dark:hover:bg-dpe-ink-100/50",
         secondary:
           "bg-dpe-ink-100 text-dpe-ink-900 hover:bg-dpe-ink-100/80",
         ghost:
