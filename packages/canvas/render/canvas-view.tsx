@@ -237,6 +237,7 @@ function PageView({
   scopeId,
   editingId,
   raised,
+  chrome,
   guideBus,
   marqueeBus,
   onPick,
@@ -252,6 +253,8 @@ function PageView({
   editingId: string | null;
   /** 끌리는 중인 판. 다른 판 위로 올려 그려서 끌던 것이 안 가리게 한다. */
   raised?: boolean;
+  /** 판 위에 얹을 것(손잡이 등). 판 상자 안에 그린다. */
+  chrome?: ReactNode;
   guideBus: ValueBus<GuideState>;
   marqueeBus: ValueBus<MarqueeState>;
   onPick: (id: string | null, shift: boolean) => void;
@@ -358,6 +361,7 @@ function PageView({
         background: str(page, "background", "#ffffff"),
       }}
     >
+      {chrome}
       {mount ? (
         <Stage
           width={width * scale}
@@ -513,6 +517,7 @@ export function CanvasView({
   center = false,
   frameGap,
   renderFrameHeader,
+  renderPageChrome,
   frameStyle,
   loadFont,
 }: {
@@ -533,6 +538,14 @@ export function CanvasView({
    * 확정이니 선택이니 하는 말은 편집기의 것이지 판을 그리는 쪽의 것이 아니다.
    */
   renderFrameHeader?: (frameKey: string) => ReactNode;
+  /**
+   * 판 하나 위에 얹을 것 — 끌기 손잡이 같은 것.
+   *
+   * **판 상자 안에** 그린다. 밖에서 마우스 자리를 재어 띄우면 손이 손잡이 쪽으로
+   * 다가가는 동안 «판 밖»을 지나며 깜빡인다. 안에 있으면 잴 것이 없고 깜빡일 일도
+   * 없다 — 보이고 안 보이고는 CSS 가 정한다.
+   */
+  renderPageChrome?: (pageId: string) => ReactNode;
   /** 열 상자에 얹을 모양(테두리·바탕·흐리기). 위와 같은 이유로 값만 받는다. */
   frameStyle?: (frameKey: string) => CSSProperties | undefined;
   /** 폰트를 받아 오는 사람. 안 주면 브라우저가 이미 아는 서체만 그려진다 (G7 경계). */
@@ -664,7 +677,9 @@ export function CanvasView({
           // 경우에는 못 뜨므로, 그때는 테두리로 물러난다.
           let image: string | undefined;
           try {
-            image = node?.toDataURL({ pixelRatio: 2 });
+            // 배율은 **그림이 들고 온 크기 그대로** 쓴다. 상자 크기를 따로
+            // 셈해서 씌우면 한 군데만 어긋나도 통째로 커지거나 작아진다.
+            image = node?.toDataURL();
           } catch {
             image = undefined;
           }
@@ -771,6 +786,7 @@ export function CanvasView({
       scopeId={scopeId}
       editingId={editingId}
       raised={dragging?.pageId === page.id}
+      chrome={renderPageChrome?.(page.id)}
       guideBus={guideBus}
       marqueeBus={marqueeBus}
       onPick={onPick}
@@ -830,15 +846,17 @@ export function CanvasView({
           <div
             style={{
               position: "absolute",
-              left: ghost.x - (dragging.width * scale) / 2,
-              top: ghost.y - (dragging.height * scale) / 2,
-              width: dragging.width * scale,
-              height: dragging.height * scale,
+              left: ghost.x,
+              top: ghost.y,
+              // 크기를 안 정한다 — 그림이 들고 온 크기가 곧 화면에 있던 크기다.
+              transform: "translate(-50%, -50%)",
               zIndex: 20,
               pointerEvents: "none",
               ...(dragging.image
                 ? { opacity: 0.9 }
                 : {
+                    width: dragging.width * scale,
+                    height: dragging.height * scale,
                     border: "2px dashed rgba(37, 99, 235, 0.9)",
                     background: "rgba(37, 99, 235, 0.08)",
                     borderRadius: 4,
@@ -847,12 +865,7 @@ export function CanvasView({
           >
             {dragging.image ? (
               // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={dragging.image}
-                alt=""
-                draggable={false}
-                style={{ width: "100%", height: "100%", display: "block" }}
-              />
+              <img src={dragging.image} alt="" draggable={false} style={{ display: "block" }} />
             ) : null}
           </div>
         ) : null}

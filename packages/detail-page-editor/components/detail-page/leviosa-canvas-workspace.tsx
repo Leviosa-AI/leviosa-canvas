@@ -36,6 +36,7 @@ import {
   pagesTimelineVisible,
 } from "./detail-page-pages-timeline";
 import { detailPageThumbnailBus } from "./detail-page-thumbnail-bus";
+import { FrameDragGrip } from "./frame-drag-grip";
 import { FrameDragLayer } from "./frame-drag-layer";
 import { GifAnimator } from "./gif-animator";
 import { GroupDrillIn } from "./group-drill-in";
@@ -371,6 +372,11 @@ export function LeviosaCanvasWorkspace({
           // 열이 여럿이면 가운데 정렬을 정렬 속성이 아니라 자동 여백으로 준다 —
           // 축소해서 남는 자리가 생겨도 가운데를 지키고, 커져도 스크롤이 산다.
           center={frameCount > 1}
+          // 손잡이는 판 상자 **안**에 산다. 밖에서 자리를 재어 띄우면 손이 다가가는
+          // 동안 «판 밖»을 지나며 깜빡인다.
+          renderPageChrome={
+            frameCount > 1 ? (id) => <FrameDragGrip pageId={id} /> : undefined
+          }
           frameGap={FRAME_GAP_DOC * scale}
           renderFrameHeader={(key) => (
             <DetailPageFrameHeader
