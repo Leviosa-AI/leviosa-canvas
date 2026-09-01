@@ -29,7 +29,7 @@ export function FrameDragGrip({ pageId }: { pageId: string }) {
         startFrameDrag(pageId, event);
       }}
       style={{ position: "absolute", left: 5, top: 5, width: 20, height: 20, zIndex: 6 }}
-      className="flex cursor-grab items-center justify-center rounded border border-dpe-ink-200 bg-dpe-surface/90 text-dpe-ink-400 opacity-30 shadow-sm transition-opacity hover:opacity-100 focus-visible:opacity-100"
+      className="flex cursor-grab items-center justify-center rounded border border-dpe-ink-200 bg-dpe-surface/90 text-dpe-ink-500 opacity-60 shadow-sm transition-opacity hover:opacity-100 focus-visible:opacity-100"
     >
       <GripVertical aria-hidden="true" size={12} />
     </button>

@@ -26,6 +26,7 @@ export type EditHandlers = {
   onDragStart: (
     id: string,
     node?: { toDataURL: (config?: { pixelRatio?: number }) => string },
+    client?: { x: number; y: number },
   ) => void;
   /**
    * 끄는 중. **붙일 자리를 되돌려 준다** — 부르는 쪽(요소 뷰)이 그 자리로 노드를 옮긴다.

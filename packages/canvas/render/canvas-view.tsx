@@ -479,6 +479,7 @@ function dropOnOtherPage(
   store: CanvasStore,
   id: string,
   client: { x: number; y: number },
+  grab: { dx: number; dy: number } | null,
 ): boolean {
   const under = document
     .elementFromPoint(client.x, client.y)
@@ -495,18 +496,20 @@ function dropOnOtherPage(
   const rect = under.getBoundingClientRect();
   const scale = store.scale || 1;
   const box = elementRect(el);
-  // 손이 가리킨 곳에 가운데를 맞추되, 판 밖으로는 안 나가게 가둔다 — 가장자리에
-  // 놓으면 절반이 판 밖에 걸려서 «넘어가긴 했는데 안 보이는» 것이 된다.
+  // **잡았던 자리가 손끝에 그대로 붙어 있어야** 옮긴 것이 옮긴 대로 앉는다. 가운데를
+  // 커서에 맞추면 손을 떼는 순간 요소가 튄다. 잡은 자리를 못 받았을 때만 가운데로.
+  // 판 밖으로는 안 나가게 가둔다 — 가장자리에 놓으면 절반이 걸려서 «넘어가긴 했는데
+  // 안 보이는» 것이 된다.
   const fit = (value: number, span: number, limit: number) =>
     span >= limit ? value : Math.max(0, Math.min(limit - span, value));
   const json = withFreshIds(el.toJSON());
   json.x = fit(
-    (client.x - rect.left) / scale - box.width / 2,
+    (client.x - rect.left) / scale - (grab ? grab.dx : box.width / 2),
     box.width,
     target.width,
   );
   json.y = fit(
-    (client.y - rect.top) / scale - box.height / 2,
+    (client.y - rect.top) / scale - (grab ? grab.dy : box.height / 2),
     box.height,
     target.height,
   );
@@ -592,6 +595,14 @@ export function CanvasView({
   } | null>(null);
   const [ghost, setGhost] = useState<{ x: number; y: number } | null>(null);
   const rootRef = useRef<HTMLDivElement>(null);
+  /**
+   * 요소의 어디를 잡았는가(판 좌표).
+   *
+   * 이걸 안 들고 있으면 놓을 때 «커서에 가운데를 맞추는» 수밖에 없고, 그러면 손을
+   * 떼는 순간 요소가 잡았던 자리에서 튄다. 잡은 자리가 손끝에 그대로 붙어 있어야
+   * 옮긴 것이 옮긴 대로 앉는다.
+   */
+  const grabRef = useRef<{ dx: number; dy: number } | null>(null);
 
   useEffect(() => {
     if (!dragging) return;
@@ -689,11 +700,21 @@ export function CanvasView({
       interactive,
       scopeId,
       editingId,
-      onDragStart: (id, node) => {
+      onDragStart: (id, node, client) => {
         const dragged = store.getElementById(id);
         const home = store.getPageOfElement(id);
         if (dragged && home) {
           const size = elementRect(dragged);
+          const homeBox = document
+            .querySelector<HTMLElement>(`[data-lc-page="${CSS.escape(home.id)}"]`)
+            ?.getBoundingClientRect();
+          grabRef.current =
+            client && homeBox
+              ? {
+                  dx: (client.x - homeBox.left) / (store.scale || 1) - size.x,
+                  dy: (client.y - homeBox.top) / (store.scale || 1) - size.y,
+                }
+              : null;
           // 무대 밖에서 보여 줄 것은 «테두리»가 아니라 그 요소 자체다. 끌기가
           // 시작되는 이 한 번만 그림으로 뜬다 — 남의 그림이 섞여 캔버스가 오염된
           // 경우에는 못 뜨므로, 그때는 테두리로 물러난다.
@@ -764,7 +785,7 @@ export function CanvasView({
         if (!el) return;
         // 남의 판 위에서 손을 뗐으면 그 판으로 옮긴다. 문서가 바뀌면 원래 판도 다시
         // 그려지므로, 끌던 노드는 저절로 제자리로 돌아간다.
-        if (client && dropOnOtherPage(store, id, client)) return;
+        if (client && dropOnOtherPage(store, id, client, grabRef.current)) return;
         // 여럿을 함께 끌면 Konva가 노드마다 dragEnd를 부른다 — 한 트랜잭션으로 묶어
         // ⌘Z 한 번에 전부 돌아오게 한다.
         applyInTransaction(store, () => {
@@ -871,7 +892,10 @@ export function CanvasView({
               left: ghost.x,
               top: ghost.y,
               // 크기를 안 정한다 — 그림이 들고 온 크기가 곧 화면에 있던 크기다.
-              transform: "translate(-50%, -50%)",
+              // 잡은 자리를 손끝에 맞춰 걸어야 «보이는 곳»과 «놓일 곳»이 같아진다.
+              transform: grabRef.current
+                ? `translate(${-grabRef.current.dx * scale}px, ${-grabRef.current.dy * scale}px)`
+                : "translate(-50%, -50%)",
               zIndex: 20,
               pointerEvents: "none",
               ...(dragging.image

@@ -173,7 +173,15 @@ function ElementFrame({
         draggable && edit
           ? (event: DragEvent) => {
               altRef.current = event.evt?.altKey === true;
-              edit.onDragStart(el.id, event.target);
+              const start = event.evt;
+              edit.onDragStart(
+                el.id,
+                event.target,
+                typeof start?.clientX === "number" &&
+                  typeof start?.clientY === "number"
+                  ? { x: start.clientX, y: start.clientY }
+                  : undefined,
+              );
             }
           : undefined
       }
