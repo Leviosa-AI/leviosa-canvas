@@ -19,6 +19,7 @@ import {
 } from "../ui/select";
 import type { ExportDocument } from "../../lib/detail-page-canvas/export/document-model";
 import { detectGifPages } from "../../lib/detail-page-canvas/export/gif-plan";
+import { activeFramePages } from "../../lib/detail-page/frame-pages";
 import { isMp4EncodeSupported } from "../../lib/detail-page-canvas/export/mp4-support";
 import {
   detailPageEditorProfile,
@@ -43,6 +44,8 @@ type ExportPageLike = {
   id: string;
   computedWidth: number;
   computedHeight: number;
+  /** 이 판이 속한 프레임 이름이 여기 산다(`custom.frame`). */
+  custom?: unknown;
 };
 
 type ExportStoreLike = {
@@ -199,7 +202,10 @@ export const DetailPageDownloadDialog = observer(function DetailPageDownloadDial
 
   const selectedPages = useMemo(() => {
     if (scope === "current" && s.activePage) return [s.activePage];
-    return s.pages;
+    // 후보 여러 벌이 한 문서에 있으면 «전체»는 문서 전체가 아니라 **보고 있는 한 벌**
+    // 이다. 넷을 다 내보내면 마흔 장짜리 묶음이 나오고, 그걸 원해서 누르는 사람은
+    // 없다. 꼬리표 없는 문서에서는 지금까지처럼 전부다.
+    return activeFramePages(s.pages, s.activePage?.id);
   }, [scope, s.activePage, s.pages]);
 
   const docWidth = useMemo(
