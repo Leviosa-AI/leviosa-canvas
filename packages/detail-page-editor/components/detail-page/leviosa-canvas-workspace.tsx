@@ -22,6 +22,7 @@ import {
   useMemo,
   useRef,
   useState,
+  useSyncExternalStore,
   type ReactNode,
 } from "react";
 
@@ -37,6 +38,10 @@ import {
 } from "./detail-page-pages-timeline";
 import { detailPageThumbnailBus } from "./detail-page-thumbnail-bus";
 import { FrameDragGrip } from "./frame-drag-grip";
+import {
+  getFrameInsert,
+  subscribeFrameInsert,
+} from "./frame-drag-bus";
 import { FrameDragLayer } from "./frame-drag-layer";
 import { GifAnimator } from "./gif-animator";
 import { GroupDrillIn } from "./group-drill-in";
@@ -306,6 +311,12 @@ export function LeviosaCanvasWorkspace({
   }, [panelOpen, pageIds, store, thumbnailRevision]);
 
   const frameCount = groupFrames(store.pages).length;
+  // 끼어들 자리는 끌기 층이 정하고, 빈칸은 판을 그리는 쪽이 흐름 안에 넣는다.
+  const frameInsert = useSyncExternalStore(
+    subscribeFrameInsert,
+    getFrameInsert,
+    () => null,
+  );
   // 보고 있는 벌 — 활성 페이지가 속한 벌이다. 목록·아래 띠가 보는 것과 같다.
   const activeFrame = frameOf(store.activePage ?? store.pages[0] ?? {});
 
@@ -378,6 +389,7 @@ export function LeviosaCanvasWorkspace({
             frameCount > 1 ? (id) => <FrameDragGrip pageId={id} /> : undefined
           }
           frameGap={FRAME_GAP_DOC * scale}
+          frameInsert={frameInsert}
           renderFrameHeader={(key) => (
             <DetailPageFrameHeader
               chosen={key === chosenFrame}

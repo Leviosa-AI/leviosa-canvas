@@ -533,6 +533,7 @@ export function CanvasView({
   frameGap,
   renderFrameHeader,
   renderPageChrome,
+  frameInsert,
   frameStyle,
   loadFont,
 }: {
@@ -561,6 +562,18 @@ export function CanvasView({
    * 없다 — 보이고 안 보이고는 CSS 가 정한다.
    */
   renderPageChrome?: (pageId: string) => ReactNode;
+  /**
+   * 지금 끼어들 자리. 그 자리에 빈칸을 하나 끼워 넣어 **판들이 밀려나게** 한다.
+   *
+   * 위에 겹쳐 그리면 밑의 판을 가릴 뿐이라 «사이가 벌어졌다»가 안 된다. 열은
+   * 세로로 쌓인 흐름이라, 빈칸을 흐름 안에 넣으면 미는 일은 배치가 알아서 한다.
+   */
+  frameInsert?: {
+    frameKey: string;
+    at: number;
+    height: number;
+    full: boolean;
+  } | null;
   /** 열 상자에 얹을 모양(테두리·바탕·흐리기). 위와 같은 이유로 값만 받는다. */
   frameStyle?: (frameKey: string) => CSSProperties | undefined;
   /** 폰트를 받아 오는 사람. 안 주면 브라우저가 이미 아는 서체만 그려진다 (G7 경계). */
@@ -818,6 +831,25 @@ export function CanvasView({
   }
 
   const frames = groupFrames(store.pages);
+  const framePagesWithSlot = (key: string, kids: ReactNode[]): ReactNode[] => {
+    if (!frameInsert || frameInsert.frameKey !== key) return kids;
+    const at = Math.max(0, Math.min(kids.length, frameInsert.at));
+    const slot = (
+      <div
+        key="lc-insert-slot"
+        data-lc-insert-slot=""
+        style={{
+          height: frameInsert.height,
+          borderRadius: 6,
+          border: `2px dashed ${frameInsert.full ? "#c0392b" : "#2563eb"}`,
+          background: frameInsert.full
+            ? "rgba(192, 57, 43, 0.10)"
+            : "rgba(37, 99, 235, 0.12)",
+        }}
+      />
+    );
+    return [...kids.slice(0, at), slot, ...kids.slice(at)];
+  };
   const renderPage = (page: CanvasPage) => (
     <PageView
       key={page.id}
@@ -879,7 +911,7 @@ export function CanvasView({
                 {/* 이름표는 열의 **폭에 안 낀다**. 열은 판 너비만큼만 넓어야 하는데,
                     글자가 흐름에 끼면 많이 줄였을 때 이름이 열을 벌려 놓는다. */}
                 {renderFrameHeader?.(frame.key)}
-                {frame.pages.map(renderPage)}
+                {framePagesWithSlot(frame.key, frame.pages.map(renderPage))}
               </div>
             ))
           : store.pages.map(renderPage)}

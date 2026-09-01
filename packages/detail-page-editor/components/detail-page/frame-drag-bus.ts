@@ -11,6 +11,49 @@ type Starter = (pageId: string, event: React.PointerEvent) => void;
 
 let starter: Starter | null = null;
 
+/**
+ * 지금 끼어들 자리. 판들이 **밀려나며** 만드는 빈칸이라, 이 값은 판을 그리는 쪽이
+ * 읽어야 한다 — 위에 겹쳐 그리면 밑에 있는 판을 가릴 뿐이고 «사이가 벌어졌다»가
+ * 안 된다.
+ */
+export type FrameInsert = {
+  frameKey: string;
+  /** 그 벌 안에서 몇 번째 자리인가. */
+  at: number;
+  /** 빈칸 높이(화면 px) — 끌고 있는 판의 높이다. */
+  height: number;
+  /** 넘쳐서 못 놓는 자리인가. */
+  full: boolean;
+} | null;
+
+let insert: FrameInsert = null;
+const listeners = new Set<() => void>();
+
+export function setFrameInsert(next: FrameInsert): void {
+  const same =
+    insert === next ||
+    (insert &&
+      next &&
+      insert.frameKey === next.frameKey &&
+      insert.at === next.at &&
+      insert.full === next.full &&
+      insert.height === next.height);
+  if (same) return;
+  insert = next;
+  for (const listener of [...listeners]) listener();
+}
+
+export function getFrameInsert(): FrameInsert {
+  return insert;
+}
+
+export function subscribeFrameInsert(listener: () => void): () => void {
+  listeners.add(listener);
+  return () => {
+    listeners.delete(listener);
+  };
+}
+
 /** 끌기 층이 자기를 걸어 둔다. */
 export function setFrameDragStarter(fn: Starter | null): void {
   starter = fn;

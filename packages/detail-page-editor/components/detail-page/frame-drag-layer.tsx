@@ -29,7 +29,7 @@ import { copyPageToFrame } from "@leviosa-ai/canvas/edit/commands";
 import { frameInsertIndex, frameOf } from "@leviosa-ai/canvas/render/frames";
 import type { CanvasStore } from "@leviosa-ai/canvas/store";
 import { detailPageEditorProfile } from "../../lib/detail-page/editor-profile";
-import { setFrameDragStarter } from "./frame-drag-bus";
+import { setFrameDragStarter, setFrameInsert } from "./frame-drag-bus";
 
 type Box = { left: number; top: number; width: number; height: number };
 
@@ -37,8 +37,6 @@ type Drop = {
   frameKey: string;
   /** 그 벌 안에서 몇 번째 자리인가. */
   at: number;
-  /** 자리 표시선을 그릴 곳(층 좌표). */
-  line: { left: number; top: number; width: number };
   /** 놓일 벌 전체(층 좌표). 여기를 통째로 밝혀 «저기로 간다»를 말한다. */
   area: Box;
   /** 넘쳐서 못 놓는가. */
@@ -109,20 +107,10 @@ export function FrameDragLayer({
       }
 
       const held = store.pages.filter((page) => frameOf(page) === frameKey).length;
-      const frameBox = boxIn(target.node, host);
-      const edge =
-        at === 0
-          ? boxIn(pages[0] ?? target.node, host).top
-          : (() => {
-              const previous = boxIn(pages[at - 1] ?? target.node, host);
-              return previous.top + previous.height;
-            })();
-
       return {
         frameKey,
         at,
-        line: { left: frameBox.left + 6, top: edge, width: frameBox.width - 12 },
-        area: frameBox,
+        area: boxIn(target.node, host),
         full: held >= detailPageEditorProfile().maxPages,
       };
     },
@@ -155,15 +143,29 @@ export function FrameDragLayer({
     if (!drag) return;
     const host = containerRef.current?.getBoundingClientRect();
     if (!host) return;
+    const dragBox = drag.box;
 
     const onMove = (event: PointerEvent) => {
+      const drop = readDrop(event.clientX, event.clientY);
+      // 빈칸은 판을 그리는 쪽이 흐름 안에 넣는다 — 그래야 판들이 실제로 밀린다.
+      // 여기서는 «어느 벌 몇 번째»만 말한다.
+      setFrameInsert(
+        drop
+          ? {
+              frameKey: drop.frameKey,
+              at: drop.at,
+              height: dragBox.height,
+              full: drop.full,
+            }
+          : null,
+      );
       setDrag((current) =>
         current
           ? {
               ...current,
               x: event.clientX - host.left,
               y: event.clientY - host.top,
-              drop: readDrop(event.clientX, event.clientY),
+              drop,
             }
           : current,
       );
@@ -171,6 +173,7 @@ export function FrameDragLayer({
     const onUp = () => {
       const current = dragRef.current;
       setDrag(null);
+      setFrameInsert(null);
       if (!current?.drop || current.drop.full) return;
       // 같은 벌 안이면 순서를 바꾼다. 예전에는 아무 일도 안 일어나서 «놓아도
       // 그대로»라고 적어 줘야 했는데, 그건 설명이 필요한 동작이라는 뜻이었다.
@@ -231,25 +234,7 @@ export function FrameDragLayer({
                 : "rgba(37, 99, 235, 0.06)",
             }}
           />
-          {/* 들어갈 자리에 **판 한 장**을 그린다. 어디로 가는지는 글로 적을 것이
-              아니라 그 자리에 보이면 된다. */}
-          <div
-            style={{
-              position: "absolute",
-              left: drag.drop.line.left,
-              top: drag.drop.line.top,
-              width: drag.drop.line.width,
-              height: drag.box.height,
-              zIndex: 41,
-              pointerEvents: "none",
-              borderRadius: 6,
-              border: `2px dashed ${drag.drop.full ? "#c0392b" : "#2563eb"}`,
-              background: drag.drop.full
-                ? "rgba(192, 57, 43, 0.10)"
-                : "rgba(37, 99, 235, 0.14)",
-            }}
-          />
-          {/* 못 놓는 경우에만 이유를 적는다. 되는 경우는 자리가 대신 말한다. */}
+          {/* 못 놓는 경우에만 이유를 적는다. 되는 경우는 벌어진 자리가 대신 말한다. */}
           {drag.drop.full ? (
             <span
               style={{
