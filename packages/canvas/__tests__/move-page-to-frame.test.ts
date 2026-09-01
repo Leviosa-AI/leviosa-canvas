@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { copyPageToFrame } from "../edit/commands";
+import { movePageToFrame } from "../edit/commands";
 import { frameOf } from "../render/frames";
 import { createCanvasStore } from "../store";
 import type { DocumentJson } from "../types";
@@ -30,13 +30,21 @@ function doc(): DocumentJson {
   } as DocumentJson;
 }
 
-describe("copyPageToFrame", () => {
-  it("원본은 두고 사본을 그 벌에 넣는다", () => {
+describe("movePageToFrame", () => {
+  it("끌면 옮겨진다 — 원본은 그 벌에서 없어진다", () => {
     const store = createCanvasStore(doc());
-    const made = copyPageToFrame(store, "b1", "A", 1);
+    const made = movePageToFrame(store, "b1", "A", 1);
 
     expect(made).not.toBeNull();
-    // 원본이 살아 있어야 견줄 것이 안 줄어든다.
+    expect(store.getPageById("b1")).toBeNull();
+    expect(store.pages.map((p) => frameOf(p))).toEqual(["A", "A"]);
+    expect(store.pages[1].id).toBe(made?.id);
+  });
+
+  it("⌥ 로 끌면 원본이 남는다", () => {
+    const store = createCanvasStore(doc());
+    const made = movePageToFrame(store, "b1", "A", 1, true);
+
     expect(store.getPageById("b1")).not.toBeNull();
     expect(store.pages.map((p) => frameOf(p))).toEqual(["A", "A", "B"]);
     expect(store.pages[1].id).toBe(made?.id);
@@ -44,7 +52,7 @@ describe("copyPageToFrame", () => {
 
   it("id 를 전부 새로 딴다 — 문서 안에서 유일해야 한다", () => {
     const store = createCanvasStore(doc());
-    const made = copyPageToFrame(store, "b1", "A", 0);
+    const made = movePageToFrame(store, "b1", "A", 0);
 
     const ids = store.pages.map((p) => p.id);
     expect(new Set(ids).size).toBe(ids.length);
@@ -58,21 +66,22 @@ describe("copyPageToFrame", () => {
 
   it("놓은 자리를 활성으로 만든다", () => {
     const store = createCanvasStore(doc());
-    const made = copyPageToFrame(store, "b1", "A", 1);
+    const made = movePageToFrame(store, "b1", "A", 1);
     expect(store.activePage?.id).toBe(made?.id);
   });
 
   it("되돌리기 한 번에 없던 일이 된다", () => {
     const store = createCanvasStore(doc());
-    copyPageToFrame(store, "b1", "A", 1);
-    expect(store.pages).toHaveLength(3);
+    movePageToFrame(store, "b1", "A", 1);
+    expect(store.pages).toHaveLength(2);
     store.history.undo();
     expect(store.pages.map((p) => p.id)).toEqual(["a1", "b1"]);
+    expect(store.pages.map((p) => frameOf(p))).toEqual(["A", "B"]);
   });
 
   it("없는 판은 아무 일도 안 한다", () => {
     const store = createCanvasStore(doc());
-    expect(copyPageToFrame(store, "없음", "A", 0)).toBeNull();
+    expect(movePageToFrame(store, "없음", "A", 0)).toBeNull();
     expect(store.pages).toHaveLength(2);
   });
 });

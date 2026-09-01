@@ -277,11 +277,13 @@ export function pasteElements(store: CanvasStore): string[] {
  * @param at 그 벌 안에서의 자리(0 이면 맨 앞, 길이와 같으면 맨 뒤).
  * @returns 새로 놓인 판. 원본이 없으면 `null`.
  */
-export function copyPageToFrame(
+export function movePageToFrame(
   store: CanvasStore,
   pageId: string,
   frameKey: string,
   at: number,
+  /** 원본을 남긴다(⌥ 끌기). 기본은 옮기기다. */
+  clone = false,
 ): CanvasPage | null {
   const source = store.getPageById(pageId);
   if (!source) return null;
@@ -304,6 +306,7 @@ export function copyPageToFrame(
   let made: CanvasPage | null = null;
   applyInTransaction(store, () => {
     made = store.addPage(copy, index);
+    if (!clone) store.deletePages([pageId]);
   });
   // 방금 놓은 자리를 보여 준다 — 끌어다 놓고 어디 갔는지 찾게 하지 않는다.
   if (made) store.selectPage((made as CanvasPage).id);

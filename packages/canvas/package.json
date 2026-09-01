@@ -1,6 +1,6 @@
 {
   "name": "@leviosa-ai/canvas",
-  "version": "0.7.0",
+  "version": "0.8.0",
   "description": "Leviosa in-house Konva editor engine. Source-only: consumers compile it through Next transpilePackages. Zero runtime dependencies beyond konva/react/react-konva, zero server calls.",
   "type": "module",
   "license": "UNLICENSED",

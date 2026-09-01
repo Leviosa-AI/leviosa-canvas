@@ -25,7 +25,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 
-import { copyPageToFrame } from "@leviosa-ai/canvas/edit/commands";
+import { movePageToFrame } from "@leviosa-ai/canvas/edit/commands";
 import { frameInsertIndex, frameOf } from "@leviosa-ai/canvas/render/frames";
 import type { CanvasStore } from "@leviosa-ai/canvas/store";
 import { detailPageEditorProfile } from "../../lib/detail-page/editor-profile";
@@ -192,7 +192,9 @@ export function FrameDragLayer({
         if (from !== to) page.setZIndex(to);
         return;
       }
-      copyPageToFrame(store, current.pageId, current.drop.frameKey, current.drop.at);
+      // 다른 벌로 끌면 **옮긴다.** 요소와 같은 규칙이다 — 화면에서 같은 손짓인데
+      // 하나는 옮기고 하나는 두 개가 되면 어느 쪽이 어느 쪽인지 외워야 한다.
+      movePageToFrame(store, current.pageId, current.drop.frameKey, current.drop.at);
     };
     window.addEventListener("pointermove", onMove);
     window.addEventListener("pointerup", onUp);
