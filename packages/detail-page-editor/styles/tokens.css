@@ -1,7 +1,16 @@
 /**
  * 편집기 크롬의 디자인 토큰.
  *
- * 소비자 앱이 자기 globals.css 에서 이 파일을 @import 하면 `dpe-*` 유틸리티가 생긴다.
+ * 소비자 앱이 자기 globals.css 에서 이 파일을 @import 하면 `le-*` 유틸리티가 생긴다.
+ *
+ * `le` 는 leviosa editor 다. 한때 `dpe`(detail-page-editor)였는데, 이 편집기가 여는
+ * 문서는 상세페이지만이 아니다 — 캐러셀도 같은 편집기가 연다(`editor-profile.ts`).
+ * 문서 한 종류의 이름이 편집기 전체의 접두사로 앉아 있던 것을 바로잡았다.
+ *
+ * 엔진의 `lc`(`--lc-*` · `data-lc-part`, @leviosa-ai/canvas 가 레일과 배율 버튼을
+ * 인라인 style 로 그리며 읽는다)와는 다른 이름이다. 둘을 합치지 마라 —
+ * `canvas-bridge.css` 가 하는 일이 정확히 `le` 를 `lc` 로 이어 주는 것이라, 같은
+ * 이름이 되면 그 다리가 자기 자신을 가리킨다.
  *
  *   @import "@leviosa-ai/detail-page-editor/tokens.css";
  *
@@ -9,95 +18,95 @@
  *
  * 갈아 끼우는 법은 두 가지다.
  *
- * 1. 값만 바꾼다. 편집기 뿌리에만 먹이려면 `[data-dpe-root]` 로 좁힌다:
+ * 1. 값만 바꾼다. 편집기 뿌리에만 먹이려면 `[data-le-root]` 로 좁힌다:
  *
- *      [data-dpe-root] {
- *        --color-dpe-surface: #faf8f5;
- *        --color-dpe-ink-200: #e0dbd4;
- *        --radius-dpe-md: 0;
+ *      [data-le-root] {
+ *        --color-le-surface: #faf8f5;
+ *        --color-le-ink-200: #e0dbd4;
+ *        --radius-le-md: 0;
  *      }
  *
- * 2. 토큰으로 안 되는 것(간격·테두리 유무·글꼴)은 `data-dpe-part` 딱지를 CSS 로 잡는다:
+ * 2. 토큰으로 안 되는 것(간격·테두리 유무·글꼴)은 `data-le-part` 딱지를 CSS 로 잡는다:
  *
- *      [data-dpe-part="header"] { border-bottom: none; }
- *      [data-dpe-part="inspector"] { font-family: var(--font-serif); }
+ *      [data-le-part="header"] { border-bottom: none; }
+ *      [data-le-part="inspector"] { font-family: var(--font-serif); }
  *
  * 글꼴은 토큰이 없다 — 편집기는 글꼴을 지정하지 않고 물려받으므로,
- * `[data-dpe-root] { font-family: ... }` 한 줄이면 전부 따라온다.
+ * `[data-le-root] { font-family: ... }` 한 줄이면 전부 따라온다.
  */
 @theme {
   /* 면과 글자의 회색 램프. 편집기 크롬 대부분이 여기 달려 있다. */
-  --color-dpe-ink-50: oklch(98.5% 0 0);
-  --color-dpe-ink-100: oklch(97% 0 0);
-  --color-dpe-ink-200: oklch(92.2% 0 0);
-  --color-dpe-ink-300: oklch(87% 0 0);
-  --color-dpe-ink-400: oklch(70.8% 0 0);
-  --color-dpe-ink-500: oklch(55.6% 0 0);
-  --color-dpe-ink-600: oklch(43.9% 0 0);
-  --color-dpe-ink-700: oklch(37.1% 0 0);
-  --color-dpe-ink-800: oklch(26.9% 0 0);
-  --color-dpe-ink-900: oklch(20.5% 0 0);
-  --color-dpe-ink-950: oklch(14.5% 0 0);
+  --color-le-ink-50: oklch(98.5% 0 0);
+  --color-le-ink-100: oklch(97% 0 0);
+  --color-le-ink-200: oklch(92.2% 0 0);
+  --color-le-ink-300: oklch(87% 0 0);
+  --color-le-ink-400: oklch(70.8% 0 0);
+  --color-le-ink-500: oklch(55.6% 0 0);
+  --color-le-ink-600: oklch(43.9% 0 0);
+  --color-le-ink-700: oklch(37.1% 0 0);
+  --color-le-ink-800: oklch(26.9% 0 0);
+  --color-le-ink-900: oklch(20.5% 0 0);
+  --color-le-ink-950: oklch(14.5% 0 0);
 
   /* 면(패널·카드·헤더)의 바탕. */
-  --color-dpe-surface: #ffffff;
+  --color-le-surface: #ffffff;
 
   /* 어두운 바탕 위 글자·아이콘. */
-  --color-dpe-on-accent: #ffffff;
+  --color-le-on-accent: #ffffff;
 
   /* 오버레이 막. 투명도는 쓰는 쪽이 `/70` 처럼 붙인다. */
-  --color-dpe-scrim: #000000;
+  --color-le-scrim: #000000;
 
   /* 지우기·실패. */
-  --color-dpe-danger-50: oklch(97.1% 0.013 17.38);
-  --color-dpe-danger-100: oklch(93.6% 0.032 17.717);
-  --color-dpe-danger-200: oklch(88.5% 0.062 18.334);
-  --color-dpe-danger-500: oklch(63.7% 0.237 25.331);
-  --color-dpe-danger-600: oklch(57.7% 0.245 27.325);
-  --color-dpe-danger-700: oklch(50.5% 0.213 27.518);
+  --color-le-danger-50: oklch(97.1% 0.013 17.38);
+  --color-le-danger-100: oklch(93.6% 0.032 17.717);
+  --color-le-danger-200: oklch(88.5% 0.062 18.334);
+  --color-le-danger-500: oklch(63.7% 0.237 25.331);
+  --color-le-danger-600: oklch(57.7% 0.245 27.325);
+  --color-le-danger-700: oklch(50.5% 0.213 27.518);
 
   /* 주의·한도. */
-  --color-dpe-warn-50: oklch(98.7% 0.022 95.277);
-  --color-dpe-warn-100: oklch(96.2% 0.059 95.617);
-  --color-dpe-warn-200: oklch(92.4% 0.12 95.746);
-  --color-dpe-warn-500: oklch(76.9% 0.188 70.08);
-  --color-dpe-warn-600: oklch(66.6% 0.179 58.318);
-  --color-dpe-warn-700: oklch(55.5% 0.163 48.998);
-  --color-dpe-warn-800: oklch(47.3% 0.137 46.201);
+  --color-le-warn-50: oklch(98.7% 0.022 95.277);
+  --color-le-warn-100: oklch(96.2% 0.059 95.617);
+  --color-le-warn-200: oklch(92.4% 0.12 95.746);
+  --color-le-warn-500: oklch(76.9% 0.188 70.08);
+  --color-le-warn-600: oklch(66.6% 0.179 58.318);
+  --color-le-warn-700: oklch(55.5% 0.163 48.998);
+  --color-le-warn-800: oklch(47.3% 0.137 46.201);
 
   /* 저장됨·성공. */
-  --color-dpe-ok-50: oklch(97.9% 0.021 166.113);
-  --color-dpe-ok-100: oklch(95% 0.052 163.051);
-  --color-dpe-ok-600: oklch(59.6% 0.145 163.225);
-  --color-dpe-ok-700: oklch(50.8% 0.118 165.612);
+  --color-le-ok-50: oklch(97.9% 0.021 166.113);
+  --color-le-ok-100: oklch(95% 0.052 163.051);
+  --color-le-ok-600: oklch(59.6% 0.145 163.225);
+  --color-le-ok-700: oklch(50.8% 0.118 165.612);
 
   /* 선택·드롭 위치 표시. */
-  --color-dpe-select-50: oklch(97.7% 0.013 236.62);
-  --color-dpe-select-100: oklch(95.1% 0.026 236.824);
-  --color-dpe-select-200: oklch(90.1% 0.058 230.902);
-  --color-dpe-select-400: oklch(74.6% 0.16 232.661);
-  --color-dpe-select-500: oklch(68.5% 0.169 237.323);
-  --color-dpe-select-900: oklch(39.1% 0.09 240.876);
-  --color-dpe-select-950: oklch(29.3% 0.066 243.157);
+  --color-le-select-50: oklch(97.7% 0.013 236.62);
+  --color-le-select-100: oklch(95.1% 0.026 236.824);
+  --color-le-select-200: oklch(90.1% 0.058 230.902);
+  --color-le-select-400: oklch(74.6% 0.16 232.661);
+  --color-le-select-500: oklch(68.5% 0.169 237.323);
+  --color-le-select-900: oklch(39.1% 0.09 240.876);
+  --color-le-select-950: oklch(29.3% 0.066 243.157);
 
   /* 켜져 있는 상태. */
-  --color-dpe-active-50: oklch(97% 0.014 254.604);
-  --color-dpe-active-600: oklch(54.6% 0.245 262.881);
-  --color-dpe-active-700: oklch(48.8% 0.243 264.376);
+  --color-le-active-50: oklch(97% 0.014 254.604);
+  --color-le-active-600: oklch(54.6% 0.245 262.881);
+  --color-le-active-700: oklch(48.8% 0.243 264.376);
 
   /* AI 표식(생성·재작성). */
-  --color-dpe-ai: oklch(66.7% 0.295 322.15);
-  --color-dpe-ai-alt: oklch(60.6% 0.25 292.717);
+  --color-le-ai: oklch(66.7% 0.295 322.15);
+  --color-le-ai-alt: oklch(60.6% 0.25 292.717);
 
   /* 모서리. `rounded-full` 은 알약·아바타라 토큰이 아니다. */
-  --radius-dpe-lg: 0.5rem;
-  --radius-dpe-md: 0.375rem;
-  --radius-dpe-sm: 0.25rem;
-  --radius-dpe-xl: 0.75rem;
+  --radius-le-lg: 0.5rem;
+  --radius-le-md: 0.375rem;
+  --radius-le-sm: 0.25rem;
+  --radius-le-xl: 0.75rem;
 
   /* 글자 굵기. */
-  --font-weight-dpe-bold: 700;
-  --font-weight-dpe-medium: 500;
-  --font-weight-dpe-normal: 400;
-  --font-weight-dpe-semibold: 600;
+  --font-weight-le-bold: 700;
+  --font-weight-le-medium: 500;
+  --font-weight-le-normal: 400;
+  --font-weight-le-semibold: 600;
 }

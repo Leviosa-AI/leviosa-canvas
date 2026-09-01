@@ -219,7 +219,7 @@ export function FrameDragLayer({
           zIndex: 40,
           pointerEvents: "none",
         }}
-        className="rounded-dpe-md border-2 border-dpe-ink-900 bg-dpe-ink-900/10"
+        className="rounded-le-md border-2 border-le-ink-900 bg-le-ink-900/10"
       />
 
       {drag.drop ? (
@@ -251,7 +251,7 @@ export function FrameDragLayer({
                 zIndex: 42,
                 pointerEvents: "none",
               }}
-              className="rounded-dpe-md bg-dpe-danger-600 px-2 py-1 text-[11px] font-dpe-semibold text-dpe-on-accent"
+              className="rounded-le-md bg-le-danger-600 px-2 py-1 text-[11px] font-le-semibold text-le-on-accent"
             >
               {detailPageEditorProfile().maxPages}장이 최대입니다
             </span>

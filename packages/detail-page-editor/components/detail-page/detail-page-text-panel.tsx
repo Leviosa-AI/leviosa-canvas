@@ -136,7 +136,7 @@ export function DetailPageTextPanel({ store }: { store: unknown }) {
                 fontWeight: preset.fontWeight,
               })
             }
-            className="rounded-dpe-lg border border-dpe-ink-200 px-3 py-3 text-left text-dpe-ink-900 hover:border-dpe-ink-400"
+            className="rounded-le-lg border border-le-ink-200 px-3 py-3 text-left text-le-ink-900 hover:border-le-ink-400"
             style={{
               fontSize: preset.previewSize,
               fontWeight: preset.fontWeight,
@@ -147,7 +147,7 @@ export function DetailPageTextPanel({ store }: { store: unknown }) {
         );
       })}
 
-      <p className="mt-2 px-1 text-xs font-dpe-medium text-dpe-ink-500">
+      <p className="mt-2 px-1 text-xs font-le-medium text-le-ink-500">
         {t("detailPage.textPresets.title")}
       </p>
       {TEXT_PRESETS.map((preset) => {
@@ -165,14 +165,14 @@ export function DetailPageTextPanel({ store }: { store: unknown }) {
                 name: t(`detailPage.textPresets.${preset.key}.name`),
               })
             }
-            className="rounded-dpe-lg border border-dpe-ink-200 px-3 py-3 hover:border-dpe-ink-400"
+            className="rounded-le-lg border border-le-ink-200 px-3 py-3 hover:border-le-ink-400"
           >
             <PresetPreview preset={preset} label={label} />
           </button>
         );
       })}
 
-      <p className="mt-1 px-1 text-xs leading-relaxed text-dpe-ink-500">
+      <p className="mt-1 px-1 text-xs leading-relaxed text-le-ink-500">
         {t("detailPage.text.hint")}
       </p>
     </div>

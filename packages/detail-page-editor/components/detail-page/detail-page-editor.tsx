@@ -355,8 +355,8 @@ export function DetailPageEditor({
   );
   const defaultHeader = (
       <header
-        data-dpe-part="header"
-        className="sticky top-0 z-20 flex h-14 shrink-0 items-center gap-1.5 border-b border-dpe-ink-200 bg-dpe-surface px-3"
+        data-le-part="header"
+        className="sticky top-0 z-20 flex h-14 shrink-0 items-center gap-1.5 border-b border-le-ink-200 bg-le-surface px-3"
       >
         {onBack ? (
           <button
@@ -364,27 +364,27 @@ export function DetailPageEditor({
             onClick={onBack}
             aria-label={t("editor.back")}
             title={t("editor.back")}
-            className="flex h-9 w-9 items-center justify-center rounded-dpe-md text-dpe-ink-600 hover:bg-dpe-ink-100 hover:text-dpe-ink-900"
+            className="flex h-9 w-9 items-center justify-center rounded-le-md text-le-ink-600 hover:bg-le-ink-100 hover:text-le-ink-900"
           >
             <ChevronLeft aria-hidden="true" size={20} />
           </button>
         ) : null}
-        <p className="ml-1 max-w-[280px] truncate text-sm font-dpe-semibold text-dpe-ink-900">
+        <p className="ml-1 max-w-[280px] truncate text-sm font-le-semibold text-le-ink-900">
           {productName?.trim() || t("editor.untitled")}
         </p>
 
         <div className="mx-auto" />
 
         {historyPart}
-        <span className="mx-1 h-5 w-px bg-dpe-ink-200" aria-hidden="true" />
+        <span className="mx-1 h-5 w-px bg-le-ink-200" aria-hidden="true" />
 
         {saveOk ? (
-          <span className="hidden text-xs font-dpe-medium text-dpe-ok-600 sm:inline">
+          <span className="hidden text-xs font-le-medium text-le-ok-600 sm:inline">
             {t("editor.saved")}
           </span>
         ) : null}
         {saveError ? (
-          <span className="hidden max-w-[180px] truncate text-xs font-dpe-medium text-dpe-danger-600 sm:inline">
+          <span className="hidden max-w-[180px] truncate text-xs font-le-medium text-le-danger-600 sm:inline">
             {saveError}
           </span>
         ) : null}
@@ -392,7 +392,7 @@ export function DetailPageEditor({
           type="button"
           onClick={handleSave}
           disabled={saving}
-          className="inline-flex h-9 items-center gap-2 rounded-dpe-md border border-dpe-ink-200 bg-dpe-surface px-3 text-sm font-dpe-semibold text-dpe-ink-900 hover:bg-dpe-ink-50 disabled:cursor-not-allowed disabled:opacity-50"
+          className="inline-flex h-9 items-center gap-2 rounded-le-md border border-le-ink-200 bg-le-surface px-3 text-sm font-le-semibold text-le-ink-900 hover:bg-le-ink-50 disabled:cursor-not-allowed disabled:opacity-50"
         >
           <Save aria-hidden="true" size={16} />
           {saving ? t("editor.saving") : t("editor.save")}
@@ -401,7 +401,7 @@ export function DetailPageEditor({
 
         {headerActions ? (
           <>
-            <span className="mx-1 h-5 w-px bg-dpe-ink-200" aria-hidden="true" />
+            <span className="mx-1 h-5 w-px bg-le-ink-200" aria-hidden="true" />
             {headerActions}
           </>
         ) : null}
@@ -409,8 +409,8 @@ export function DetailPageEditor({
   );
   const defaultInspector = (
         <aside
-          data-dpe-part="inspector"
-          className="flex min-h-0 flex-col border-l border-dpe-ink-200 bg-dpe-surface"
+          data-le-part="inspector"
+          className="flex min-h-0 flex-col border-l border-le-ink-200 bg-le-surface"
         >
           {/* Figma-style properties inspector — 상단 툴바 대신 오른쪽에 둔다. */}
           <div className="min-h-0 flex-1">
@@ -464,8 +464,8 @@ export function DetailPageEditor({
         앱에도 해가 없다. */}
     <TooltipProvider>
     <div
-      data-dpe-root=""
-      className="flex h-screen min-h-[640px] flex-col bg-dpe-ink-100"
+      data-le-root=""
+      className="flex h-screen min-h-[640px] flex-col bg-le-ink-100"
     >
       {/* hookable식 상단 헤더: 뒤로가기 · 상품명 · (되돌리기/다시실행) · 저장 ·
           다운로드 · 앱 공용 크롬(크레딧/알림/언어, 호스트 주입). 높이를 고정하고
@@ -476,7 +476,7 @@ export function DetailPageEditor({
         {/* 캔버스 칸의 높이를 못 박는다. 안 그러면 그리드 행이 내용만큼 늘어나(높이
             100%가 auto로 풀린다) 작업 영역이 화면 아래로 자라고, 아래 붙는 배율·화면
             띠가 화면 밖으로 밀린다. */}
-        <div data-dpe-part="workspace" className="relative min-w-0 overflow-hidden">
+        <div data-le-part="workspace" className="relative min-w-0 overflow-hidden">
           {canvas}
         </div>
         {inspector}

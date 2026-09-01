@@ -43,7 +43,7 @@ export function DetailPageQrPanel({ store }: { store: unknown }) {
 
   return (
     <div className="flex h-full flex-col gap-3 overflow-y-auto p-3">
-      <div role="group" aria-label={t("detailPage.qr.kindLabel")} className="flex rounded-dpe-md border border-dpe-ink-200 p-0.5">
+      <div role="group" aria-label={t("detailPage.qr.kindLabel")} className="flex rounded-le-md border border-le-ink-200 p-0.5">
         {(["qr", "ean13"] as const).map((option) => {
           const active = option === kind;
           return (
@@ -52,8 +52,8 @@ export function DetailPageQrPanel({ store }: { store: unknown }) {
               type="button"
               aria-pressed={active}
               onClick={() => setKind(option)}
-              className={`flex-1 rounded px-2 py-1 text-[11px] font-dpe-medium transition-colors ${
-                active ? "bg-dpe-ink-900 text-dpe-on-accent" : "text-dpe-ink-500 hover:bg-dpe-ink-100"
+              className={`flex-1 rounded px-2 py-1 text-[11px] font-le-medium transition-colors ${
+                active ? "bg-le-ink-900 text-le-on-accent" : "text-le-ink-500 hover:bg-le-ink-100"
               }`}
             >
               {t(option === "qr" ? "detailPage.qr.kindQr" : "detailPage.qr.kindEan")}
@@ -62,7 +62,7 @@ export function DetailPageQrPanel({ store }: { store: unknown }) {
         })}
       </div>
 
-      <label className="grid gap-1 text-[11px] font-dpe-medium text-dpe-ink-500">
+      <label className="grid gap-1 text-[11px] font-le-medium text-le-ink-500">
         {t(kind === "qr" ? "detailPage.qr.valueLabel" : "detailPage.qr.eanLabel")}
         <input
           type="text"
@@ -72,28 +72,28 @@ export function DetailPageQrPanel({ store }: { store: unknown }) {
             kind === "qr" ? "detailPage.qr.valuePlaceholder" : "detailPage.qr.eanPlaceholder",
           )}
           inputMode={kind === "ean13" ? "numeric" : "text"}
-          className="rounded-dpe-lg border border-dpe-ink-200 px-2.5 py-2 text-sm placeholder:text-dpe-ink-400 focus:border-dpe-ink-400 focus:outline-none"
+          className="rounded-le-lg border border-le-ink-200 px-2.5 py-2 text-sm placeholder:text-le-ink-400 focus:border-le-ink-400 focus:outline-none"
         />
       </label>
 
       {invalid ? (
-        <p className="text-xs text-dpe-danger-600">
+        <p className="text-xs text-le-danger-600">
           {t(kind === "qr" ? "detailPage.qr.qrInvalid" : "detailPage.qr.eanInvalid")}
         </p>
       ) : null}
 
       <div className="grid grid-cols-2 gap-2">
-        <label className="grid gap-1 text-[11px] font-dpe-medium text-dpe-ink-500">
+        <label className="grid gap-1 text-[11px] font-le-medium text-le-ink-500">
           {t("detailPage.qr.foreground")}
           <ColorInput value={foreground} onChange={setForeground} />
         </label>
-        <label className="grid gap-1 text-[11px] font-dpe-medium text-dpe-ink-500">
+        <label className="grid gap-1 text-[11px] font-le-medium text-le-ink-500">
           {t("detailPage.qr.background")}
           <ColorInput value={background} onChange={setBackground} />
         </label>
       </div>
 
-      <div className="flex min-h-24 items-center justify-center rounded-dpe-lg border border-dashed border-dpe-ink-200 p-3">
+      <div className="flex min-h-24 items-center justify-center rounded-le-lg border border-dashed border-le-ink-200 p-3">
         {built ? (
           /* eslint-disable-next-line @next/next/no-img-element */
           <img
@@ -102,13 +102,13 @@ export function DetailPageQrPanel({ store }: { store: unknown }) {
             className="max-h-40 max-w-full object-contain"
           />
         ) : (
-          <p className="text-xs text-dpe-ink-400">{t("detailPage.qr.previewEmpty")}</p>
+          <p className="text-xs text-le-ink-400">{t("detailPage.qr.previewEmpty")}</p>
         )}
       </div>
 
       {/* EAN-13은 12자리를 넣으면 체크디짓을 채워 준다. 무엇이 들어갔는지 보여 준다. */}
       {built?.value ? (
-        <p className="text-center text-xs tabular-nums text-dpe-ink-500">{built.value}</p>
+        <p className="text-center text-xs tabular-nums text-le-ink-500">{built.value}</p>
       ) : null}
 
       <button
@@ -124,12 +124,12 @@ export function DetailPageQrPanel({ store }: { store: unknown }) {
             label: trimmed,
           });
         }}
-        className="rounded-dpe-lg bg-dpe-ink-900 px-3 py-2 text-sm font-dpe-semibold text-dpe-on-accent hover:bg-dpe-ink-800 disabled:cursor-not-allowed disabled:bg-dpe-ink-200 disabled:text-dpe-ink-400"
+        className="rounded-le-lg bg-le-ink-900 px-3 py-2 text-sm font-le-semibold text-le-on-accent hover:bg-le-ink-800 disabled:cursor-not-allowed disabled:bg-le-ink-200 disabled:text-le-ink-400"
       >
         {t("detailPage.qr.insert")}
       </button>
 
-      <p className="mt-auto px-1 text-[11px] leading-relaxed text-dpe-ink-500">
+      <p className="mt-auto px-1 text-[11px] leading-relaxed text-le-ink-500">
         {t("detailPage.qr.hint")}
       </p>
     </div>
