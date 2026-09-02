@@ -182,6 +182,52 @@ describe("LeviosaCanvasWorkspace", () => {
     expect(s.selectedElementsIds).toEqual([]);
   });
 
+  it("페이지 밖 여백을 끌면 화면이 가로세로로 옮겨진다", () => {
+    const { container } = render(
+      <LeviosaCanvasWorkspace store={store()} />,
+    );
+    const workspace = container.querySelector<HTMLElement>(
+      "[data-lc-workspace] > div",
+    )!;
+    workspace.scrollLeft = 40;
+    workspace.scrollTop = 60;
+
+    fireEvent.pointerDown(workspace, {
+      button: 0,
+      pointerId: 1,
+      clientX: 100,
+      clientY: 100,
+    });
+    fireEvent.pointerMove(workspace, {
+      pointerId: 1,
+      clientX: 70,
+      clientY: 50,
+    });
+
+    expect(workspace.scrollLeft).toBe(70);
+    expect(workspace.scrollTop).toBe(110);
+    expect(workspace.style.overflowX).toBe("auto");
+    expect(workspace.style.cursor).toBe("grabbing");
+
+    fireEvent.pointerUp(workspace, { pointerId: 1 });
+    expect(workspace.style.cursor).toBe("default");
+
+    const page = container.querySelector<HTMLElement>("[data-lc-page]")!;
+    fireEvent.pointerDown(page, {
+      button: 0,
+      pointerId: 2,
+      clientX: 70,
+      clientY: 50,
+    });
+    fireEvent.pointerMove(page, {
+      pointerId: 2,
+      clientX: 20,
+      clientY: 10,
+    });
+    expect(workspace.scrollLeft).toBe(70);
+    expect(workspace.scrollTop).toBe(110);
+  });
+
   it("⌘+휠은 스토어의 배율을 바꾼다(버튼과 같은 자리여야 한다)", () => {
     const s = store();
     const { container } = render(<LeviosaCanvasWorkspace store={s} />);

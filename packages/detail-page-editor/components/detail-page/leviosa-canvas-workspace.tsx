@@ -115,6 +115,14 @@ export function LeviosaCanvasWorkspace({
   const outerRef = useRef<HTMLDivElement>(null);
   const innerRef = useRef<HTMLDivElement>(null);
   const [viewport, setViewport] = useState({ width: 0, height: 0 });
+  const [panning, setPanning] = useState(false);
+  const pan = useRef<{
+    pointerId: number;
+    x: number;
+    y: number;
+    left: number;
+    top: number;
+  } | null>(null);
   // 배율은 **스토어**에 산다. 확대 버튼도, 여기 휠도 같은 자리를 만져야 한 쪽이
   // 다른 쪽을 되돌려 놓지 않는다.
   const scale = store.scale;
@@ -415,7 +423,10 @@ export function LeviosaCanvasWorkspace({
           const target = event.target as HTMLElement;
           if (
             target.closest("[data-lc-page]") ||
-            target.closest("[data-dp-quicktoolbar]")
+            target.closest("[data-dp-quicktoolbar]") ||
+            target.closest(
+              "button, a, input, textarea, select, [contenteditable='true']",
+            )
           ) {
             return;
           }
@@ -424,21 +435,49 @@ export function LeviosaCanvasWorkspace({
           // 여기가 «저 벌을 보겠다»고 말하는 유일한 자리다.
           const key = target.closest<HTMLElement>("[data-lc-frame]")?.dataset
             .lcFrame;
-          if (key === undefined) return;
-          const first = store.pages.find((page) => frameOf(page) === key);
-          if (first) store.selectPage(first.id);
+          if (key !== undefined) {
+            const first = store.pages.find((page) => frameOf(page) === key);
+            if (first) store.selectPage(first.id);
+          }
+          if (event.button !== 0) return;
+          pan.current = {
+            pointerId: event.pointerId,
+            x: event.clientX,
+            y: event.clientY,
+            left: event.currentTarget.scrollLeft,
+            top: event.currentTarget.scrollTop,
+          };
+          event.currentTarget.setPointerCapture?.(event.pointerId);
+          setPanning(true);
+          event.preventDefault();
+        }}
+        onPointerMove={(event) => {
+          const start = pan.current;
+          if (!start || start.pointerId !== event.pointerId) return;
+          event.currentTarget.scrollLeft = start.left + start.x - event.clientX;
+          event.currentTarget.scrollTop = start.top + start.y - event.clientY;
+        }}
+        onPointerUp={(event) => {
+          if (pan.current?.pointerId !== event.pointerId) return;
+          pan.current = null;
+          event.currentTarget.releasePointerCapture?.(event.pointerId);
+          setPanning(false);
+        }}
+        onPointerCancel={(event) => {
+          if (pan.current?.pointerId !== event.pointerId) return;
+          pan.current = null;
+          setPanning(false);
         }}
         style={{
           position: "absolute",
           inset: 0,
-          // 프레임이 하나뿐이면 예전 그대로다. 가운데 정렬은 내용이 넘칠 때
-          // 왼쪽으로 스크롤을 못 하게 만드는 자리라, 열이 여럿일 때는 왼쪽에
-          // 붙여 놓고 가로 스크롤을 연다.
-          overflowX: frameCount > 1 ? "auto" : "hidden",
+          // 자동 여백으로 가운데를 잡으면 확대해 넘친 뒤에도 양쪽으로 스크롤할 수 있다.
+          overflowX: "auto",
           overflowY: "auto",
           display: "flex",
           flexDirection: "column",
-          alignItems: frameCount > 1 ? "flex-start" : "center",
+          alignItems: "flex-start",
+          cursor: panning ? "grabbing" : "default",
           padding: `${frameCount > 1 ? gap + FRAME_HEAD : gap}px ${paddingX}px ${gap}px`,
         }}
       >
@@ -446,9 +485,9 @@ export function LeviosaCanvasWorkspace({
           store={store}
           scale={scale}
           gap={gap}
-          // 열이 여럿이면 가운데 정렬을 정렬 속성이 아니라 자동 여백으로 준다 —
-          // 축소해서 남는 자리가 생겨도 가운데를 지키고, 커져도 스크롤이 산다.
-          center={frameCount > 1}
+          // 가운데 정렬은 자동 여백으로 준다 — 축소해서 남는 자리가 생겨도 가운데를
+          // 지키고, 커지면 여백이 0이 되어 좌우 스크롤이 열린다.
+          center
           // 손잡이는 판 상자 **안**에 산다. 밖에서 자리를 재어 띄우면 손이 다가가는
           // 동안 «판 밖»을 지나며 깜빡인다.
           renderPageChrome={
