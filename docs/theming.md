@@ -15,16 +15,20 @@
 @import "@leviosa-ai/detail-page-editor/tokens.css";
 ```
 
-이러면 `dpe-*` 유틸리티가 생기고, 값만 덮으면 편집기 전체가 따라온다. 편집기 뿌리에만
-먹이려면 `[data-dpe-root]` 로 좁힌다 — 앱의 다른 화면은 안 건드린다.
+`le` 는 **l**eviosa **e**ditor 다. 엔진(`@leviosa-ai/canvas`)이 쓰는 `lc`(`--lc-*` ·
+`data-lc-part`)와는 다른 이름이니 섞지 마라 — 아래 `canvas-bridge.css` 가 하는 일이
+정확히 `le` 를 `lc` 로 이어 주는 것이다.
+
+이러면 `le-*` 유틸리티가 생기고, 값만 덮으면 편집기 전체가 따라온다. 편집기 뿌리에만
+먹이려면 `[data-le-root]` 로 좁힌다 — 앱의 다른 화면은 안 건드린다.
 
 ```css
-[data-dpe-root] {
-  --color-dpe-surface: #faf8f5;   /* 패널·헤더 바탕 */
-  --color-dpe-ink-200: #e0dbd4;   /* 테두리 */
-  --color-dpe-ink-500: #8a8578;   /* 흐린 글자 */
-  --color-dpe-ink-900: #1a1a1a;   /* 진한 글자·강조 배경 */
-  --radius-dpe-md: 0px;           /* 각진 톤 */
+[data-le-root] {
+  --color-le-surface: #faf8f5;   /* 패널·헤더 바탕 */
+  --color-le-ink-200: #e0dbd4;   /* 테두리 */
+  --color-le-ink-500: #8a8578;   /* 흐린 글자 */
+  --color-le-ink-900: #1a1a1a;   /* 진한 글자·강조 배경 */
+  --radius-le-md: 0px;           /* 각진 톤 */
   font-family: var(--font-serif); /* 글꼴은 물려받는다 — 토큰이 따로 없다 */
 }
 ```
@@ -42,12 +46,12 @@ Tailwind 를 안 써서, 자기 변수(`--lc-*`)를 편집기 토큰에 이어 �
 
 ## 2층 — 딱지: 토큰으로 안 되는 것
 
-간격·테두리 유무·그림자처럼 값 하나로 안 끝나는 것은 `data-dpe-part` 를 CSS 로 잡는다.
+간격·테두리 유무·그림자처럼 값 하나로 안 끝나는 것은 `data-le-part` 를 CSS 로 잡는다.
 
 ```css
-[data-dpe-part="header"] { border-bottom: none; box-shadow: 0 1px 0 #0001; }
-[data-dpe-part="inspector"] { padding-inline: 8px; }
-[data-dpe-part="asset-card"] { border-radius: 0; }
+[data-le-part="header"] { border-bottom: none; box-shadow: 0 1px 0 #0001; }
+[data-le-part="inspector"] { padding-inline: 8px; }
+[data-le-part="asset-card"] { border-radius: 0; }
 ```
 
 지금 있는 딱지: `header` · `workspace` · `inspector` · `panel-header` · `asset-card`,
@@ -99,7 +103,7 @@ function AgencyEditorHeader({ productName, onBack, save, parts }) {
 
 ## 지키는 규칙 하나
 
-편집기 소스에는 `dpe-*` 말고 다른 색 이름을 **직접 적지 않는다**. 어기는 길이 두
+편집기 소스에는 `le-*` 말고 다른 색 이름을 **직접 적지 않는다**. 어기는 길이 두
 가지고, 둘 다 조용히 망가진다.
 
 - `border-neutral-200` 같은 **원본 팔레트**. 한 줄이 새로 들어오면 갈아입힌 화면에서

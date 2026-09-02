@@ -482,6 +482,11 @@ export class CanvasHistory {
     this.push(pending);
   }
 
+  /** 되돌리는 중인가. 그 동안의 선택은 사람이 한 것이 아니다. */
+  get restoring(): boolean {
+    return this.applying;
+  }
+
   get canUndo(): boolean {
     return this.past.length > 0;
   }
@@ -668,8 +673,43 @@ export class CanvasStore {
         return false;
       }
       this.selectedElementsIds = next;
+      // 집은 요소가 있는 페이지가 «보고 있는 페이지»다. 이게 없으면 다른 벌의 요소를
+      // 집어도 페이지 목록·아래 띠·벌 표시는 이전 벌에 머물러, 손이 가 있는 곳과
+      // 화면이 말하는 곳이 갈린다.
+      //
+      // 되돌리는 중에는 안 옮긴다. 그때의 선택은 스냅샷을 되살리는 것이라 사람이 집은
+      // 것이 아니고, 바로 앞 줄에서 되살려 둔 «보고 있던 페이지»를 덮어써 ⌘Z 뒤에
+      // 엉뚱한 벌로 화면이 튄다.
+      if (!this.history.restoring) {
+        const page = this.pageOfElement(next[0] ?? "");
+        if (page) this.activePageId = page.id;
+      }
       return true;
     });
+  }
+
+  /**
+   * 이 요소를 다시 그리게 한다. 문서는 안 바뀐다.
+   *
+   * Konva 노드를 손으로 끌어 놓고 문서에 안 반영하면, 속성이 그대로라 React 가 다시
+   * 그리지 않아 **노드가 끌려간 자리에 남는다.** 끌기를 무르는 자리(판 밖에 놓았을 때)
+   * 가 그렇다. 히스토리에는 안 남는다 — 편집이 아니라 화면을 문서에 맞추는 일이다.
+   */
+  refreshElement(id: string): void {
+    const el = this.getElementById(id);
+    if (!el) return;
+    el.version += 1;
+    this.version += 1;
+    this.notify();
+  }
+
+  /** 이 요소가 놓인 페이지. 그룹 안에 들어 있어도 찾는다. */
+  pageOfElement(id: string): CanvasPage | null {
+    if (!id) return null;
+    for (const page of this.pages) {
+      if (findInList(page.children, id)) return page;
+    }
+    return null;
   }
 
   /**

@@ -98,7 +98,7 @@ describe("DetailPageReferencesPanel", () => {
     renderPanel("gen-1");
 
     await screen.findByText("여름 캠페인");
-    expect(screen.getByText("2장")).toBeInTheDocument();
+    expect(screen.getByText("detailPage.references.screenCount")).toBeInTheDocument();
     const alts = screen.getAllByRole("img").map((img) => img.getAttribute("alt"));
     expect(alts).toEqual(["첫 번째", "두 번째"]);
   });
@@ -118,7 +118,7 @@ describe("DetailPageReferencesPanel", () => {
 
     await user.click(
       await screen.findByRole("button", {
-        name: /이 상세페이지를 레퍼런스로 저장/,
+        name: "detailPage.references.saveThis",
       }),
     );
 
@@ -138,7 +138,7 @@ describe("DetailPageReferencesPanel", () => {
 
     await user.click(
       await screen.findByRole("button", {
-        name: /이 상세페이지를 레퍼런스로 저장/,
+        name: "detailPage.references.saveThis",
       }),
     );
 
@@ -155,7 +155,7 @@ describe("DetailPageReferencesPanel", () => {
 
     await waitFor(() => expect(mockList).toHaveBeenCalled());
     expect(
-      screen.queryByRole("button", { name: /레퍼런스로 저장/ }),
+      screen.queryByRole("button", { name: "detailPage.references.saveThis" }),
     ).toBeNull();
   });
 });

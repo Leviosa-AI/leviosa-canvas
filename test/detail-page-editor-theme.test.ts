@@ -92,7 +92,7 @@ describe("편집기 크롬 토큰", () => {
       "utf8",
     );
     const defined = new Set(
-      [...css.matchAll(/--((?:color|radius|font-weight)-dpe-[a-z0-9-]+):/g)].map(
+      [...css.matchAll(/--((?:color|radius|font-weight)-le-[a-z0-9-]+):/g)].map(
         (m) => m[1],
       ),
     );
@@ -101,18 +101,18 @@ describe("편집기 크롬 토큰", () => {
     for (const path of editorSources()) {
       const source = readFileSync(path, "utf8");
       for (const [, util, name] of source.matchAll(
-        new RegExp(`\\b(${UTIL})-(dpe-[a-z0-9-]+)(?:/\\d{1,3})?\\b`, "g"),
+        new RegExp(`\\b(${UTIL})-(le-[a-z0-9-]+)(?:/\\d{1,3})?\\b`, "g"),
       )) {
         void util;
         if (!defined.has(`color-${name}`)) missing.add(`color-${name}`);
       }
       for (const [, name] of source.matchAll(
-        /\brounded(?:-(?:t|b|l|r|tl|tr|bl|br|s|e|ss|se|es|ee))?-(dpe-(?:sm|md|lg|xl))\b/g,
+        /\brounded(?:-(?:t|b|l|r|tl|tr|bl|br|s|e|ss|se|es|ee))?-(le-(?:sm|md|lg|xl))\b/g,
       )) {
         if (!defined.has(`radius-${name}`)) missing.add(`radius-${name}`);
       }
       for (const [, name] of source.matchAll(
-        /\bfont-(dpe-(?:normal|medium|semibold|bold))\b/g,
+        /\bfont-(le-(?:normal|medium|semibold|bold))\b/g,
       )) {
         if (!defined.has(`font-weight-${name}`)) missing.add(`font-weight-${name}`);
       }

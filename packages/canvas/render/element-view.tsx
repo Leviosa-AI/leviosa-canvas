@@ -84,8 +84,14 @@ function isDraggable(el: CanvasElement, edit: EditHandlers | null): boolean {
 }
 
 type DragEvent = {
-  target: { x(): number; y(): number; position(pos: { x: number; y: number }): void };
-  evt?: { altKey?: boolean };
+  target: {
+    x(): number;
+    y(): number;
+    position(pos: { x: number; y: number }): void;
+    /** 끌리는 것을 그림 한 장으로 뜬다 — 무대 밖에서도 그 요소 그대로 보이라고. */
+    toDataURL(config?: { pixelRatio?: number }): string;
+  };
+  evt?: { altKey?: boolean; clientX?: number; clientY?: number };
 };
 type TransformEvent = {
   target: {
@@ -167,7 +173,15 @@ function ElementFrame({
         draggable && edit
           ? (event: DragEvent) => {
               altRef.current = event.evt?.altKey === true;
-              edit.onDragStart(el.id);
+              const start = event.evt;
+              edit.onDragStart(
+                el.id,
+                event.target,
+                typeof start?.clientX === "number" &&
+                  typeof start?.clientY === "number"
+                  ? { x: start.clientX, y: start.clientY }
+                  : undefined,
+              );
             }
           : undefined
       }
@@ -191,10 +205,14 @@ function ElementFrame({
           ? (event: DragEvent) => {
               const alt = altRef.current;
               altRef.current = false;
+              const native = event.evt as PointerEvent | MouseEvent | undefined;
               edit.onDragEnd(
                 el.id,
                 { x: event.target.x(), y: event.target.y() },
                 alt,
+                native
+                  ? { x: native.clientX, y: native.clientY }
+                  : undefined,
               );
             }
           : undefined

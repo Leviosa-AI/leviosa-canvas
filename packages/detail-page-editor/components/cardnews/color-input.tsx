@@ -1,8 +1,8 @@
 "use client";
 
 import { Pipette } from "lucide-react";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { createPortal } from "react-dom";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { Popover as PopoverPrimitive } from "radix-ui";
 import { useTranslation } from "react-i18next";
 
 // ── Preset palette — popular colors for cardnews/social media ──────────────
@@ -21,8 +21,6 @@ const PRESET_COLORS = [
 
 const RECENT_COLORS_KEY = "leviosa-recent-colors";
 const MAX_RECENT = 8;
-const POPOVER_WIDTH = 224; // w-56 = 14rem = 224px
-const POPOVER_HEIGHT_ESTIMATE = 320;
 
 /** Checkerboard SVG data URI for transparent backgrounds */
 export const CHECKER_BG = `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='8'%3E%3Crect width='4' height='4' fill='%23ccc'/%3E%3Crect x='4' y='4' width='4' height='4' fill='%23ccc'/%3E%3Crect x='4' width='4' height='4' fill='%23fff'/%3E%3Crect y='4' width='4' height='4' fill='%23fff'/%3E%3C/svg%3E")`;
@@ -51,35 +49,6 @@ function addRecentColor(color: string): string[] {
   try { localStorage.setItem(RECENT_COLORS_KEY, JSON.stringify(recent)); } catch { /* */ }
   return recent;
 }
-
-/** Calculate popover position with viewport boundary clamping */
-function calcPopoverPos(
-  anchorRect: DOMRect,
-  align: "start" | "end",
-  side: "auto" | "top" | "bottom",
-): { top: number; left: number } {
-  const vw = window.innerWidth;
-  const vh = window.innerHeight;
-
-  let top = side === "top"
-    ? anchorRect.top - POPOVER_HEIGHT_ESTIMATE - 6
-    : anchorRect.bottom + 6;
-  let left = align === "end" ? anchorRect.right - POPOVER_WIDTH : anchorRect.left;
-
-  // Flip upward if overflowing bottom
-  if (side === "auto" && top + POPOVER_HEIGHT_ESTIMATE > vh) {
-    top = anchorRect.top - POPOVER_HEIGHT_ESTIMATE - 6;
-  }
-  // Clamp to viewport edges
-  if (top < 4) top = 4;
-  if (left + POPOVER_WIDTH > vw) left = vw - POPOVER_WIDTH - 4;
-  if (left < 4) left = 4;
-
-  return { top, left };
-}
-
-// ── Global: close other ColorInput popovers when a new one opens ──────────
-const colorInputCloseCallbacks = new Set<() => void>();
 
 function isTransparent(v: string): boolean {
   return v === "transparent" || v === "rgba(0,0,0,0)" || v === "rgba(0, 0, 0, 0)";
@@ -130,10 +99,6 @@ interface ColorInputProps {
   size?: "sm" | "md";
   /** Allow transparent color selection (default: false) */
   allowTransparent?: boolean;
-  /** Horizontal popover alignment relative to the swatch (default: "end") */
-  popoverAlign?: "start" | "end";
-  /** Vertical popover placement preference (default: "auto") */
-  popoverSide?: "auto" | "top" | "bottom";
 }
 
 /**
@@ -144,17 +109,11 @@ export function ColorInput({
   onChange,
   size = "sm",
   allowTransparent = false,
-  popoverAlign = "end",
-  popoverSide = "auto",
 }: ColorInputProps) {
   const { t } = useTranslation("marketing");
   const [open, setOpen] = useState(false);
-  const [measured, setMeasured] = useState(false);
   const [hexInput, setHexInput] = useState("");
   const [recentColors, setRecentColors] = useState<string[]>([]);
-  const containerRef = useRef<HTMLDivElement>(null);
-  const popoverRef = useRef<HTMLDivElement>(null);
-  const [popoverPos, setPopoverPos] = useState<{ top: number; left: number } | null>(null);
   const swatchPx = size === "md" ? "w-8 h-8" : "w-7 h-7";
 
   const isTransparentValue = isTransparent(value);
@@ -165,88 +124,12 @@ export function ColorInput({
     [isTransparentValue, value],
   );
 
-  const closePopover = useCallback(() => setOpen(false), []);
-
-  // Register/unregister close callback for mutual exclusion
+  // 열릴 때만 최근 색과 hex 칸을 채운다. 닫힌 채로 값이 바뀌어도 다음에 열 때 맞다.
   useEffect(() => {
-    colorInputCloseCallbacks.add(closePopover);
-    return () => { colorInputCloseCallbacks.delete(closePopover); };
-  }, [closePopover]);
-
-  const openPopover = useCallback(() => {
-    // Close all other open ColorInput popovers
-    colorInputCloseCallbacks.forEach((cb) => { if (cb !== closePopover) cb(); });
-
+    if (!open) return;
     setRecentColors(getRecentColors());
     setHexInput(isTransparentValue ? "" : safeColor);
-    setMeasured(false);
-    if (containerRef.current) {
-      setPopoverPos(calcPopoverPos(containerRef.current.getBoundingClientRect(), popoverAlign, popoverSide));
-    }
-    setOpen(true);
-  }, [safeColor, isTransparentValue, closePopover, popoverAlign, popoverSide]);
-
-  // Track scroll & resize to reposition popover
-  useEffect(() => {
-    if (!open) return;
-    const reposition = () => {
-      if (containerRef.current) {
-        setPopoverPos(calcPopoverPos(containerRef.current.getBoundingClientRect(), popoverAlign, popoverSide));
-      }
-    };
-    // Capture phase to catch scrolls in any container (e.g. layer panel overflow-y-auto)
-    window.addEventListener("scroll", reposition, true);
-    window.addEventListener("resize", reposition);
-    return () => {
-      window.removeEventListener("scroll", reposition, true);
-      window.removeEventListener("resize", reposition);
-    };
-  }, [open, popoverAlign, popoverSide]);
-
-  // After popover renders, re-measure actual height and adjust position
-  useEffect(() => {
-    if (!open || !popoverRef.current || !containerRef.current) return;
-    const popoverEl = popoverRef.current;
-    const anchorRect = containerRef.current.getBoundingClientRect();
-    const actualHeight = popoverEl.offsetHeight;
-    const vh = window.innerHeight;
-    const vw = window.innerWidth;
-
-    let top = popoverSide === "top"
-      ? anchorRect.top - actualHeight - 6
-      : anchorRect.bottom + 6;
-    let left = popoverAlign === "end" ? anchorRect.right - POPOVER_WIDTH : anchorRect.left;
-
-    if (popoverSide === "auto" && top + actualHeight > vh) {
-      top = anchorRect.top - actualHeight - 6;
-    }
-    if (top < 4) top = 4;
-    if (left + POPOVER_WIDTH > vw) left = vw - POPOVER_WIDTH - 4;
-    if (left < 4) left = 4;
-
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setPopoverPos({ top, left });
-    setMeasured(true);
-  }, [open, popoverAlign, popoverSide]);
-
-  // Close on outside click (check both swatch container and portal popover)
-  useEffect(() => {
-    if (!open) return;
-    const handle = (e: MouseEvent | TouchEvent) => {
-      const target = e.target as Node;
-      if (
-        containerRef.current && !containerRef.current.contains(target) &&
-        popoverRef.current && !popoverRef.current.contains(target)
-      ) {
-        setOpen(false);
-      }
-    };
-    document.addEventListener("mousedown", handle);
-    document.addEventListener("touchstart", handle);
-    return () => {
-      document.removeEventListener("mousedown", handle);
-      document.removeEventListener("touchstart", handle);
-    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
   const selectColor = useCallback((color: string) => {
@@ -273,28 +156,38 @@ export function ColorInput({
   }, [hexInput, selectColor]);
 
   return (
-    <div ref={containerRef} className="relative inline-block">
+    <PopoverPrimitive.Root open={open} onOpenChange={setOpen}>
       {/* Swatch button */}
-      <button
-        type="button"
-        onClick={() => open ? setOpen(false) : openPopover()}
-        className={`${swatchPx} rounded-dpe-lg border-2 border-[var(--color-border)] cursor-pointer shrink-0 transition-all hover:border-[var(--color-primary)] hover:shadow-md hover:scale-105 active:scale-95`}
-        style={{
-          backgroundColor: isTransparentValue ? undefined : safeColor,
-          backgroundImage: isTransparentValue ? CHECKER_BG : undefined,
-          backgroundSize: isTransparentValue ? "8px 8px" : undefined,
-          boxShadow: "inset 0 0 0 1px rgba(0,0,0,0.1)",
-        }}
-        title={isTransparentValue ? "transparent" : safeColor}
-      />
+      <PopoverPrimitive.Trigger asChild>
+        <button
+          type="button"
+          className={`${swatchPx} rounded-le-md border border-le-ink-200 cursor-pointer shrink-0 transition-colors hover:border-le-ink-400`}
+          style={{
+            backgroundColor: isTransparentValue ? undefined : safeColor,
+            backgroundImage: isTransparentValue ? CHECKER_BG : undefined,
+            backgroundSize: isTransparentValue ? "8px 8px" : undefined,
+            boxShadow: "inset 0 0 0 1px rgba(0,0,0,0.1)",
+          }}
+          title={isTransparentValue ? "transparent" : safeColor}
+        />
+      </PopoverPrimitive.Trigger>
 
-      {/* Popover — rendered via portal to escape overflow:hidden containers */}
-      {open && popoverPos && createPortal(
-        <div
-          ref={popoverRef}
+      {/* 자리는 Radix 가 잡는다 — 스와치 바로 아래에 붙이고, 자리가 없으면 알아서 뒤집는다.
+          예전에는 좌표를 손으로 재서 `fixed` 로 찍었는데, 스크롤되는 패널 안에서 스와치와
+          어긋난 자리에 떴다.
+
+          포털은 body 로 나가므로 편집기 뿌리 딱지를 다시 달아 준다 — 안 달면 소비자 앱이
+          `[data-le-root]` 로 좁혀 둔 색·모서리 토큰이 이 팝오버에만 안 먹어서, 각진
+          인스펙터 위에 둥근 카드가 하나 뜬다. */}
+      <PopoverPrimitive.Portal>
+        <PopoverPrimitive.Content
           data-layer-panel
-          className={`fixed z-[200] w-56 bg-[var(--color-background)] border border-[var(--color-border)] rounded-dpe-xl shadow-lg p-3 space-y-2.5 transition-opacity duration-75 ${measured ? "opacity-100" : "opacity-0 pointer-events-none"}`}
-          style={{ top: popoverPos.top, left: popoverPos.left }}
+          data-le-root=""
+          side="bottom"
+          align="start"
+          sideOffset={6}
+          collisionPadding={8}
+          className="z-[200] w-56 bg-le-surface border border-le-ink-200 rounded-le-md shadow-[0_12px_40px_rgba(0,0,0,0.16)] p-3 space-y-2.5"
         >
           {/* Transparent + Preset palette */}
           <div className="grid grid-cols-6 gap-1.5">
@@ -302,7 +195,7 @@ export function ColorInput({
               <button
                 type="button"
                 onClick={() => selectColor("transparent")}
-                className={`w-7 h-7 rounded-dpe-md border transition-transform hover:scale-110 active:scale-95 relative overflow-hidden ${
+                className={`w-7 h-7 rounded-le-md border transition-colors relative overflow-hidden ${
                   isTransparentValue ? "border-[var(--color-primary)] ring-1 ring-[var(--color-primary)]" : "border-[var(--color-border)]"
                 }`}
                 style={{ backgroundImage: CHECKER_BG, backgroundSize: "8px 8px" }}
@@ -310,7 +203,7 @@ export function ColorInput({
               >
                 {/* Diagonal line to indicate "none/transparent" */}
                 <span className="absolute inset-0 flex items-center justify-center">
-                  <span className="block w-[130%] h-px bg-dpe-danger-500 rotate-45" />
+                  <span className="block w-[130%] h-px bg-le-danger-500 rotate-45" />
                 </span>
               </button>
             )}
@@ -319,7 +212,7 @@ export function ColorInput({
                 key={color}
                 type="button"
                 onClick={() => selectColor(color)}
-                className={`w-7 h-7 rounded-dpe-md border transition-transform hover:scale-110 active:scale-95 ${
+                className={`w-7 h-7 rounded-le-md border transition-colors ${
                   !isTransparentValue && safeColor.toUpperCase() === color ? "border-[var(--color-primary)] ring-1 ring-[var(--color-primary)]" : "border-[var(--color-border)]"
                 }`}
                 style={{ backgroundColor: color }}
@@ -338,13 +231,13 @@ export function ColorInput({
                     key={color}
                     type="button"
                     onClick={() => selectColor(color)}
-                    className={`size-5 rounded-dpe-md border transition-transform hover:scale-110 active:scale-95 ${
+                    className={`size-5 rounded-le-md border transition-colors ${
                       !isTransparentValue && safeColor.toUpperCase() === color ? "border-[var(--color-primary)] ring-1 ring-[var(--color-primary)]" : "border-[var(--color-border)]"
                     }`}
                     style={{ backgroundColor: color }}
                   />
                 ) : (
-                  <span key={idx} className="size-5 rounded-dpe-md border border-transparent" />
+                  <span key={idx} className="size-5 rounded-le-md border border-transparent" />
                 );
               })}
             </div>
@@ -356,7 +249,7 @@ export function ColorInput({
               <button
                 type="button"
                 onClick={openEyeDropper}
-                className="flex shrink-0 items-center gap-1 rounded-dpe-lg px-1.5 py-1.5 text-[11px] text-[var(--color-text-secondary)] transition-colors hover:bg-[var(--color-surface)] hover:text-[var(--color-text-primary)]"
+                className="flex shrink-0 items-center gap-1 rounded-le-md px-1.5 py-1.5 text-[11px] text-[var(--color-text-secondary)] transition-colors hover:bg-[var(--color-surface)] hover:text-[var(--color-text-primary)]"
                 title={t("cardnews.colorInput.eyedropper")}
               >
                 <Pipette className="w-3.5 h-3.5" />
@@ -369,12 +262,11 @@ export function ColorInput({
               onChange={(e) => setHexInput(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && handleHexSubmit()}
               placeholder="#000000"
-              className="min-w-0 flex-1 rounded-dpe-lg border border-[var(--color-border)] px-2 py-1.5 text-xs font-mono focus:outline-none focus:border-[var(--color-primary)]"
+              className="min-w-0 flex-1 rounded-le-md border border-le-ink-200 bg-le-surface px-2 py-1.5 text-xs font-mono text-le-ink-900 focus:outline-none focus:border-le-ink-400"
             />
           </div>
-        </div>,
-        document.body
-      )}
-    </div>
+        </PopoverPrimitive.Content>
+      </PopoverPrimitive.Portal>
+    </PopoverPrimitive.Root>
   );
 }

@@ -415,30 +415,30 @@ export function DetailPageKonvaJsonPreview({
   const scale = 0.48;
 
   return (
-    <div className="h-screen overflow-auto bg-dpe-ink-100">
-      <div className="sticky top-0 z-10 flex h-12 items-center justify-between border-b border-dpe-ink-200 bg-dpe-surface px-4">
+    <div className="h-screen overflow-auto bg-le-ink-100">
+      <div className="sticky top-0 z-10 flex h-12 items-center justify-between border-b border-le-ink-200 bg-le-surface px-4">
         <div>
-          <p className="text-sm font-dpe-semibold text-dpe-ink-950">Native Konva JSON Preview</p>
-          <p className="text-xs text-dpe-ink-500">
+          <p className="text-sm font-le-semibold text-le-ink-950">Native Konva JSON Preview</p>
+          <p className="text-xs text-le-ink-500">
             Canvas 없이 JSON을 직접 렌더링하는 최소 fallback
           </p>
         </div>
         <button
           type="button"
           onClick={() => setShowSlots((value) => !value)}
-          className="inline-flex h-8 items-center rounded-dpe-md border border-dpe-ink-200 px-3 text-xs font-dpe-semibold text-dpe-ink-700"
+          className="inline-flex h-8 items-center rounded-le-md border border-le-ink-200 px-3 text-xs font-le-semibold text-le-ink-700"
         >
           {showSlots ? "Hide slots" : "Show slots"}
         </button>
       </div>
       <div className="mx-auto flex w-full max-w-[480px] flex-col gap-6 px-4 py-6">
         {pages.map((page, pageIndex) => (
-          <section key={page.id} className="overflow-hidden rounded-dpe-md border border-dpe-ink-200 bg-dpe-surface shadow-sm">
-            <div className="flex items-center justify-between border-b border-dpe-ink-200 px-3 py-2">
-              <span className="text-xs font-dpe-semibold text-dpe-ink-800">
+          <section key={page.id} className="overflow-hidden rounded-le-md border border-le-ink-200 bg-le-surface shadow-sm">
+            <div className="flex items-center justify-between border-b border-le-ink-200 px-3 py-2">
+              <span className="text-xs font-le-semibold text-le-ink-800">
                 {page.id || `page-${pageIndex + 1}`}
               </span>
-              <span className="text-xs text-dpe-ink-500">
+              <span className="text-xs text-le-ink-500">
                 {Math.round(page.width)} x {Math.round(page.height)}
               </span>
             </div>

@@ -228,12 +228,12 @@ export function SelectionQuickToolbar({
     >
       <div
         ref={barRef}
-        className="flex items-center gap-0.5 rounded-dpe-xl border border-dpe-ink-200 bg-dpe-surface/95 px-1 py-1 shadow-md backdrop-blur-sm"
+        className="flex items-center gap-0.5 rounded-le-xl border border-le-ink-200 bg-le-surface/95 px-1 py-1 shadow-md backdrop-blur-sm"
       >
         {items.map((item) => (
           <div key={item.key} className="flex items-center">
             {item.separated ? (
-              <span className="mx-1 h-5 w-px bg-dpe-ink-200" aria-hidden="true" />
+              <span className="mx-1 h-5 w-px bg-le-ink-200" aria-hidden="true" />
             ) : null}
             <button
               type="button"
@@ -244,12 +244,12 @@ export function SelectionQuickToolbar({
               disabled={item.disabled}
               onClick={item.onClick}
               className={[
-                "flex h-8 items-center gap-1.5 rounded-dpe-lg px-2 text-[13px] font-dpe-medium transition-colors",
+                "flex h-8 items-center gap-1.5 rounded-le-lg px-2 text-[13px] font-le-medium transition-colors",
                 item.disabled
-                  ? "cursor-not-allowed text-dpe-ink-300"
+                  ? "cursor-not-allowed text-le-ink-300"
                   : item.active
-                    ? "bg-dpe-ink-100 text-dpe-ink-900"
-                    : "text-dpe-ink-700 hover:bg-dpe-ink-100 hover:text-dpe-ink-900",
+                    ? "bg-le-ink-100 text-le-ink-900"
+                    : "text-le-ink-700 hover:bg-le-ink-100 hover:text-le-ink-900",
               ].join(" ")}
             >
               {item.icon}

@@ -62,12 +62,12 @@ export function GifEffectPicker({
           disabled={disabled}
           aria-label={label}
           aria-expanded={open}
-          className="flex min-w-0 items-center justify-between gap-2 rounded-dpe-md border border-dpe-ink-200 bg-dpe-surface px-2 py-1.5 text-left text-sm text-dpe-ink-900 outline-none hover:bg-dpe-ink-50 focus:border-dpe-ink-400 disabled:cursor-not-allowed disabled:opacity-50"
+          className="flex min-w-0 items-center justify-between gap-2 rounded-le-md border border-le-ink-200 bg-le-surface px-2 py-1.5 text-left text-sm text-le-ink-900 outline-none hover:bg-le-ink-50 focus:border-le-ink-400 disabled:cursor-not-allowed disabled:opacity-50"
         >
           <span className="min-w-0 truncate">{selected?.label ?? value}</span>
           <ChevronDown
             aria-hidden="true"
-            className="shrink-0 text-dpe-ink-400"
+            className="shrink-0 text-le-ink-400"
             size={14}
           />
         </button>
@@ -78,13 +78,13 @@ export function GifEffectPicker({
           align="start"
           sideOffset={8}
           collisionPadding={12}
-          className="z-[120] w-[300px] overflow-hidden rounded-dpe-lg border border-dpe-ink-200 bg-dpe-surface shadow-[0_10px_32px_rgba(0,0,0,0.14)]"
+          className="z-[120] w-[300px] overflow-hidden rounded-le-lg border border-le-ink-200 bg-le-surface shadow-[0_10px_32px_rgba(0,0,0,0.14)]"
         >
           <div className="max-h-[420px] overflow-y-auto p-1">
             {groups.map((group) => (
               <div key={group.name || "default"}>
                 {group.name ? (
-                  <p className="px-2 pb-1 pt-2 text-[10px] font-dpe-semibold uppercase tracking-[0.06em] text-dpe-ink-400">
+                  <p className="px-2 pb-1 pt-2 text-[10px] font-le-semibold uppercase tracking-[0.06em] text-le-ink-400">
                     {group.name}
                   </p>
                 ) : null}
@@ -97,9 +97,9 @@ export function GifEffectPicker({
                       onChange(option.id);
                       setOpen(false);
                     }}
-                    className="flex w-full items-center gap-2 rounded-dpe-md px-2 py-1.5 text-left hover:bg-dpe-ink-50"
+                    className="flex w-full items-center gap-2 rounded-le-md px-2 py-1.5 text-left hover:bg-le-ink-50"
                   >
-                    <span className="flex h-12 w-[92px] shrink-0 items-center justify-center overflow-hidden rounded border border-dpe-ink-100 bg-dpe-ink-50">
+                    <span className="flex h-12 w-[92px] shrink-0 items-center justify-center overflow-hidden rounded border border-le-ink-100 bg-le-ink-50">
                       {/* 미리보기는 움직여야 의미가 있다 — 최적화(정지 프레임 변환)를 끈다. */}
                       <Image
                         src={option.previewSrc}
@@ -111,11 +111,11 @@ export function GifEffectPicker({
                       />
                     </span>
                     <span className="min-w-0 flex-1">
-                      <span className="block truncate text-sm text-dpe-ink-900">
+                      <span className="block truncate text-sm text-le-ink-900">
                         {option.label}
                       </span>
                       {option.hint ? (
-                        <span className="mt-0.5 block text-[11px] leading-4 text-dpe-ink-400">
+                        <span className="mt-0.5 block text-[11px] leading-4 text-le-ink-400">
                           {option.hint}
                         </span>
                       ) : null}
@@ -128,7 +128,7 @@ export function GifEffectPicker({
               </div>
             ))}
           </div>
-          <PopoverPrimitive.Arrow className="fill-dpe-on-accent" />
+          <PopoverPrimitive.Arrow className="fill-le-on-accent" />
         </PopoverPrimitive.Content>
       </PopoverPrimitive.Portal>
     </PopoverPrimitive.Root>

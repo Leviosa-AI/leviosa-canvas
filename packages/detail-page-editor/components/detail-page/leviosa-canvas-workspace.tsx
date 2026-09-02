@@ -22,6 +22,7 @@ import {
   useMemo,
   useRef,
   useState,
+  useSyncExternalStore,
   type ReactNode,
 } from "react";
 
@@ -36,6 +37,12 @@ import {
   pagesTimelineVisible,
 } from "./detail-page-pages-timeline";
 import { detailPageThumbnailBus } from "./detail-page-thumbnail-bus";
+import { FrameDragGrip } from "./frame-drag-grip";
+import {
+  getFrameInsert,
+  subscribeFrameInsert,
+} from "./frame-drag-bus";
+import { FrameDragLayer } from "./frame-drag-layer";
 import { GifAnimator } from "./gif-animator";
 import { GroupDrillIn } from "./group-drill-in";
 import { HoverHighlightOverlay } from "./hover-highlight-overlay";
@@ -43,6 +50,15 @@ import { CanvasSectionHeightHandle } from "./section-height-handle";
 import { loadEditorFont } from "../../lib/detail-page-canvas/editor-fonts";
 import { ZoomButtons } from "@leviosa-ai/canvas";
 import { CanvasView } from "@leviosa-ai/canvas/render/canvas-view";
+import {
+  frameOf,
+  frameVanished,
+  groupFrames,
+} from "@leviosa-ai/canvas/render/frames";
+import {
+  DetailPageFrameHeader,
+  FRAME_HEAD_HEIGHT,
+} from "./detail-page-frame-header";
 import { useCanvasVersion } from "@leviosa-ai/canvas/use-canvas";
 import type { CanvasStore } from "@leviosa-ai/canvas/store";
 
@@ -50,6 +66,24 @@ const MIN_SCALE = 0.05;
 const MAX_SCALE = 5;
 const clamp = (v: number, lo: number, hi: number) =>
   Math.max(lo, Math.min(hi, v));
+
+/**
+ * 벌 사이 거리 — **판 좌표**로 잰다.
+ *
+ * 화면 px 로 고정하면 확대했을 때는 붙어 보이고 축소했을 때는 벌어져 보인다. 판
+ * 하나가 1080 인 캐러셀에서 이 값은 판의 4분의 1쯤이라, 어느 배율에서 보든 «저건
+ * 다른 벌»이 한눈에 잡힌다.
+ */
+const FRAME_GAP_DOC = 240;
+
+/**
+ * 벌 위의 줄이 설 자리(화면 px).
+ *
+ * 그 줄은 흰 판 **밖**, 회색 바닥 위에 앉는다 — 작업물을 안 가리는 자리이고 피그마가
+ * 프레임 이름을 두는 자리다. 대신 작업 영역 위쪽에 그만큼을 비워 둬야 한다. 안 그러면
+ * 스크롤 영역 바깥으로 잘려서 아예 안 보인다(실제로 그렇게 사라져 있었다).
+ */
+const FRAME_HEAD = FRAME_HEAD_HEIGHT + 6;
 
 /** 썸네일 해상도. 페이지 패널의 칸이 작아 이 정도면 충분하다. */
 const THUMB_PIXEL_RATIO = 0.12;
@@ -62,12 +96,18 @@ export function LeviosaCanvasWorkspace({
   gap = 4,
   paddingX = 16,
   backgroundColor = "rgb(241, 241, 241)",
+  chosenFrame,
+  onChooseFrame,
   children,
 }: {
   store: CanvasStore;
   gap?: number;
   paddingX?: number;
   backgroundColor?: string;
+  /** 결과물이 될 벌. 내려받기·발행이 향하는 곳이다. */
+  chosenFrame?: string;
+  /** 안 주면 체크박스를 안 그린다 — 고를 것이 없는 문서도 있다. */
+  onChooseFrame?: (frameKey: string) => void;
   /** 작업 영역 위에 얹을 것(찾기·바꾸기 같은 편집기 고유 층). */
   children?: ReactNode;
 }) {
@@ -108,8 +148,21 @@ export function LeviosaCanvasWorkspace({
     const page = store.activePage ?? store.pages[0];
     const usableW = Math.max(1, viewport.width - 2 * paddingX);
     const usableH = Math.max(1, viewport.height - 2 * gap);
+    // 프레임이 여럿이면 **열 전체**가 가로로 들어와야 한다 — 한 벌만 보이면
+    // 나란히 놓은 뜻이 없다. 세로는 여전히 한 장 기준이다: 시안 하나가 스무
+    // 장이 넘는 상세페이지에서 기둥 전체를 넣으면 아무것도 안 읽힌다.
+    const frames = groupFrames(store.pages);
+    const spread =
+      frames.length > 1
+        ? frames.reduce(
+            (sum, frame) =>
+              sum + Math.max(1, ...frame.pages.map((one) => one.width)),
+            0,
+          ) +
+          (frames.length - 1) * FRAME_GAP_DOC
+        : page.width;
     const next = clamp(
-      Math.min(usableW / page.width, usableH / page.height) * 0.94,
+      Math.min(usableW / spread, usableH / page.height) * 0.94,
       MIN_SCALE,
       MAX_SCALE,
     );
@@ -152,26 +205,66 @@ export function LeviosaCanvasWorkspace({
   const recomputeActive = useCallback(() => {
     const inner = innerRef.current;
     if (!inner) return;
-    const middle = inner.getBoundingClientRect().top + inner.clientHeight / 2;
+    // 화면 한가운데를 **점으로** 잡는다. 열이 하나뿐이던 때는 세로만 봐도 답이
+    // 하나였지만, 열이 여럿이면 그 높이를 지나는 페이지가 열 수만큼 나온다 —
+    // 세로만 보면 언제나 맨 왼쪽 열이 이겨서 다른 벌을 고를 수가 없다.
+    const frame = inner.getBoundingClientRect();
+    const cx = frame.left + inner.clientWidth / 2;
+    const cy = frame.top + inner.clientHeight / 2;
+    // **벌은 스크롤로 안 바뀐다.** 벌을 고르는 것은 그 안을 누르는 일이지 지나가는
+    // 일이 아니다 — 빈 자리를 잡아 화면을 옮겼을 뿐인데 «대표로 지정»이 다른 벌로
+    // 건너뛰면 어디를 보고 있는지 알 수가 없다. 같은 벌 안에서 어느 판을 보고 있는지만
+    // 따라간다. 꼬리표 없는 문서는 전부가 한 벌이라 지금까지와 똑같다.
+    const current = frameOf(store.activePage ?? store.pages[0] ?? {});
     const nodes = Array.from(
       inner.querySelectorAll<HTMLElement>("[data-lc-page]"),
+    ).filter((node) => {
+      const page = node.dataset.lcPage
+        ? store.getPageById(node.dataset.lcPage)
+        : null;
+      return page ? frameOf(page) === current : false;
+    });
+    const distance = (node: HTMLElement) => {
+      const box = node.getBoundingClientRect();
+      const dx = Math.max(box.left - cx, 0, cx - box.right);
+      const dy = Math.max(box.top - cy, 0, cy - box.bottom);
+      return dx * dx + dy * dy;
+    };
+    // 가운데를 품은 페이지는 거리가 0이라 그대로 이긴다. 아무것도 안 품으면
+    // (확대해서 빈 자리를 보고 있을 때) 제일 가까운 것으로 떨어진다.
+    const hit = nodes.reduce<HTMLElement | undefined>(
+      (best, node) =>
+        !best || distance(node) < distance(best) ? node : best,
+      undefined,
     );
-    const hit =
-      nodes.find((node) => {
-        const box = node.getBoundingClientRect();
-        return box.top <= middle && box.bottom >= middle;
-      }) ?? nodes[0];
     const id = hit?.dataset.lcPage;
     if (!id || store.activePage?.id === id) return;
     scrollSetId.current = id;
     store.selectPage(id);
   }, [store]);
 
+  /**
+   * 고른 요소가 있으면 «보고 있는 벌»은 손이 가 있는 곳이지 화면 가운데가 아니다.
+   *
+   * 이게 없으면 4번 벌의 요소를 집는 순간 그 선택이 활성 페이지를 옮기고, 그 때문에
+   * 화면이 스르륵 움직이고, 그 스크롤이 가운데에 있는 2번 벌을 다시 활성으로 만든다 —
+   * 집은 것은 4번인데 «대표로 지정»은 2번 위에 뜬다.
+   */
+  const holding = store.selectedElementsIds.length > 0;
+  /** 고른 요소가 놓인 페이지. 활성 화면이 여기로 온 것이면 손으로 누른 것이다. */
+  const heldPageId =
+    store.pageOfElement(store.selectedElementsIds[0] ?? "")?.id ?? null;
+
   const scrollRaf = useRef<number | null>(null);
+  const holdingRef = useRef(holding);
+  holdingRef.current = holding;
+  const heldPageIdRef = useRef(heldPageId);
+  heldPageIdRef.current = heldPageId;
   const onScroll = useCallback(() => {
     if (scrollRaf.current != null) return;
     scrollRaf.current = requestAnimationFrame(() => {
       scrollRaf.current = null;
+      if (holdingRef.current) return;
       recomputeActive();
     });
   }, [recomputeActive]);
@@ -181,6 +274,13 @@ export function LeviosaCanvasWorkspace({
   useEffect(() => {
     const inner = innerRef.current;
     if (!inner || !activeId || activeId === scrollSetId.current) return;
+    // 캔버스에서 요소를 집어 활성 화면이 바뀐 것이면 옮기지 않는다. 방금 손으로
+    // 누른 것이라 이미 보고 있고, 여기서 화면을 움직이면 누를 때마다 밑이 흔들린다.
+    // 목록에서 고른 때만 데려간다.
+    if (activeId === heldPageIdRef.current) {
+      scrollSetId.current = activeId;
+      return;
+    }
     scrollSetId.current = activeId;
     const node = inner.querySelector<HTMLElement>(
       `[data-lc-page="${CSS.escape(activeId)}"]`,
@@ -197,29 +297,94 @@ export function LeviosaCanvasWorkspace({
   // 굽는 동안 그 페이지를 화면 밖에서도 그려야 해서다 — 30장을 한꺼번에 띄우면
   // 브라우저가 멈춘다.
   const panelOpen = store.openedSidePanel === "pages";
+  const panelOpenRef = useRef(panelOpen);
+  panelOpenRef.current = panelOpen;
+  const dirtyThumbnailIds = useRef(new Set<string>());
+  const [thumbnailRevision, setThumbnailRevision] = useState(0);
+
+  // 요소 속성 변경은 page.version을 올리지 않는다. 문서 변경 알림에서 현재 페이지만
+  // 더럽다고 적어 두고, 패널이 열려 있을 때만 아래 굽기 작업을 깨운다.
+  useEffect(
+    () =>
+      store.on("change", () => {
+        const id = store.activePage?.id;
+        if (id) dirtyThumbnailIds.current.add(id);
+        if (panelOpenRef.current) setThumbnailRevision((value) => value + 1);
+      }),
+    [store],
+  );
+
   useEffect(() => {
     if (!panelOpen) return;
     let cancelled = false;
-    void (async () => {
-      for (const page of store.pages) {
-        if (cancelled) return;
-        if (detailPageThumbnailBus.has(page.id)) continue;
-        try {
-          const uri = await store.toDataURL({
-            pageId: page.id,
-            pixelRatio: THUMB_PIXEL_RATIO,
-          });
+    // 타이핑·드래그 중 매 프레임 다시 굽지 않고, 손을 잠깐 놓았을 때 바뀐 페이지만 굽는다.
+    const timer = window.setTimeout(() => {
+      void (async () => {
+        for (const page of store.pages) {
           if (cancelled) return;
-          detailPageThumbnailBus.set(page.id, uri);
-        } catch {
-          // 못 구운 페이지는 다음에 다시 시도한다(패널을 다시 열면 온다).
+          if (
+            !dirtyThumbnailIds.current.has(page.id) &&
+            detailPageThumbnailBus.has(store, page.id)
+          ) {
+            continue;
+          }
+          try {
+            const uri = await store.toDataURL({
+              pageId: page.id,
+              pixelRatio: THUMB_PIXEL_RATIO,
+            });
+            if (cancelled) return;
+            dirtyThumbnailIds.current.delete(page.id);
+            detailPageThumbnailBus.set(store, page.id, uri);
+          } catch {
+            // 못 구운 페이지는 다음에 다시 시도한다(패널을 다시 열면 온다).
+          }
         }
-      }
-    })();
+      })();
+    }, 250);
     return () => {
       cancelled = true;
+      window.clearTimeout(timer);
     };
-  }, [panelOpen, pageIds, store]);
+  }, [panelOpen, pageIds, store, thumbnailRevision]);
+
+  const frames = groupFrames(store.pages);
+  const frameCount = frames.length;
+
+  /**
+   * 벌 하나가 통째로 사라지면 **되돌릴 길을 띄운다.**
+   *
+   * 벌은 문서의 층이 아니라 판에 붙은 이름표라, 마지막 판을 옆 벌로 끌면 그 벌은 남을
+   * 자리가 없어 사라진다. 그게 틀린 결과는 아니다 — 남은 판이 없으니 열도 없다. 문제는
+   * 되돌릴 창이 짧다는 것이다: 자동저장은 이미 나갔고, 새로고침하면 되돌리기 기록이
+   * 없어져 실수로 끈 벌이 영영 안 돌아온다.
+   *
+   * 그래서 «막는» 대신 «돌아올 길»을 둔다. 끌기 층이 아니라 여기서 보는 이유는, 지우기와
+   * 끌기가 같은 자리에서 같은 결과를 내기 때문이다 — 벌이 몇 개 서 있는지는 이 화면이
+   * 이미 세고 있다.
+   */
+  const [emptied, setEmptied] = useState(false);
+  const frameKeys = frames.map((one) => one.key).join("\u0000");
+  const seenFrames = useRef(frameKeys);
+  useEffect(() => {
+    const before = seenFrames.current.split("\u0000").filter(Boolean);
+    const after = frameKeys.split("\u0000").filter(Boolean);
+    seenFrames.current = frameKeys;
+    if (frameVanished(before, after)) setEmptied(true);
+  }, [frameKeys]);
+  useEffect(() => {
+    if (!emptied) return;
+    const timer = window.setTimeout(() => setEmptied(false), 10_000);
+    return () => window.clearTimeout(timer);
+  }, [emptied]);
+  // 끼어들 자리는 끌기 층이 정하고, 빈칸은 판을 그리는 쪽이 흐름 안에 넣는다.
+  const frameInsert = useSyncExternalStore(
+    subscribeFrameInsert,
+    getFrameInsert,
+    () => null,
+  );
+  // 보고 있는 벌 — 활성 페이지가 속한 벌이다. 목록·아래 띠가 보는 것과 같다.
+  const activeFrame = frameOf(store.activePage ?? store.pages[0] ?? {});
 
   const pageWidth = useMemo(
     () => Math.max(1, ...store.pages.map((page) => page.width)),
@@ -249,27 +414,68 @@ export function LeviosaCanvasWorkspace({
           // 페이지 바깥의 빈 자리를 누르면 선택 해제. 페이지 안은 캔버스가 처리한다.
           const target = event.target as HTMLElement;
           if (
-            !target.closest("[data-lc-page]") &&
-            !target.closest("[data-dp-quicktoolbar]")
+            target.closest("[data-lc-page]") ||
+            target.closest("[data-dp-quicktoolbar]")
           ) {
-            store.selectElements([]);
+            return;
           }
+          store.selectElements([]);
+          // 판 밖이어도 벌의 빈 자리를 눌렀으면 그 벌로 간다 — 이름표를 없앴으니
+          // 여기가 «저 벌을 보겠다»고 말하는 유일한 자리다.
+          const key = target.closest<HTMLElement>("[data-lc-frame]")?.dataset
+            .lcFrame;
+          if (key === undefined) return;
+          const first = store.pages.find((page) => frameOf(page) === key);
+          if (first) store.selectPage(first.id);
         }}
         style={{
           position: "absolute",
           inset: 0,
-          overflowX: "hidden",
+          // 프레임이 하나뿐이면 예전 그대로다. 가운데 정렬은 내용이 넘칠 때
+          // 왼쪽으로 스크롤을 못 하게 만드는 자리라, 열이 여럿일 때는 왼쪽에
+          // 붙여 놓고 가로 스크롤을 연다.
+          overflowX: frameCount > 1 ? "auto" : "hidden",
           overflowY: "auto",
           display: "flex",
           flexDirection: "column",
-          alignItems: "center",
-          padding: `${gap}px ${paddingX}px`,
+          alignItems: frameCount > 1 ? "flex-start" : "center",
+          padding: `${frameCount > 1 ? gap + FRAME_HEAD : gap}px ${paddingX}px ${gap}px`,
         }}
       >
         <CanvasView
           store={store}
           scale={scale}
           gap={gap}
+          // 열이 여럿이면 가운데 정렬을 정렬 속성이 아니라 자동 여백으로 준다 —
+          // 축소해서 남는 자리가 생겨도 가운데를 지키고, 커져도 스크롤이 산다.
+          center={frameCount > 1}
+          // 손잡이는 판 상자 **안**에 산다. 밖에서 자리를 재어 띄우면 손이 다가가는
+          // 동안 «판 밖»을 지나며 깜빡인다.
+          renderPageChrome={
+            frameCount > 1 ? (id) => <FrameDragGrip pageId={id} /> : undefined
+          }
+          frameGap={FRAME_GAP_DOC * scale}
+          frameInsert={frameInsert}
+          renderFrameHeader={(key) => (
+            <DetailPageFrameHeader
+              chosen={key === chosenFrame}
+              selected={key === activeFrame}
+              onChoose={onChooseFrame ? () => onChooseFrame(key) : undefined}
+            />
+          )}
+          frameStyle={(key) => ({
+            padding: 8,
+            borderRadius: 10,
+            // 회색 바닥 위의 **흰 판** — 피그마의 프레임이 그렇다. 판을 얹을 자리가
+            // 밝아야 «저기서 저기까지가 한 벌»이 읽힌다.
+            background: "#ffffff",
+            border: `1px solid ${key === activeFrame ? "rgba(0,0,0,0.45)" : "rgba(0,0,0,0.10)"}`,
+            // **흐리게 하지 않는다.** 한때 «보고 있거나 대표인 것만 선명»으로 뒀는데,
+            // 이 화면은 후보를 **견주는** 자리다 — 넷 중 둘이 바래 있으면 견줄 수가
+            // 없고, 판을 옮기면 색이 달라져서 옮긴 것이 변한 것처럼 보인다.
+            // 무엇이 나가는지는 «대표» 표가, 무엇을 보고 있는지는 테두리가 이미 말한다.
+            transition: "border-color 0.15s ease",
+          })}
           interactive
           loadFont={loadEditorFont}
         />
@@ -295,7 +501,38 @@ export function LeviosaCanvasWorkspace({
         scrollRef={innerRef}
       />
       <GroupDrillIn store={store} containerRef={outerRef} />
+      {/* 판을 다른 벌로 끌어오는 층. 무대마다 캔버스가 따로라, 끌리는 동안 보이는
+          것은 무대가 아니라 그 위에 뜬 이 층이 그린다. */}
+      <FrameDragLayer store={store} containerRef={outerRef} />
       <GifAnimator store={store} />
+
+      {/* 벌 하나가 사라졌을 때의 «되돌리기». 아래 띠 위에 앉힌다 — 그 자리는 배율과
+          삽입이 이미 쓰고 있어 눈이 가 있다. 열 초 뒤에 스스로 사라진다. */}
+      {emptied ? (
+        <div
+          style={{
+            position: "absolute",
+            left: "50%",
+            bottom: 64,
+            transform: "translateX(-50%)",
+            zIndex: 45,
+            boxShadow: "0 6px 20px rgba(0, 0, 0, 0.25)",
+          }}
+          className="flex items-center gap-2 rounded-le-md bg-le-ink-900 px-3 py-2 text-[12px] text-le-on-accent"
+        >
+          <span>한 벌이 비어 사라졌습니다.</span>
+          <button
+            type="button"
+            className="font-le-semibold underline underline-offset-2"
+            onClick={() => {
+              store.history.undo();
+              setEmptied(false);
+            }}
+          >
+            되돌리기
+          </button>
+        </div>
+      ) : null}
       {/* 활성 화면의 아래 끝을 잡아 끌어 길이를 바꾸는 손잡이. 우측 패널의 숫자와
           같은 함수를 거친다(`section-height.ts`) — 배경 요소까지 같이 늘리고 서버
           굽기 상한 안에 가둔다. */}
@@ -334,7 +571,7 @@ export function LeviosaCanvasWorkspace({
         <div
           data-dp-zoom-dock=""
           style={{ position: "absolute", right: DOCK_GAP, pointerEvents: "auto" }}
-          className="rounded-dpe-lg border border-dpe-ink-200 bg-dpe-surface/95 px-2 py-1 shadow-sm backdrop-blur-sm"
+          className="rounded-le-lg border border-le-ink-200 bg-le-surface/95 px-2 py-1 shadow-sm backdrop-blur-sm"
         >
           <ZoomButtons store={store} />
         </div>

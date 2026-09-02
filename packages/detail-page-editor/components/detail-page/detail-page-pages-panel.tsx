@@ -1,6 +1,7 @@
 "use client";
 
 import { detailPageEditorProfile } from "../../lib/detail-page/editor-profile";
+import { activeFramePages } from "../../lib/detail-page/frame-pages";
 
 import { Fragment, useCallback, useSyncExternalStore } from "react";
 import { observer } from "./canvas-observer";
@@ -135,11 +136,11 @@ function InsertHere({
         onClick={insert}
         className="absolute inset-x-0 top-0 flex h-3 items-center justify-center"
       >
-        <span className="h-px flex-1 bg-dpe-ink-200 opacity-0 transition-opacity group-hover/insert:opacity-100" />
-        <span className="mx-1 flex h-4 w-4 items-center justify-center rounded-full border border-dpe-ink-200 bg-dpe-surface text-dpe-ink-500 opacity-0 transition-opacity group-hover/insert:opacity-100">
+        <span className="h-px flex-1 bg-le-ink-200 opacity-0 transition-opacity group-hover/insert:opacity-100" />
+        <span className="mx-1 flex h-4 w-4 items-center justify-center rounded-full border border-le-ink-200 bg-le-surface text-le-ink-500 opacity-0 transition-opacity group-hover/insert:opacity-100">
           <Plus aria-hidden="true" size={11} />
         </span>
-        <span className="h-px flex-1 bg-dpe-ink-200 opacity-0 transition-opacity group-hover/insert:opacity-100" />
+        <span className="h-px flex-1 bg-le-ink-200 opacity-0 transition-opacity group-hover/insert:opacity-100" />
       </button>
     </div>
   );
@@ -151,11 +152,14 @@ const PageRow = observer(function PageRow({
   store,
   page,
   index,
+  canDuplicate,
   thumb,
 }: {
   store: StoreLike;
   page: PageLike;
   index: number;
+  /** 이 벌에 한 장을 더 넣을 수 있는가. 세는 것은 목록이 한다. */
+  canDuplicate: boolean;
   thumb: string | undefined;
 }) {
   const { t } = useTranslation("branding");
@@ -171,7 +175,6 @@ const PageRow = observer(function PageRow({
   const active = store.activePage?.id === page.id;
   const ratio = page.computedHeight / Math.max(1, page.computedWidth);
   const { role, title } = pageLabel(page, index, t);
-  const maxPages = detailPageEditorProfile().maxPages;
 
   const style: React.CSSProperties = {
     transform: CSS.Transform.toString(transform),
@@ -190,12 +193,12 @@ const PageRow = observer(function PageRow({
         if (!isDragging) store.selectPage(page.id);
       }}
       className={[
-        "select-none rounded-dpe-xl border bg-dpe-surface p-2 transition-shadow",
+        "select-none rounded-le-xl border bg-le-surface p-2 transition-shadow",
         isDragging
-          ? "border-dpe-ink-800 shadow-lg"
+          ? "border-le-ink-800 shadow-lg"
           : active
-            ? "cursor-pointer border-dpe-ink-800 shadow-sm"
-            : "cursor-pointer border-dpe-ink-200 hover:border-dpe-ink-300",
+            ? "cursor-pointer border-le-ink-800 shadow-sm"
+            : "cursor-pointer border-le-ink-200 hover:border-le-ink-300",
       ].join(" ")}
     >
       <div className="flex items-center gap-2">
@@ -203,14 +206,14 @@ const PageRow = observer(function PageRow({
           {...listeners}
           aria-label={t("detailPage.pages.reorderHandle")}
           className={[
-            "shrink-0 touch-none rounded text-dpe-ink-300 hover:text-dpe-ink-500",
+            "shrink-0 touch-none rounded text-le-ink-300 hover:text-le-ink-500",
             isDragging ? "cursor-grabbing" : "cursor-grab",
           ].join(" ")}
         >
           <GripVertical aria-hidden="true" size={16} />
         </span>
         <div
-          className="relative shrink-0 overflow-hidden rounded-dpe-md border border-dpe-ink-100 bg-dpe-ink-50"
+          className="relative shrink-0 overflow-hidden rounded-le-md border border-le-ink-100 bg-le-ink-50"
           style={{ width: 64, height: Math.min(80, Math.max(40, 64 * ratio)) }}
         >
           {thumb ? (
@@ -225,11 +228,11 @@ const PageRow = observer(function PageRow({
         </div>
         <div className="min-w-0 flex-1">
           <p className="truncate text-sm">
-            <span className="text-dpe-ink-400">{role}</span>
+            <span className="text-le-ink-400">{role}</span>
             {title ? (
               <>
-                <span className="mx-1 text-dpe-ink-300">|</span>
-                <span className="font-dpe-bold text-dpe-ink-900">{title}</span>
+                <span className="mx-1 text-le-ink-300">|</span>
+                <span className="font-le-bold text-le-ink-900">{title}</span>
               </>
             ) : null}
           </p>
@@ -238,14 +241,14 @@ const PageRow = observer(function PageRow({
         <div className="flex shrink-0 flex-col gap-1">
           <button
             type="button"
-            disabled={store.pages.length >= maxPages}
+            disabled={!canDuplicate}
             onClick={(event) => {
               event.stopPropagation();
               page.clone?.();
             }}
             aria-label={t("detailPage.pageToolbar.duplicate")}
             title={t("detailPage.pageToolbar.duplicate")}
-            className="flex h-6 w-6 items-center justify-center rounded-dpe-md border border-dpe-ink-200 text-dpe-ink-500 hover:border-dpe-ink-400 hover:text-dpe-ink-800 disabled:cursor-not-allowed disabled:text-dpe-ink-200 disabled:hover:border-dpe-ink-200"
+            className="flex h-6 w-6 items-center justify-center rounded-le-md border border-le-ink-200 text-le-ink-500 hover:border-le-ink-400 hover:text-le-ink-800 disabled:cursor-not-allowed disabled:text-le-ink-200 disabled:hover:border-le-ink-200"
           >
             <Copy aria-hidden="true" size={13} />
           </button>
@@ -258,7 +261,7 @@ const PageRow = observer(function PageRow({
             }}
             aria-label={t("detailPage.pageToolbar.delete")}
             title={t("detailPage.pageToolbar.delete")}
-            className="flex h-6 w-6 items-center justify-center rounded-dpe-md border border-dpe-ink-200 text-dpe-ink-500 hover:border-dpe-ink-400 hover:text-dpe-danger-600 disabled:cursor-not-allowed disabled:text-dpe-ink-200 disabled:hover:border-dpe-ink-200"
+            className="flex h-6 w-6 items-center justify-center rounded-le-md border border-le-ink-200 text-le-ink-500 hover:border-le-ink-400 hover:text-le-danger-600 disabled:cursor-not-allowed disabled:text-le-ink-200 disabled:hover:border-le-ink-200"
           >
             <Trash2 aria-hidden="true" size={13} />
           </button>
@@ -311,24 +314,28 @@ export const DetailPagePagesPanel = observer(function DetailPagePagesPanel({
   // 합계가 곧 문서 높이지만, 캐러셀은 판이 따로따로라 합계가 아무 뜻이 없다 —
   // 8판짜리가 1080×10800 으로 보였다.
   const profile = detailPageEditorProfile();
-  const width = Math.round(s.pages[0]?.computedWidth ?? 0);
+  // 목록은 «지금 보고 있는 한 벌»만 담는다. 후보 넷을 담은 문서에서 마흔 줄을
+  // 늘어놓으면 어느 줄이 어느 벌인지 알 수가 없다.
+  const pages = activeFramePages(s.pages, s.activePage?.id);
+  const width = Math.round(pages[0]?.computedWidth ?? 0);
   const shownHeight = profile.page.fixed
     ? Math.round(
         typeof profile.page.height === "number"
           ? profile.page.height
-          : (s.pages[0]?.computedHeight ?? 0),
+          : (pages[0]?.computedHeight ?? 0),
       )
-    : Math.round(s.pages.reduce((acc, p) => acc + p.computedHeight, 0));
+    : Math.round(pages.reduce((acc, p) => acc + p.computedHeight, 0));
 
-  const canAdd = s.pages.length < profile.maxPages;
+  // 장 수 상한도 프레임마다다 — 한 벌이 열 장이라고 다른 벌까지 막을 이유가 없다.
+  const canAdd = pages.length < profile.maxPages;
 
   return (
     <div className="flex h-full flex-col">
       <div className="flex items-baseline justify-between px-4 py-3">
-        <p className="text-base font-dpe-bold text-dpe-ink-900">
-          {t("detailPage.pages.totalPages", { count: s.pages.length })}
+        <p className="text-base font-le-bold text-le-ink-900">
+          {t("detailPage.pages.totalPages", { count: pages.length })}
         </p>
-        <p className="text-xs text-dpe-ink-400">
+        <p className="text-xs text-le-ink-400">
           {width} × {shownHeight} px
         </p>
       </div>
@@ -341,17 +348,18 @@ export const DetailPagePagesPanel = observer(function DetailPagePagesPanel({
           onDragEnd={handleDragEnd}
         >
           <SortableContext
-            items={s.pages.map((p) => p.id)}
+            items={pages.map((p) => p.id)}
             strategy={verticalListSortingStrategy}
           >
             <div className="space-y-2">
-              {s.pages.map((page, index) => (
+              {pages.map((page, index) => (
                 <Fragment key={page.id}>
                   <PageRow
                     store={s}
                     page={page}
                     index={index}
-                    thumb={detailPageThumbnailBus.get(page.id)}
+                    canDuplicate={canAdd}
+                    thumb={detailPageThumbnailBus.get(s, page.id)}
                   />
                   {/* 새 화면은 «어디에» 가 먼저다. 목록 끝에 버튼 하나를 두면 넣고 나서
                       다시 끌어 옮기게 되므로, 넣을 자리마다 하나씩 둔다. */}

@@ -200,8 +200,11 @@ export const CanvasContextMenu = observer(function CanvasContextMenu({
       <div
         role="menu"
         data-dp-canvas-menu
+        // 포털이 body 로 나가 편집기 뿌리 밖에 놓인다 — 딱지를 다시 달아야 소비자 앱이
+        // `[data-le-root]` 로 좁혀 둔 색·모서리 토큰이 이 메뉴에도 먹는다.
+        data-le-root=""
         style={{ left, top, width: MENU_WIDTH }}
-        className="fixed z-[71] rounded-dpe-lg border border-dpe-ink-200 bg-dpe-surface py-1 shadow-lg"
+        className="fixed z-[71] rounded-le-lg border border-le-ink-200 bg-le-surface py-1 shadow-lg"
       >
         {items.map((item) => {
           const Icon = CANVAS_MENU_ICONS[item.action];
@@ -209,7 +212,7 @@ export const CanvasContextMenu = observer(function CanvasContextMenu({
           return (
             <div key={item.action}>
               {item.separated ? (
-                <div className="my-1 border-t border-dpe-ink-100" />
+                <div className="my-1 border-t border-le-ink-100" />
               ) : null}
               <button
                 type="button"
@@ -220,9 +223,9 @@ export const CanvasContextMenu = observer(function CanvasContextMenu({
                   runCanvasMenuAction(s, item.action);
                   close();
                 }}
-                className="flex h-[30px] w-full items-center gap-2.5 px-3 text-left text-[13px] text-dpe-ink-700 transition-colors hover:bg-dpe-ink-100 disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:bg-transparent"
+                className="flex h-[30px] w-full items-center gap-2.5 px-3 text-left text-[13px] text-le-ink-700 transition-colors hover:bg-le-ink-100 disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:bg-transparent"
               >
-                <Icon size={14} className="shrink-0 text-dpe-ink-500" />
+                <Icon size={14} className="shrink-0 text-le-ink-500" />
                 {label}
               </button>
             </div>

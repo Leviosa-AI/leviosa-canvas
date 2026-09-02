@@ -90,7 +90,7 @@ export function EditUsageBadge({
   if (unlimited) {
     return (
       <span
-        className="ml-auto text-[11px] tabular-nums text-dpe-ink-500"
+        className="ml-auto text-[11px] tabular-nums text-le-ink-500"
         title={t("detailPage.editQuota.unlimitedTitle")}
       >
         {t("detailPage.editQuota.usedUnlimited", { used })}
@@ -104,10 +104,10 @@ export function EditUsageBadge({
       className={
         "ml-auto text-[11px] tabular-nums " +
         (remaining === 0
-          ? "text-dpe-danger-600"
+          ? "text-le-danger-600"
           : warn
-            ? "text-dpe-warn-500"
-            : "text-dpe-ink-500")
+            ? "text-le-warn-500"
+            : "text-le-ink-500")
       }
       title={t("detailPage.editQuota.remainingTitle", { remaining })}
     >
@@ -130,17 +130,17 @@ export function EditQuotaBlock({
       : t("detailPage.editQuota.textEdit");
   return (
     <div className="flex flex-col items-center gap-2 px-4 py-4 text-center">
-      <p className="text-[13px] font-dpe-medium text-dpe-ink-900">
+      <p className="text-[13px] font-le-medium text-le-ink-900">
         {t("detailPage.editQuota.quotaExhausted", { label })}
       </p>
-      <p className="text-[11px] leading-4 text-dpe-ink-500">
+      <p className="text-[11px] leading-4 text-le-ink-500">
         {t("detailPage.editQuota.quotaHint")}
       </p>
       <button
         type="button"
         onClick={onBuyMore}
         disabled={!onBuyMore}
-        className="mt-1 inline-flex items-center gap-1.5 rounded-dpe-lg bg-dpe-ink-900 px-3 py-1.5 text-xs font-dpe-medium text-dpe-on-accent disabled:opacity-40"
+        className="mt-1 inline-flex items-center gap-1.5 rounded-le-lg bg-le-ink-900 px-3 py-1.5 text-xs font-le-medium text-le-on-accent disabled:opacity-40"
       >
         <Sparkles size={13} />
         {t("detailPage.editQuota.buyCredits")}

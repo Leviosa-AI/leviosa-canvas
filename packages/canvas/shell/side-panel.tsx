@@ -39,7 +39,7 @@ export type PanelTabProps = {
 };
 
 // 폭도 갈아 끼울 수 있게 변수로 낸다 — 좁은 레일을 쓰는 소비자가 있다.
-const RAIL_WIDTH = "var(--lc-rail-width, 76px)";
+const RAIL_WIDTH = "var(--lc-rail-width, 96px)";
 const PANEL_WIDTH = "var(--lc-panel-width, 320px)";
 
 /**
@@ -67,7 +67,7 @@ export function SectionTab({
         flexDirection: "column",
         alignItems: "center",
         gap: 5,
-        padding: "12px 4px",
+        padding: "12px 6px",
         border: "none",
         background: active
           ? "var(--lc-tab-active-bg, rgba(37, 99, 235, 0.1))"
@@ -77,7 +77,11 @@ export function SectionTab({
           : "var(--lc-tab-fg, #525252)",
         fontSize: 12,
         lineHeight: 1.2,
-        whiteSpace: "pre",
+        // 한 줄로 못 박으면(`pre`) 레일보다 긴 이름이 그대로 넘쳐 화면 왼쪽에서 잘린다
+        // ("브랜드 이미지"). 넘칠 때는 접히게 두되 한글 낱자는 안 쪼갠다.
+        whiteSpace: "normal",
+        wordBreak: "keep-all",
+        textAlign: "center",
         cursor: "pointer",
       }}
     >

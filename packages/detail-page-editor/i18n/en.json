@@ -888,6 +888,16 @@
         "texts": "Rewrite every text in this group with one prompt.",
         "shapes": "Redraw every shape in this group with one prompt.",
         "both": "Rewrite the texts and redraw the shapes in this group with one prompt."
+      },
+      "references": {
+        "untitled": "Detail page",
+        "saveThis": "Save this detail page as a reference",
+        "saved": "Saved as a reference ({{count}} screens).",
+        "saveFailed": "Could not save it as a reference.",
+        "pickBrand": "Pick a brand first.",
+        "loadFailed": "Could not load your references.",
+        "empty": "No saved references yet. Save a detail page you like and it is ready to reference on your next product.",
+        "screenCount": "{{count}} screens"
       }
     }
   },
