@@ -23,6 +23,10 @@
  *   ``mp4-encode.ts`` is dynamic-imported so browsers that never pick MP4 do not
  *   pay for the muxer.
  *
+ * Every file — stacked stills and animated sections alike — then passes through
+ * the platform size budget (``fit-budget.ts``): over the cap, it is re-encoded
+ * smaller until it fits or the ladder runs out.
+ *
  * Heavy deps (gifenc, jszip, gifuct) live here and this module is
  * dynamic-imported from the download dialog only when an animation is present.
  */
@@ -37,19 +41,23 @@ import {
   type DecodedAnimation,
   type DecodedFrame,
 } from "../../detail-page/gif-frames";
+import type { AnimationFormat } from "../../detail-page/export-platforms";
 import { buildGifTimeline } from "../../detail-page/gif-timeline";
+import { fitToBudget } from "./fit-budget";
 import { isGifSrc, planGifExport } from "./gif-plan";
 
-/** Cap GIF output width — a full-res 4× animated section would be many MB. */
-export const MAX_GIF_WIDTH = 512;
+export type { AnimationFormat };
+
 /**
- * MP4 gets a wider cap than GIF/WebP. That 512 is a *transfer* limit: GIF pays
- * for every pixel in a palette-coded frame, and WebP frames travel to the server
- * one by one under an upload cap. MP4 is encoded right here by a hardware H.264
- * encoder that eats resolution cheaply, so holding it at 512 would only make the
- * video soft on a ~860px-wide detail page for no gain.
+ * 플랫폼 폭이 없을 때의 움직이는 섹션 폭 상한.
+ *
+ * 한때 GIF·WebP 는 512 에 묶여 있었다 — 팔레트 GIF 는 픽셀마다 값을 치르고 WebP
+ * 프레임은 서버로 올라가니, 4× 섹션이 수십 MB 가 되는 것을 막는 *전송* 상한이었다.
+ * 지금은 그 걱정을 용량 사다리(`fit-budget.ts`)가 맡는다: 플랫폼이 정한 폭으로 굽고,
+ * 파일이 상한을 넘으면 거기서 줄인다. 그래서 폭 상한은 "플랫폼 폭" 하나이고, 이
+ * 값은 플랫폼을 안 고른 범용 내보내기에서 4× 문서가 폭주하지 않게 잡아 두는 선이다.
  */
-export const MAX_MP4_WIDTH = 1080;
+export const MAX_ANIMATION_WIDTH = 1080;
 /** Palette sampling stride across frames to keep quantize input bounded. */
 const PALETTE_SAMPLE_PIXELS = 60_000;
 
@@ -69,7 +77,12 @@ type PageLike = {
 };
 type StoreLike = {
   pages: PageLike[];
-  toDataURL: (opts: { pageId?: string; pixelRatio?: number; mimeType?: string }) => Promise<string>;
+  toDataURL: (opts: {
+    pageId?: string;
+    pixelRatio?: number;
+    mimeType?: string;
+    quality?: number;
+  }) => Promise<string>;
   waitLoading?: () => Promise<void>;
 };
 
@@ -100,6 +113,24 @@ function drawToCanvas(img: HTMLImageElement): HTMLCanvasElement {
   return canvas;
 }
 
+/**
+ * 합성 프레임을 배율만큼 줄인다. 용량 사다리의 한 칸이다.
+ *
+ * 프레임을 다시 합성하지 않고 비트맵을 줄이는 이유는 비용이다 — 한 섹션의 합성은
+ * 프레임마다 캔버스를 다시 그리는 일이라 사다리 칸마다 되풀이할 수 없다. 1 이면 그대로
+ * 돌려준다.
+ */
+function scaleFrames(frames: HTMLCanvasElement[], scale: number): HTMLCanvasElement[] {
+  if (scale >= 1) return frames;
+  return frames.map((frame) => {
+    const canvas = document.createElement("canvas");
+    canvas.width = Math.max(1, Math.round(frame.width * scale));
+    canvas.height = Math.max(1, Math.round(frame.height * scale));
+    canvas.getContext("2d")?.drawImage(frame, 0, 0, canvas.width, canvas.height);
+    return canvas;
+  });
+}
+
 function imageDataOf(canvas: HTMLCanvasElement): ImageData {
   const ctx = canvas.getContext("2d");
   if (!ctx) throw new Error("2d context unavailable");
@@ -127,9 +158,6 @@ function buildGlobalPalette(frames: HTMLCanvasElement[]): number[][] {
   }
   return quantize(sample.subarray(0, o), 256, { format: "rgb444" });
 }
-
-/** Output format for an animated section. WebP is the default. */
-export type AnimationFormat = "webp" | "gif" | "mp4";
 
 /**
  * Wire format for the frames that travel to the server for WebP encoding.
@@ -198,15 +226,37 @@ async function encodeFramesAsWebp(
   return host.api.encodeDetailPageAnimation(payload, { fps, format: "webp" }, signal);
 }
 
-/** Render a single animated section to an animated WebP (default) or GIF Blob. */
+export type SectionEncodeOptions = {
+  /** WebP 인코딩은 서버가 한다 — 브라우저에 애니메이션 WebP 인코더가 없다. */
+  host: DetailPageHost;
+  format?: AnimationFormat;
+  /** 정지 섹션과 같은 배율. 플랫폼 폭에 맞춘 값이 들어온다. */
+  pixelRatio?: number;
+  /** 섹션 폭 상한(px). 플랫폼 폭이거나 `MAX_ANIMATION_WIDTH`. */
+  maxWidth?: number;
+  /** 파일 용량 상한. 넘으면 크기를 줄여 다시 굽는다. null 이면 그대로. */
+  maxBytes?: number | null;
+  signal?: AbortSignal;
+};
+
+export type SectionEncodeResult = {
+  blob: Blob;
+  /** 상한 안에 들어왔는가. 상한이 없으면 항상 참. */
+  fitted: boolean;
+};
+
+/**
+ * 움직이는 섹션 하나를 WebP(기본)·GIF·MP4 로 굽는다.
+ *
+ * 프레임은 한 번만 합성하고, 용량이 넘으면 그 비트맵을 줄여 다시 인코딩한다.
+ */
 export async function encodeSectionGif(
   store: unknown,
   pageId: string,
-  /** WebP 인코딩은 서버가 한다 — 브라우저에 애니메이션 WebP 인코더가 없다. */
-  host: DetailPageHost,
-  format: AnimationFormat = "webp",
-  signal?: AbortSignal,
-): Promise<Blob> {
+  opts: SectionEncodeOptions,
+): Promise<SectionEncodeResult> {
+  const { host, signal } = opts;
+  const format = opts.format ?? "webp";
   const s = store as StoreLike;
   const page = s.pages.find((p) => p.id === pageId);
   if (!page) throw new Error(`page not found: ${pageId}`);
@@ -224,8 +274,10 @@ export async function encodeSectionGif(
   }
 
   const timeline = buildGifTimeline([...decoded.values()].map((g) => g.durationMs));
-  const maxWidth = format === "mp4" ? MAX_MP4_WIDTH : MAX_GIF_WIDTH;
-  const ratio = Math.min(1, maxWidth / Math.max(1, page.computedWidth));
+  // 정지 섹션과 같은 배율로 굽되 폭 상한을 넘지 않는다 — 플랫폼 폭에 맞춘 페이지에서
+  // 움직이는 섹션만 좁게 나오면 상세페이지 한가운데 단이 진다.
+  const maxWidth = opts.maxWidth ?? MAX_ANIMATION_WIDTH;
+  const ratio = Math.min(opts.pixelRatio ?? 1, maxWidth / Math.max(1, page.computedWidth));
   const frameSrcCache = new WeakMap<DecodedFrame, string>();
   const frameSrc = (frame: DecodedFrame): string => {
     let url = frameSrcCache.get(frame);
@@ -252,25 +304,64 @@ export async function encodeSectionGif(
     await s.waitLoading?.();
   }
 
-  if (format === "gif") return encodeFramesAsGif(composed, timeline.frameDelayMs);
-  if (format === "mp4") {
-    const { encodeFramesAsMp4 } = await import("./mp4-encode");
-    return encodeFramesAsMp4(composed, timeline.frameDelayMs, signal);
-  }
-  return encodeFramesAsWebp(host, composed, timeline.frameDelayMs, signal);
+  const encodeAt = async (frames: HTMLCanvasElement[]): Promise<Blob> => {
+    if (format === "gif") return encodeFramesAsGif(frames, timeline.frameDelayMs);
+    if (format === "mp4") {
+      const { encodeFramesAsMp4 } = await import("./mp4-encode");
+      return encodeFramesAsMp4(frames, timeline.frameDelayMs, signal);
+    }
+    return encodeFramesAsWebp(host, frames, timeline.frameDelayMs, signal);
+  };
+  // 세 형식 모두 여기서 만질 화질 손잡이가 없다(GIF 는 팔레트, WebP 는 서버 화질 고정,
+  // MP4 는 픽셀당 비트레이트 고정). 그래서 크기 사다리만 탄다.
+  const fit = await fitToBudget(opts.maxBytes, false, async (step) => {
+    const blob = await encodeAt(scaleFrames(composed, step.scale));
+    return { value: blob, bytes: blob.size };
+  });
+  return { blob: fit.value, fitted: fit.fitted };
 }
 
-/** Stack the given selected-page indices into one vertical PNG/JPG Blob. */
+/**
+ * 정지 섹션 묶음을 세로로 쌓은 PNG/JPG 한 장.
+ *
+ * 용량이 넘으면 배율·화질을 내려 페이지를 다시 그린다. 비트맵을 줄이는 대신 다시
+ * 그리는 이유는 정지 섹션은 페이지 몇 장이라 그 비용이 작고, 다시 그린 쪽이 글자가
+ * 또렷하기 때문이다.
+ */
 async function stackPngRun(
   store: StoreLike,
   pageIds: string[],
   indices: number[],
   pixelRatio: number,
   mimeType: string,
+  maxBytes: number | null | undefined,
+): Promise<SectionEncodeResult> {
+  const lossy = mimeType === "image/jpeg";
+  const fit = await fitToBudget(maxBytes, lossy, async (step) => {
+    const blob = await stackPngRunAt(
+      store,
+      pageIds,
+      indices,
+      pixelRatio * step.scale,
+      mimeType,
+      lossy ? step.quality : undefined,
+    );
+    return { value: blob, bytes: blob.size };
+  });
+  return { blob: fit.value, fitted: fit.fitted };
+}
+
+async function stackPngRunAt(
+  store: StoreLike,
+  pageIds: string[],
+  indices: number[],
+  pixelRatio: number,
+  mimeType: string,
+  quality: number | undefined,
 ): Promise<Blob> {
   const urls: string[] = [];
   for (const i of indices) {
-    urls.push(await store.toDataURL({ pageId: pageIds[i], pixelRatio, mimeType }));
+    urls.push(await store.toDataURL({ pageId: pageIds[i], pixelRatio, mimeType, quality }));
   }
   const images = await Promise.all(urls.map(loadImage));
   const width = Math.max(...images.map((img) => img.width));
@@ -289,7 +380,9 @@ async function stackPngRun(
     ctx.drawImage(img, 0, y);
     y += img.height;
   }
-  const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, mimeType, 0.95));
+  const blob = await new Promise<Blob | null>((resolve) =>
+    canvas.toBlob(resolve, mimeType, quality),
+  );
   if (!blob) throw new Error("canvas toBlob failed");
   return blob;
 }
@@ -302,6 +395,10 @@ export type GifZipOptions = {
   ext: string;
   /** Animated section format. Defaults to WebP. */
   animationFormat?: AnimationFormat;
+  /** 움직이는 섹션 폭 상한(px). 플랫폼 폭. 없으면 `MAX_ANIMATION_WIDTH`. */
+  animationMaxWidth?: number;
+  /** 파일 하나의 용량 상한(bytes). 정지 묶음과 움직이는 섹션 각각에 건다. */
+  maxBytes?: number | null;
   /** Optional progress callback: (done, total) units. */
   onProgress?: (done: number, total: number) => void;
   signal?: AbortSignal;
@@ -309,29 +406,52 @@ export type GifZipOptions = {
   host: DetailPageHost;
 };
 
+export type GifZipResult = {
+  blob: Blob;
+  /** 사다리 끝까지 내려도 용량 상한을 넘은 파일 이름들. 비어 있으면 전부 들어왔다. */
+  unfitted: string[];
+};
+
 /**
  * Build the full ZIP for a document that contains at least one animated
  * section. Contiguous still sections stack into one ``label.ext`` PNG/JPG; each
- * animated section is a standalone ``label.webp`` (or ``.gif``).
+ * animated section is a standalone ``label.webp`` (or ``.gif``/``.mp4``).
  */
-export async function exportGifZip(store: unknown, opts: GifZipOptions): Promise<Blob> {
+export async function exportGifZip(store: unknown, opts: GifZipOptions): Promise<GifZipResult> {
   const s = store as StoreLike;
   const units = planGifExport(opts.gifFlags);
   const animationFormat = opts.animationFormat ?? "webp";
   const JSZip = (await import("jszip")).default;
   const zip = new JSZip();
+  const unfitted: string[] = [];
   let done = 0;
   for (const unit of units) {
     if (unit.kind === "gif") {
-      zip.file(
-        `${unit.label}.${animationFormat}`,
-        await encodeSectionGif(s, opts.pageIds[unit.page], opts.host, animationFormat, opts.signal),
-      );
+      const name = `${unit.label}.${animationFormat}`;
+      const { blob, fitted } = await encodeSectionGif(s, opts.pageIds[unit.page], {
+        host: opts.host,
+        format: animationFormat,
+        pixelRatio: opts.pixelRatio,
+        maxWidth: opts.animationMaxWidth,
+        maxBytes: opts.maxBytes,
+        signal: opts.signal,
+      });
+      if (!fitted) unfitted.push(name);
+      zip.file(name, blob);
     } else {
-      const blob = await stackPngRun(s, opts.pageIds, unit.pages, opts.pixelRatio, opts.mimeType);
-      zip.file(`${unit.label}.${opts.ext}`, blob);
+      const name = `${unit.label}.${opts.ext}`;
+      const { blob, fitted } = await stackPngRun(
+        s,
+        opts.pageIds,
+        unit.pages,
+        opts.pixelRatio,
+        opts.mimeType,
+        opts.maxBytes,
+      );
+      if (!fitted) unfitted.push(name);
+      zip.file(name, blob);
     }
     opts.onProgress?.(++done, units.length);
   }
-  return zip.generateAsync({ type: "blob" });
+  return { blob: await zip.generateAsync({ type: "blob" }), unfitted };
 }
