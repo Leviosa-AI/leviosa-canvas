@@ -43,7 +43,7 @@ import {
 } from "../../detail-page/gif-frames";
 import type { AnimationFormat } from "../../detail-page/export-platforms";
 import { buildGifTimeline } from "../../detail-page/gif-timeline";
-import { fitToBudget } from "./fit-budget";
+import { fitSteps, fitToBudget, pngFallbackSteps } from "./fit-budget";
 import { isGifSrc, planGifExport } from "./gif-plan";
 
 export type { AnimationFormat };
@@ -314,19 +314,24 @@ export async function encodeSectionGif(
   };
   // 세 형식 모두 여기서 만질 화질 손잡이가 없다(GIF 는 팔레트, WebP 는 서버 화질 고정,
   // MP4 는 픽셀당 비트레이트 고정). 그래서 크기 사다리만 탄다.
-  const fit = await fitToBudget(opts.maxBytes, false, async (step) => {
+  const fit = await fitToBudget(opts.maxBytes, fitSteps(false), async (step) => {
     const blob = await encodeAt(scaleFrames(composed, step.scale));
     return { value: blob, bytes: blob.size };
   });
   return { blob: fit.value, fitted: fit.fitted };
 }
 
+type StillRunResult = SectionEncodeResult & {
+  /** 실제로 구운 확장자. PNG 로 시작했어도 상한 때문에 JPG 가 됐을 수 있다. */
+  ext: "png" | "jpg";
+};
+
 /**
  * 정지 섹션 묶음을 세로로 쌓은 PNG/JPG 한 장.
  *
- * 용량이 넘으면 배율·화질을 내려 페이지를 다시 그린다. 비트맵을 줄이는 대신 다시
- * 그리는 이유는 정지 섹션은 페이지 몇 장이라 그 비용이 작고, 다시 그린 쪽이 글자가
- * 또렷하기 때문이다.
+ * 용량이 넘으면 다시 그린다 — PNG 는 먼저 JPG 로 바꾸고, 그 다음 화질·배율을 내린다.
+ * 비트맵을 줄이는 대신 다시 그리는 이유는 정지 섹션은 페이지 몇 장이라 그 비용이
+ * 작고, 다시 그린 쪽이 글자가 또렷하기 때문이다.
  */
 async function stackPngRun(
   store: StoreLike,
@@ -335,20 +340,20 @@ async function stackPngRun(
   pixelRatio: number,
   mimeType: string,
   maxBytes: number | null | undefined,
-): Promise<SectionEncodeResult> {
-  const lossy = mimeType === "image/jpeg";
-  const fit = await fitToBudget(maxBytes, lossy, async (step) => {
+): Promise<StillRunResult> {
+  const steps = mimeType === "image/jpeg" ? fitSteps(true) : pngFallbackSteps();
+  const fit = await fitToBudget(maxBytes, steps, async (step) => {
     const blob = await stackPngRunAt(
       store,
       pageIds,
       indices,
       pixelRatio * step.scale,
-      mimeType,
-      lossy ? step.quality : undefined,
+      step.lossy ? "image/jpeg" : "image/png",
+      step.lossy ? step.quality : undefined,
     );
     return { value: blob, bytes: blob.size };
   });
-  return { blob: fit.value, fitted: fit.fitted };
+  return { blob: fit.value, fitted: fit.fitted, ext: fit.step.lossy ? "jpg" : "png" };
 }
 
 async function stackPngRunAt(
@@ -410,6 +415,8 @@ export type GifZipResult = {
   blob: Blob;
   /** 사다리 끝까지 내려도 용량 상한을 넘은 파일 이름들. 비어 있으면 전부 들어왔다. */
   unfitted: string[];
+  /** PNG 로는 상한을 넘어 JPG 로 바꿔 담은 파일 이름들. */
+  converted: string[];
 };
 
 /**
@@ -424,6 +431,7 @@ export async function exportGifZip(store: unknown, opts: GifZipOptions): Promise
   const JSZip = (await import("jszip")).default;
   const zip = new JSZip();
   const unfitted: string[] = [];
+  const converted: string[] = [];
   let done = 0;
   for (const unit of units) {
     if (unit.kind === "gif") {
@@ -439,8 +447,7 @@ export async function exportGifZip(store: unknown, opts: GifZipOptions): Promise
       if (!fitted) unfitted.push(name);
       zip.file(name, blob);
     } else {
-      const name = `${unit.label}.${opts.ext}`;
-      const { blob, fitted } = await stackPngRun(
+      const { blob, fitted, ext } = await stackPngRun(
         s,
         opts.pageIds,
         unit.pages,
@@ -448,10 +455,12 @@ export async function exportGifZip(store: unknown, opts: GifZipOptions): Promise
         opts.mimeType,
         opts.maxBytes,
       );
+      const name = `${unit.label}.${ext}`;
       if (!fitted) unfitted.push(name);
+      if (ext !== opts.ext) converted.push(name);
       zip.file(name, blob);
     }
     opts.onProgress?.(++done, units.length);
   }
-  return { blob: await zip.generateAsync({ type: "blob" }), unfitted };
+  return { blob: await zip.generateAsync({ type: "blob" }), unfitted, converted };
 }

@@ -31,6 +31,8 @@
       "platformWidthNote": "Fitted to {{platform}}'s recommended {{width}}px width",
       "platformSizeNote": "Files over {{size}}MB are re-encoded at lower quality or size",
       "sizeUnfitNote": "{{files}} still exceed {{size}}MB at the smallest size. Split the section or trim its content.",
+      "platformSizePngNote": "Files over {{size}}MB switch to JPG, then drop quality and size if still over",
+      "formatFallbackNote": "{{files}} exceeded {{size}}MB as PNG and were saved as JPG.",
       "animationWebp": "WebP (animated image)",
       "animationGif": "GIF",
       "animationMp4": "MP4 (video)",

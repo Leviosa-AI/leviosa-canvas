@@ -31,6 +31,8 @@
       "platformWidthNote": "{{platform}} 권장 폭 {{width}}px에 맞춥니다",
       "platformSizeNote": "파일이 {{size}}MB를 넘으면 화질과 크기를 줄여 다시 만듭니다",
       "sizeUnfitNote": "{{files}} 파일은 최대한 줄여도 {{size}}MB를 넘습니다. 섹션을 나누거나 내용을 줄여 주세요.",
+      "platformSizePngNote": "파일이 {{size}}MB를 넘으면 JPG로 바꾸고, 그래도 넘으면 화질과 크기를 줄입니다",
+      "formatFallbackNote": "{{files}} 파일은 PNG로는 {{size}}MB를 넘어 JPG로 저장했습니다.",
       "animationWebp": "WebP (움직이는 이미지)",
       "animationGif": "GIF",
       "animationMp4": "MP4 (동영상)",

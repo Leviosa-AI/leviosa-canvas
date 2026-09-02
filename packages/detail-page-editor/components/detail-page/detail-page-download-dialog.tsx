@@ -21,7 +21,13 @@ import type { ExportDocument } from "../../lib/detail-page-canvas/export/documen
 import { detectGifPages } from "../../lib/detail-page-canvas/export/gif-plan";
 import { activeFramePages } from "../../lib/detail-page/frame-pages";
 import { isMp4EncodeSupported } from "../../lib/detail-page-canvas/export/mp4-support";
-import { dataUrlBytes, fitToBudget } from "../../lib/detail-page-canvas/export/fit-budget";
+import {
+  dataUrlBytes,
+  fitSteps,
+  fitToBudget,
+  pngFallbackSteps,
+  type FitStep,
+} from "../../lib/detail-page-canvas/export/fit-budget";
 import {
   EXPORT_PLATFORMS,
   exportPlatform,
@@ -285,19 +291,23 @@ export const DetailPageDownloadDialog = observer(function DetailPageDownloadDial
   // 상세페이지는 세로로 길어서, 병합하면 아트보드 한계를 넘길 수 있다.
   const aiOverflow = format === "ai" && single && totalHeight > AI_MAX_ARTBOARD;
 
-  // 내려받기가 끝난 뒤. 전부 상한 안이면 창을 닫고, 넘은 파일이 있으면 창을 열어
-  // 둔 채 어느 파일인지 알린다 — 닫아 버리면 알릴 자리가 없다.
-  const finish = (unfitted: string[]) => {
-    if (unfitted.length === 0 || !chosen?.maxBytes) {
+  // 내려받기가 끝난 뒤. 말할 것이 없으면 창을 닫고, 있으면 열어 둔 채 알린다 —
+  // 닫아 버리면 알릴 자리가 없다. 말할 것은 둘이다: PNG 로는 상한을 넘어 JPG 로
+  // 바꾼 파일, 끝까지 줄여도 상한을 넘은 파일.
+  const finish = (unfitted: string[], converted: string[]) => {
+    if (!chosen?.maxBytes || (unfitted.length === 0 && converted.length === 0)) {
       setOpen(false);
       return;
     }
-    setNotice(
-      t("editor.sizeUnfitNote", {
-        files: unfitted.join(", "),
-        size: bytesToMb(chosen.maxBytes),
-      }),
-    );
+    const size = bytesToMb(chosen.maxBytes);
+    const lines: string[] = [];
+    if (converted.length > 0) {
+      lines.push(t("editor.formatFallbackNote", { files: converted.join(", "), size }));
+    }
+    if (unfitted.length > 0) {
+      lines.push(t("editor.sizeUnfitNote", { files: unfitted.join(", "), size }));
+    }
+    setNotice(lines.join(" "));
   };
 
   const handleExport = async () => {
@@ -350,7 +360,7 @@ export const DetailPageDownloadDialog = observer(function DetailPageDownloadDial
       if (gifFlags.some(Boolean)) {
         setProgress({ done: 0, total: gifFlags.length });
         const gifLib = await import("../../lib/detail-page-canvas/export/gif-export");
-        const { blob, unfitted } = await gifLib.exportGifZip(s, {
+        const { blob, unfitted, converted } = await gifLib.exportGifZip(s, {
           host,
           pageIds,
           gifFlags,
@@ -363,44 +373,45 @@ export const DetailPageDownloadDialog = observer(function DetailPageDownloadDial
           onProgress: (done, total) => setProgress({ done, total }),
         });
         triggerBlobDownload(blob, `${base}.zip`);
-        finish(unfitted);
+        finish(unfitted, converted);
         return;
       }
 
-      const lossy = format === "jpeg";
-      // 한 페이지를 주어진 배율·화질로 그린다. 용량 사다리는 이 함수를 배율을 낮춰
-      // 다시 부른다 — 비트맵을 줄이는 대신 다시 그려야 글자가 또렷하다.
-      const renderPage = (pageId: string, scale: number, quality: number) =>
+      // PNG 는 넘치면 JPG 로 떨어지는 사다리, JPG 는 화질 사다리. 한 단계의 형식은
+      // 그 단계가 정한다.
+      const steps = format === "jpeg" ? fitSteps(true) : pngFallbackSteps();
+      const mimeOf = (step: FitStep) => (step.lossy ? "image/jpeg" : "image/png");
+      const extOf = (step: FitStep) => (step.lossy ? "jpg" : "png");
+      // 한 페이지를 주어진 단계로 그린다. 용량 사다리는 이 함수를 단계를 낮춰 다시
+      // 부른다 — 비트맵을 줄이는 대신 다시 그려야 글자가 또렷하다.
+      const renderPage = (pageId: string, step: FitStep) =>
         s.toDataURL({
           pageId,
-          pixelRatio: ratio * scale,
-          mimeType: mime,
-          quality: lossy ? quality : undefined,
-        });
-      // 파일 하나의 용량이 상한을 넘으면 사다리를 내려간다. `dataUrlBytes` 는 그
-      // 문자열이 파일로 떨어질 때의 크기다.
-      const fitPages = (ids: string[]) =>
-        fitToBudget(maxBytes, lossy, async (step) => {
-          const urls: string[] = [];
-          for (const id of ids) urls.push(await renderPage(id, step.scale, step.quality));
-          return { value: urls, bytes: Math.max(...urls.map(dataUrlBytes)) };
+          pixelRatio: ratio * step.scale,
+          mimeType: mimeOf(step),
+          quality: step.lossy ? step.quality : undefined,
         });
 
       const unfitted: string[] = [];
+      const converted: string[] = [];
+      const record = (name: string, fit: { fitted: boolean; step: FitStep }) => {
+        if (!fit.fitted) unfitted.push(name);
+        if (extOf(fit.step) !== ext) converted.push(name);
+      };
       if (single && selectedPages.length > 1) {
         // 병합본은 쌓은 한 장이 파일이므로 쌓은 뒤의 크기로 잰다.
         setProgress({ done: 0, total: selectedPages.length });
-        const fit = await fitToBudget(maxBytes, lossy, async (step) => {
+        const fit = await fitToBudget(maxBytes, steps, async (step) => {
           const urls: string[] = [];
           for (const page of selectedPages) {
-            urls.push(await renderPage(page.id, step.scale, step.quality));
+            urls.push(await renderPage(page.id, step));
             setProgress({ done: urls.length, total: selectedPages.length });
           }
-          const url = await stackDataUrls(urls, mime, step.quality);
+          const url = await stackDataUrls(urls, mimeOf(step), step.quality);
           return { value: url, bytes: dataUrlBytes(url) };
         });
-        const name = `${base}.${ext}`;
-        if (!fit.fitted) unfitted.push(name);
+        const name = `${base}.${extOf(fit.step)}`;
+        record(name, fit);
         triggerDownload(fit.value, name);
       } else {
         // Each page is force-mounted and rasterized in turn, so this loop is the
@@ -408,11 +419,17 @@ export const DetailPageDownloadDialog = observer(function DetailPageDownloadDial
         setProgress({ done: 0, total: selectedPages.length });
         const files: Array<{ url: string; name: string }> = [];
         for (let i = 0; i < selectedPages.length; i++) {
-          const fit = await fitPages([selectedPages[i].id]);
+          const id = selectedPages[i].id;
+          // 파일 하나의 용량이 상한을 넘으면 사다리를 내려간다. `dataUrlBytes` 는 그
+          // 문자열이 파일로 떨어질 때의 크기다.
+          const fit = await fitToBudget(maxBytes, steps, async (step) => {
+            const url = await renderPage(id, step);
+            return { value: url, bytes: dataUrlBytes(url) };
+          });
           const suffix = selectedPages.length > 1 ? `-${String(i + 1).padStart(2, "0")}` : "";
-          const name = `${base}${suffix}.${ext}`;
-          if (!fit.fitted) unfitted.push(name);
-          files.push({ url: fit.value[0], name });
+          const name = `${base}${suffix}.${extOf(fit.step)}`;
+          record(name, fit);
+          files.push({ url: fit.value, name });
           setProgress({ done: i + 1, total: selectedPages.length });
         }
         // 페이지별 개별 파일. 브라우저가 연속 다운로드를 막지 않도록 짧게 끊어준다.
@@ -421,7 +438,7 @@ export const DetailPageDownloadDialog = observer(function DetailPageDownloadDial
           if (i < files.length - 1) await delay(180);
         }
       }
-      finish(unfitted);
+      finish(unfitted, converted);
     } catch (err) {
       setError(
         isFontEmbeddingFailure(err)
@@ -627,9 +644,12 @@ export const DetailPageDownloadDialog = observer(function DetailPageDownloadDial
                     {chosen?.maxBytes && isRasterFormat(format) ? (
                       <li>
                         •{" "}
-                        {t("editor.platformSizeNote", {
-                          size: bytesToMb(chosen.maxBytes),
-                        })}
+                        {t(
+                          format === "png"
+                            ? "editor.platformSizePngNote"
+                            : "editor.platformSizeNote",
+                          { size: bytesToMb(chosen.maxBytes) },
+                        )}
                       </li>
                     ) : null}
                     {format === "psd" ? <li>• {t("editor.psdNote")}</li> : null}

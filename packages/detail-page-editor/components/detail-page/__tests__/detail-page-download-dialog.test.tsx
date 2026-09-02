@@ -24,7 +24,7 @@ vi.mock("../../../lib/detail-page-canvas/export/export-files", () => ({
 // 움직이는 섹션이 있을 때의 ZIP 경로도 dynamic import 다. gifenc·jszip 없이 무엇을
 // 건네는지만 본다.
 vi.mock("../../../lib/detail-page-canvas/export/gif-export", () => ({
-  exportGifZip: vi.fn(async () => ({ blob: new Blob(["zip"]), unfitted: [] })),
+  exportGifZip: vi.fn(async () => ({ blob: new Blob(["zip"]), unfitted: [], converted: [] })),
 }));
 
 import * as exportFiles from "../../../lib/detail-page-canvas/export/export-files";
@@ -175,7 +175,7 @@ describe("DetailPageDownloadDialog", () => {
     expect(within(dialog).queryByText("editor.resolution")).toBeNull();
     expect(within(dialog).getByText(/860 × 2,293 px/)).toBeInTheDocument();
     expect(within(dialog).getByText(/editor\.platformWidthNote/)).toBeInTheDocument();
-    expect(within(dialog).getByText(/editor\.platformSizeNote/)).toBeInTheDocument();
+    expect(within(dialog).getByText(/editor\.platformSizePngNote/)).toBeInTheDocument();
 
     await user.click(within(dialog).getByText("editor.downloadAction"));
     await vi.waitFor(() => expect(store.toDataURL).toHaveBeenCalledTimes(2));
@@ -264,6 +264,39 @@ describe("DetailPageDownloadDialog", () => {
     await vi.waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
   });
 
+  it("PNG 가 상한을 넘으면 폭은 그대로 두고 JPG 로 바꿔 저장하며, 그렇게 했다고 알린다", async () => {
+    // PNG 가 기본이다 — 글자가 깨끗하다. 그런데 사진이 든 페이지의 PNG 는 상한을
+    // 쉽게 넘고, PNG 에는 화질 손잡이가 없다. 크기를 줄이기 전에 JPG 로 바꾼다.
+    const user = userEvent.setup();
+    const store = makeStore(1);
+    const big = `data:image/png;base64,${"A".repeat(8 * 1024 * 1024)}`;
+    const small = "data:image/jpeg;base64,AAAA";
+    store.toDataURL.mockImplementation(async (opts) =>
+      opts.mimeType === "image/jpeg" ? small : big,
+    );
+    const names: string[] = [];
+    vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(function (
+      this: HTMLAnchorElement,
+    ) {
+      names.push(this.download);
+    });
+    render(<DetailPageDownloadDialog store={store} fileName="my-page" />);
+
+    const dialog = await openWithPlatform(user, "카페24");
+    await user.click(within(dialog).getByText("editor.downloadAction"));
+
+    await vi.waitFor(() => expect(names).toEqual(["my-page-cafe24.jpg"]));
+    const calls = store.toDataURL.mock.calls.map(([c]) => [c.mimeType, c.quality]);
+    expect(calls).toEqual([
+      ["image/png", undefined],
+      ["image/jpeg", 0.95],
+    ]);
+    for (const [c] of store.toDataURL.mock.calls) expect(c.pixelRatio).toBeCloseTo(800 / 750);
+    // 형식이 바뀌었으니 창을 열어 둔 채 알린다.
+    expect(within(dialog).getByText(/editor\.formatFallbackNote/)).toBeInTheDocument();
+    expect(within(dialog).queryByText(/editor\.sizeUnfitNote/)).toBeNull();
+  });
+
   it("끝까지 줄여도 넘으면 내려받되 창을 열어 두고 알린다", async () => {
     const user = userEvent.setup();
     const store = makeStore(1);
@@ -277,9 +310,24 @@ describe("DetailPageDownloadDialog", () => {
     await vi.waitFor(() => expect(clickSpy).toHaveBeenCalledTimes(1));
     expect(within(dialog).getByText(/editor\.sizeUnfitNote/)).toBeInTheDocument();
     expect(screen.getByRole("dialog")).toBeInTheDocument();
-    // PNG 는 화질 손잡이가 없어 크기만 줄인다 — 절반까지.
-    const ratios = store.toDataURL.mock.calls.map(([c]) => (c.pixelRatio ?? 0) / (800 / 750));
-    expect(ratios.map((r) => Math.round(r * 10) / 10)).toEqual([1, 0.9, 0.8, 0.7, 0.6, 0.5]);
+    // PNG 한 칸 → JPG 화질 넷 → JPG 크기 다섯. 크기는 절반까지만 내린다.
+    const steps = store.toDataURL.mock.calls.map(([c]) => [
+      c.mimeType,
+      c.quality,
+      Math.round(((c.pixelRatio ?? 0) / (800 / 750)) * 10) / 10,
+    ]);
+    expect(steps).toEqual([
+      ["image/png", undefined, 1],
+      ["image/jpeg", 0.95, 1],
+      ["image/jpeg", 0.88, 1],
+      ["image/jpeg", 0.8, 1],
+      ["image/jpeg", 0.72, 1],
+      ["image/jpeg", 0.72, 0.9],
+      ["image/jpeg", 0.72, 0.8],
+      ["image/jpeg", 0.72, 0.7],
+      ["image/jpeg", 0.72, 0.6],
+      ["image/jpeg", 0.72, 0.5],
+    ]);
   });
 
   it("캐러셀도 상세페이지와 같은 형식을 다 보여 주고, 기본은 JPG 다", async () => {
