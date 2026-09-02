@@ -78,6 +78,43 @@ describe("fitToBudget", () => {
   });
 });
 
+describe("fitToBudget 의 오류 재시도", () => {
+  it("굽다가 던지면 다음 칸으로 내려가고, 마지막 칸에서 던지면 그대로 던진다", async () => {
+    // 서버 WebP 는 결과 크기를 재기 전에 요청이 413 으로 거절될 수 있다. 그 오류를
+    // "너무 크다"로 보고 한 칸 줄여 다시 보낸다.
+    const seen: number[] = [];
+    const encode = vi.fn(async (step: { scale: number }) => {
+      seen.push(step.scale);
+      if (step.scale > 0.85) throw new Error("413");
+      return { value: step.scale, bytes: 100 };
+    });
+    const fit = await fitToBudget(null, fitSteps(false), encode, { retryOnError: () => true });
+    expect(seen).toEqual([1, 0.9, 0.8]);
+    expect(fit.value).toBe(0.8);
+    expect(fit.fitted).toBe(true);
+
+    const always = vi.fn(async () => {
+      throw new Error("413");
+    });
+    await expect(
+      fitToBudget(null, fitSteps(false), always, { retryOnError: () => true }),
+    ).rejects.toThrow("413");
+    expect(always).toHaveBeenCalledTimes(SCALE_STEPS.length);
+  });
+
+  it("재시도를 안 켜거나 거부하면 첫 오류를 그대로 던진다", async () => {
+    const encode = vi.fn(async () => {
+      throw new Error("boom");
+    });
+    await expect(fitToBudget(1000, fitSteps(false), encode)).rejects.toThrow("boom");
+    expect(encode).toHaveBeenCalledTimes(1);
+    await expect(
+      fitToBudget(1000, fitSteps(false), encode, { retryOnError: () => false }),
+    ).rejects.toThrow("boom");
+    expect(encode).toHaveBeenCalledTimes(2);
+  });
+});
+
 describe("dataUrlBytes", () => {
   it("base64 길이에서 파일 크기를 역산한다", () => {
     // "hello" → aGVsbG8= (5 bytes)

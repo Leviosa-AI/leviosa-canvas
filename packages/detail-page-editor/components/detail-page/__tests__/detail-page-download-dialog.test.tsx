@@ -184,6 +184,29 @@ describe("DetailPageDownloadDialog", () => {
     );
   });
 
+  it("배율의 분모는 내보낼 페이지의 폭이지 문서 전체의 최대 폭이 아니다", async () => {
+    // 보고 있지 않은 페이지에 1440 짜리가 있어도 750 짜리 현재 페이지는 860/750 배로
+    // 나가야 한다. 문서 전체 최대 폭을 쓰면 860/1440 배가 되어 448px 이 나간다 —
+    // 창은 860px 이라고 말하면서.
+    const user = userEvent.setup();
+    const store = makeStore(2);
+    store.pages[1].computedWidth = 1440;
+    vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(() => {});
+    render(<DetailPageDownloadDialog store={store} fileName="my-page" />);
+
+    const dialog = await openWithPlatform(user, "네이버 스마트 스토어");
+    // 페이지 범위를 현재 페이지(p0, 750px)로 좁힌다.
+    await user.click(within(dialog).getAllByRole("combobox")[2]);
+    await user.click(await screen.findByRole("option", { name: "editor.pageScopeCurrent" }));
+    expect(within(dialog).getByText(/860 × 1,147 px/)).toBeInTheDocument();
+
+    await user.click(within(dialog).getByText("editor.downloadAction"));
+    await vi.waitFor(() => expect(store.toDataURL).toHaveBeenCalledTimes(1));
+    expect(store.toDataURL).toHaveBeenCalledWith(
+      expect.objectContaining({ pageId: "p0", pixelRatio: 860 / 750 }),
+    );
+  });
+
   it("범용은 해상도 슬라이더를 그대로 둔다", async () => {
     const user = userEvent.setup();
     render(<DetailPageDownloadDialog store={makeStore(1)} />);
@@ -207,6 +230,24 @@ describe("DetailPageDownloadDialog", () => {
     await choosePlatform(user, "네이버 스마트 스토어");
     expect(await optionTexts(user, animationSelect())).toEqual(["editor.animationGif"]);
     expect(within(dialog).getByText("editor.animationGifNote")).toBeInTheDocument();
+  });
+
+  it("플랫폼을 바꾸면 이전 선택이 허용되더라도 그 플랫폼의 기본 형식으로 돌아간다", async () => {
+    // 범용에서 WebP 를 골라 두고 카페24 로 옮기면, 카페24 도 WebP 를 받지만 기본은
+    // GIF 다(에디터 직접 등록이 받는 쪽). "허용되면 둔다"로 하면 규격표의 첫 항목
+    // 계약이 깨진다.
+    const user = userEvent.setup();
+    render(<DetailPageDownloadDialog store={makeStore(1, { animated: true })} />);
+
+    const dialog = await openWithPlatform(user, "일반(범용)");
+    const animationSelect = () => within(dialog).getAllByRole("combobox").at(-1)!;
+    await user.click(animationSelect());
+    await user.click(await screen.findByRole("option", { name: "editor.animationWebp" }));
+    expect(within(dialog).getByText("editor.animationWebpNote")).toBeInTheDocument();
+
+    await choosePlatform(user, "카페24");
+    expect(within(dialog).getByText("editor.animationGifNote")).toBeInTheDocument();
+    expect(within(dialog).queryByText("editor.animationWebpNote")).toBeNull();
   });
 
   it("움직이는 섹션은 플랫폼 폭·용량과 함께 ZIP 으로 나간다", async () => {
@@ -295,6 +336,10 @@ describe("DetailPageDownloadDialog", () => {
     // 형식이 바뀌었으니 창을 열어 둔 채 알린다.
     expect(within(dialog).getByText(/editor\.formatFallbackNote/)).toBeInTheDocument();
     expect(within(dialog).queryByText(/editor\.sizeUnfitNote/)).toBeNull();
+
+    // 그 안내는 카페24·PNG 에 대한 말이다. 플랫폼을 바꾸면 사라진다.
+    await choosePlatform(user, "네이버 스마트 스토어");
+    expect(within(dialog).queryByText(/editor\.formatFallbackNote/)).toBeNull();
   });
 
   it("끝까지 줄여도 넘으면 내려받되 창을 열어 두고 알린다", async () => {

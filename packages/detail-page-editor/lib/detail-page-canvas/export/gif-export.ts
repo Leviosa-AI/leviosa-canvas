@@ -314,10 +314,19 @@ export async function encodeSectionGif(
   };
   // 세 형식 모두 여기서 만질 화질 손잡이가 없다(GIF 는 팔레트, WebP 는 서버 화질 고정,
   // MP4 는 픽셀당 비트레이트 고정). 그래서 크기 사다리만 탄다.
-  const fit = await fitToBudget(opts.maxBytes, fitSteps(false), async (step) => {
-    const blob = await encodeAt(scaleFrames(composed, step.scale));
-    return { value: blob, bytes: blob.size };
-  });
+  //
+  // WebP 만 한 가지가 더 있다. 프레임이 서버로 올라가므로, 폭이 커지면 결과 파일이
+  // 아니라 **요청**이 먼저 상한에 걸린다 — 앞단이 413 을 돌려주고 Blob 은 오지 않는다.
+  // 그 오류는 "너무 크다"와 같은 뜻이라 한 칸 줄여 다시 보낸다. 취소는 예외다.
+  const fit = await fitToBudget(
+    opts.maxBytes,
+    fitSteps(false),
+    async (step) => {
+      const blob = await encodeAt(scaleFrames(composed, step.scale));
+      return { value: blob, bytes: blob.size };
+    },
+    { retryOnError: () => format === "webp" && !signal?.aborted },
+  );
   return { blob: fit.value, fitted: fit.fitted };
 }
 

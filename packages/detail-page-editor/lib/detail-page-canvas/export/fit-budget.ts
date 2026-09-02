@@ -66,16 +66,28 @@ export async function fitToBudget<T>(
   maxBytes: number | null | undefined,
   steps: FitStep[],
   encode: (step: FitStep) => Promise<{ value: T; bytes: number }>,
+  opts: {
+    /**
+     * 굽다가 던진 오류를 "너무 크다"로 볼지. 참을 돌려주면 다음 칸으로 내려간다.
+     * 서버가 요청 자체를 거절하는 경우(413)를 위한 것이다 — 그때는 결과 크기를 잴
+     * 기회조차 없어서, 상한이 없어도 한 칸 줄여 다시 보내는 것 말고 길이 없다.
+     * 마지막 칸에서 던지면 그대로 던진다.
+     */
+    retryOnError?: (error: unknown) => boolean;
+  } = {},
 ): Promise<FitResult<T>> {
   let last: FitResult<T> | null = null;
-  for (const step of steps) {
-    const { value, bytes } = await encode(step);
-    last = {
-      value,
-      bytes,
-      step,
-      fitted: maxBytes == null || bytes <= maxBytes,
-    };
+  for (let i = 0; i < steps.length; i++) {
+    const step = steps[i];
+    let encoded: { value: T; bytes: number };
+    try {
+      encoded = await encode(step);
+    } catch (error) {
+      if (i < steps.length - 1 && opts.retryOnError?.(error)) continue;
+      throw error;
+    }
+    const { value, bytes } = encoded;
+    last = { value, bytes, step, fitted: maxBytes == null || bytes <= maxBytes };
     if (last.fitted) return last;
   }
   return last as FitResult<T>;

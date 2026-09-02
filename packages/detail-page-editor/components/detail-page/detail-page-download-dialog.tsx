@@ -258,14 +258,20 @@ export const DetailPageDownloadDialog = observer(function DetailPageDownloadDial
       .filter((f) => f.value !== "mp4" || isMp4EncodeSupported());
   }, [chosen]);
 
-  // 플랫폼을 바꾸면 그 플랫폼의 기본 형식으로 돌아간다. 이전 플랫폼에서 고른 형식이
-  // 새 플랫폼 목록에 없으면 셀렉트가 빈 값을 가리키게 되므로 여기서 맞춘다.
+  // 플랫폼을 바꾸면 그 플랫폼의 기본 형식(첫 항목)으로 돌아간다. "이전 값이 새 목록에
+  // 있으면 둔다"로 하면 카페24 에서 WebP 를 골라 둔 채 범용으로 옮겼다가 돌아올 때
+  // 기본이 GIF 인데 WebP 가 남는다 — 규격표의 "첫 항목이 기본" 계약이 깨진다.
+  // `animationFormats` 는 플랫폼이 바뀔 때만 새로 만들어지므로 그 때만 돈다.
   useEffect(() => {
     const first = animationFormats[0]?.value;
-    if (first && !animationFormats.some((f) => f.value === animationFormat)) {
-      setAnimationFormat(first);
-    }
-  }, [animationFormats, animationFormat]);
+    if (first) setAnimationFormat(first);
+  }, [animationFormats]);
+
+  // 지난 내보내기의 안내(JPG 로 바꿨다, 상한을 넘었다)는 그 선택에 대한 말이다.
+  // 플랫폼·형식·범위를 바꾸면 더는 맞지 않으므로 지운다.
+  useEffect(() => {
+    setNotice(null);
+  }, [platform, format, scope, single, animationFormat]);
 
   const selectedPages = useMemo(() => {
     if (scope === "current" && s.activePage) return [s.activePage];
@@ -275,9 +281,15 @@ export const DetailPageDownloadDialog = observer(function DetailPageDownloadDial
     return activeFramePages(s.pages, s.activePage?.id);
   }, [scope, s.activePage, s.pages]);
 
+  // 배율의 분모는 **내보낼 페이지**의 폭이다. 문서 전체의 최대 폭을 쓰면 보고 있지
+  // 않은 다른 벌(프레임)에 1440 짜리 페이지가 있을 때 750 짜리 현재 벌이 860/1440
+  // 배로 줄어 나간다 — 창은 860px 이라고 말하면서.
   const docWidth = useMemo(
-    () => Math.max(1, s.width, ...s.pages.map((p) => p.computedWidth)),
-    [s.width, s.pages],
+    () =>
+      selectedPages.length > 0
+        ? Math.max(1, ...selectedPages.map((p) => p.computedWidth))
+        : Math.max(1, s.width),
+    [selectedPages, s.width],
   );
   const totalHeight = useMemo(
     () => selectedPages.reduce((acc, p) => acc + p.computedHeight, 0),
