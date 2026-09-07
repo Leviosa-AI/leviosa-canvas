@@ -149,3 +149,57 @@ def test_playwright_and_iframe_measurements_match_and_font_gate_is_real():
             ensure_ascii=False,
         ),
     )
+
+
+# 사진을 감싼 상자 안에 칩(span)이 같이 들어 있는 조판. 상자를 텍스트 블록으로
+# 읽으면 칩만 남고 사진이 통째로 사라진다 — dev 캐러셀 편집기의 빈 슬라이드.
+PHOTO_WITH_CHIP = """<!doctype html><html><head><style>
+* { box-sizing: border-box; margin: 0 }
+body { width: 1080px; height: 1350px; background: #f5f2ee; font-family: sans-serif }
+.frame { position: absolute; left: 60px; top: 330px; width: 960px; height: 830px }
+.frame img { width: 960px; height: 830px; object-fit: cover; border-radius: 18px; display: block }
+.chip { position: absolute; left: 34px; top: 34px; background: #a388c3; color: #fff;
+  border-radius: 12px; padding: 14px 22px; font-size: 28px; line-height: 1.4 }
+</style></head><body>
+<div class="frame">
+  <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==" alt="사진">
+  <span class="chip">데일리 미스트</span>
+</div>
+</body></html>"""
+
+
+def test_photo_frame_with_inline_chip_keeps_the_photo():
+    pytest.importorskip("playwright.async_api")
+
+    async def run():
+        from playwright.async_api import async_playwright
+
+        async with async_playwright() as playwright:
+            browser = await playwright.chromium.launch(args=["--headless=new"])
+            try:
+                page = await browser.new_page(viewport={"width": 1080, "height": 1350})
+                await page.set_content(PHOTO_WITH_CHIP, wait_until="load")
+                await page.evaluate("() => new Promise(requestAnimationFrame)")
+                return await page.evaluate(
+                    decompose.EXTRACT,
+                    {"label": "fixture", "sliceBy": None, "placeholderClass": None, "splitSvgParts": False},
+                )
+            finally:
+                await browser.close()
+
+    measurement = asyncio.run(run())
+
+    def flat(elements):
+        for element in elements:
+            yield element
+            yield from flat(element.get("children", []))
+
+    elements = list(flat(measurement["elements"]))
+    kinds = [e["kind"] for e in elements]
+    images = [e for e in elements if e["kind"] == "image"]
+    texts = [e["text"] for e in elements if e["kind"] == "text"]
+    assert len(images) == 1, kinds
+    assert images[0]["box"]["width"] == 960 and images[0]["box"]["height"] == 830
+    # 칩은 사진 위에 그대로 남는다 — 상자와 묶인 group 안의 text 로.
+    assert texts == ["데일리 미스트"]
+    assert kinds.index("image") < kinds.index("text")
