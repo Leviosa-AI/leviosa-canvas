@@ -82,12 +82,22 @@ export const EXTRACT = ({label, sliceBy, placeholderClass, splitSvgParts}) => {
     'TR','TD','TH','P','H1','H2','H3','H4','H5','H6','HEADER','FOOTER','NAV','FIGURE','FIGCAPTION']);
   const hasBlockTextChild = el => [...el.children].some(
     c => BLOCK.has(c.tagName) && htmlText(c).length>0);
+  // A wrapper whose copy lives only in CHILD elements but which also holds a
+  // real <img> (a photo frame with a chip/caption span inside) is a container,
+  // not a text block. Classifying it as text splits the chip out and marks the
+  // whole subtree `handled`, so the photo is never visited — the carousel
+  // editor then shows an empty slide where the photo was. Direct text next to
+  // an inline icon image (`<p>copy <img class=ico></p>`) stays a text block.
+  const wrapsImage = el =>
+    ![...el.childNodes].some(n=>n.nodeType===3 && clean(n.textContent))
+    && [...el.querySelectorAll('img')].some(i=>!i.closest('svg') && vis(i));
   const isTextBlock = el => {
     if (el.tagName==='svg' || el.closest('svg')) return false;
     if ([...el.classList].some(c=>SKIP.has(c))) return false;
     const t = htmlText(el);
     if (!t.length) return false;
     if (hasBlockTextChild(el)) return false;
+    if (wrapsImage(el)) return false;
     // Single-glyph text: keep real content (a big "0" stat, a "%", comparison
     // marks O/X/△/○/●). Only a purely DECORATIVE mark (bullet/dot/dash) needs a
     // painted badge to count — otherwise it is noise. Denylist, not allowlist,
