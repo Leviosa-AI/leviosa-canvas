@@ -1,37 +1,29 @@
 # AGENTS.md
 
-## 이 저장소의 전제
+## Repository constraints
 
-`README.md`의 하드룰 네 개가 이 저장소의 존재 이유다. 특히 **바깥 의존을 늘리지 말 것** —
-`konva`·`react`·`react-konva` 말고 무엇이든 import하면 `package-boundary.test.ts`가 죽는다.
-그 테스트를 고쳐서 통과시키는 것은 거의 언제나 틀린 답이다.
+The four hard rules in `README.md` define this repository. In particular, **do not expand external dependencies**: imports beyond `konva`, `react`, and `react-konva` fail `package-boundary.test.ts`. Do not weaken that test to accommodate an unapproved dependency.
 
-## 새 모듈을 밖에 열 때
+## Exporting a new module
 
-`packages/canvas/package.json`의 `exports`에 한 줄을 적는다. 안 적으면 소비자가
-`Cannot find module`을 본다 — 그리고 그건 우리 CI가 아니라 **소비자 앱 빌드**에서 터진다.
+Add the module to `exports` in `packages/canvas/package.json`. Otherwise consumers get `Cannot find module` during their application build, which this repository's CI may not catch.
 
-## 테스트
+## Tests
 
 ```sh
 npm test          # vitest, jsdom
 npm run typecheck
 ```
 
-Konva가 jsdom에서 글자를 재려면 `canvas`(node-gyp) devDependency가 필요하다. 런타임
-의존이 아니라 테스트 환경 의존이다 — 하드룰 1과 안 부딪힌다.
+Konva needs the `canvas` (node-gyp) development dependency to measure text in jsdom. This is a test-environment dependency, not a runtime dependency, so it does not violate hard rule 1.
 
-**여기 없는 테스트가 있다.** 관문 판정 넷(G0 좌표 규약 · G4 표/차트 · G6 export 패리티)과
-원본 대조는 앱 모듈을 부르므로 `leviosa-frontend`에 남아 있다. 엔진을 크게 고쳤으면
-이 저장소 CI 초록만 믿지 말고 `-rc.N`으로 올려 거기서 돌린다.
+**Some acceptance tests live elsewhere.** Gate checks (G0 coordinate conventions, G4 tables/charts, and G6 export parity) and reference comparisons call application modules and remain in `leviosa-frontend`. For substantial engine changes, validate those consumers as well. Use a local package build when sufficient; publishing an `-rc.N` version stays within the user-authorized release scope. This repository's passing CI alone does not prove consumer parity.
 
-## 커밋·PR
+## Commits and PRs
 
-- 커밋 제목은 한국어, `type(scope): 무엇을 했다` 꼴.
-- PR 본문 마지막 비어 있지 않은 줄에 `by Max Kim (Dindb-dong)` 한 번.
+- Write commit titles in Korean using `type(scope): <what changed>`.
+- Include `by Max Kim (Dindb-dong)` exactly once as the last non-empty line of the PR body.
 
-## 발행
+## Publishing
 
-`git tag canvas-v<버전> && git push origin canvas-v<버전>`. 워크플로가 typecheck·test·
-버전-태그 일치를 확인하고 OIDC로 올린다. 손으로 `npm publish` 하지 않는다(첫 발행 한
-번만 예외였다).
+When release publishing is within the authorized scope, use `git tag canvas-v<version> && git push origin canvas-v<version>`. The workflow checks types, tests, and version/tag consistency, then publishes with OIDC. Do not publish manually with `npm publish`; the initial bootstrap publication was a one-time exception.
