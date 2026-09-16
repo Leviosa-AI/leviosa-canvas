@@ -1,29 +1,20 @@
-# AGENTS.md
+# leviosa-canvas
 
-## Repository constraints
+- `README.md`의 하드룰 네 개를 지킨다. 런타임 의존성은 `konva`, `react`, `react-konva` 외에 추가하지 않는다.
+- 외부에 공개할 모듈은 `packages/canvas/package.json`의 `exports`에 등록한다.
 
-The four hard rules in `README.md` define this repository. In particular, **do not expand external dependencies**: imports beyond `konva`, `react`, and `react-konva` fail `package-boundary.test.ts`. Do not weaken that test to accommodate an unapproved dependency.
-
-## Exporting a new module
-
-Add the module to `exports` in `packages/canvas/package.json`. Otherwise consumers get `Cannot find module` during their application build, which this repository's CI may not catch.
-
-## Tests
+## 검증
 
 ```sh
-npm test          # vitest, jsdom
+npm test
 npm run typecheck
 ```
 
-Konva needs the `canvas` (node-gyp) development dependency to measure text in jsdom. This is a test-environment dependency, not a runtime dependency, so it does not violate hard rule 1.
+큰 렌더링 변경은 `-rc.N`으로 발행한 뒤 `leviosa-frontend`의 G0·G4·G6 검증과 원본 대조도 실행한다.
 
-**Some acceptance tests live elsewhere.** Gate checks (G0 coordinate conventions, G4 tables/charts, and G6 export parity) and reference comparisons call application modules and remain in `leviosa-frontend`. For substantial engine changes, validate those consumers as well. Use a local package build when sufficient; publishing an `-rc.N` version stays within the user-authorized release scope. This repository's passing CI alone does not prove consumer parity.
+## 커밋과 발행
 
-## Commits and PRs
-
-- Write commit titles in Korean using `type(scope): <what changed>`.
-- Include `by Max Kim (Dindb-dong)` exactly once as the last non-empty line of the PR body.
-
-## Publishing
-
-When release publishing is within the authorized scope, use `git tag canvas-v<version> && git push origin canvas-v<version>`. The workflow checks types, tests, and version/tag consistency, then publishes with OIDC. Do not publish manually with `npm publish`; the initial bootstrap publication was a one-time exception.
+- 커밋 제목: `type(scope): 한국어 설명`
+- PR 본문의 마지막 비어 있지 않은 줄: `by Max Kim (Dindb-dong)`
+- 발행: `git tag canvas-v<버전> && git push origin canvas-v<버전>`
+- `npm publish`는 직접 실행하지 않는다.
