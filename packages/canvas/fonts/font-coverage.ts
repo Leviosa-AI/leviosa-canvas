@@ -1,3 +1,4 @@
+// Copyright © 2026 주식회사레비오사에이아이. All rights reserved. See LICENSE.
 const COMMON_TEXT_RANGES: Array<[number, number]> = [
   [0x0009, 0x000d],
   [0x0020, 0x007e],

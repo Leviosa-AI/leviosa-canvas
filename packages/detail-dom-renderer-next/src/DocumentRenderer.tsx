@@ -1,3 +1,4 @@
+// Copyright © 2026 주식회사레비오사에이아이. All rights reserved. See LICENSE.
 import type { CSSProperties } from "react";
 
 import { validateDocument, type DetailDocumentV2 } from "../../detail-document-next/src";

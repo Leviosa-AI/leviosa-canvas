@@ -1,3 +1,4 @@
+// Copyright © 2026 주식회사레비오사에이아이. All rights reserved. See LICENSE.
 /**
  * 레퍼런스를 보낼 크기로 정하는 판정.
  *

@@ -1,3 +1,4 @@
+// Copyright © 2026 주식회사레비오사에이아이. All rights reserved. See LICENSE.
 /**
  * 도넛 — 구성비(성분, 만족도 비중)에 쓴다.
  *

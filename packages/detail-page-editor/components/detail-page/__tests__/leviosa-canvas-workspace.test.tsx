@@ -1,3 +1,4 @@
+// Copyright © 2026 주식회사레비오사에이아이. All rights reserved. See LICENSE.
 /**
  * 우리 엔진 위의 작업 영역 (G7-b).
  *

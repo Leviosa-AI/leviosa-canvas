@@ -1,3 +1,4 @@
+// Copyright © 2026 주식회사레비오사에이아이. All rights reserved. See LICENSE.
 /**
  * 한글을 라틴 글자로 옮긴다. **외래어를 되짚기 위한** 것이지 표기법을 지키려는 것이 아니다.
  *

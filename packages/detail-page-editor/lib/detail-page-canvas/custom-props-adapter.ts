@@ -1,3 +1,4 @@
+// Copyright © 2026 주식회사레비오사에이아이. All rights reserved. See LICENSE.
 /**
  * 문서를 싣고 내릴 때 앱이 하는 손질 두 가지. **렌더러의 일이 아니다.**
  *

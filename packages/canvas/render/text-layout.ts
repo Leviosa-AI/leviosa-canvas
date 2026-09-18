@@ -1,3 +1,4 @@
+// Copyright © 2026 주식회사레비오사에이아이. All rights reserved. See LICENSE.
 /**
  * 글자가 실제로 몇 줄로 접히고 그 덩어리가 상자 안에서 어디에 앉는가.
  *

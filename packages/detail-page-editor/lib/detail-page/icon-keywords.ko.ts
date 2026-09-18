@@ -1,3 +1,4 @@
+// Copyright © 2026 주식회사레비오사에이아이. All rights reserved. See LICENSE.
 /**
  * 아이콘 검색용 한국어 → 영어 키워드 사전.
  *

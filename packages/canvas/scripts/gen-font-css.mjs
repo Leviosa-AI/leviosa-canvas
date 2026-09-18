@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// Copyright © 2026 주식회사레비오사에이아이. All rights reserved. See LICENSE.
 // gen-font-css.mjs — SSOT font CSS generator.
 //
 // Reads the FROZEN font manifest bundled in this package (fonts/font-manifest.json)

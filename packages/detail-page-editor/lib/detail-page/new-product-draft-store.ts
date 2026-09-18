@@ -1,3 +1,4 @@
+// Copyright © 2026 주식회사레비오사에이아이. All rights reserved. See LICENSE.
 /**
  * 새 상품 초안의 **무거운 몫**을 담아 두는 IndexedDB 한 칸.
  *

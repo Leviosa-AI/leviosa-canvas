@@ -1,3 +1,4 @@
+// Copyright © 2026 주식회사레비오사에이아이. All rights reserved. See LICENSE.
 /**
  * 브랜드 자산을 **바이트로 읽을 때** 쓸 주소로 바꾼다.
  *

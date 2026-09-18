@@ -1,3 +1,4 @@
+// Copyright © 2026 주식회사레비오사에이아이. All rights reserved. See LICENSE.
 import type { DetailDocumentV2 } from "../../../packages/detail-document-next/src";
 
 export const fixture: DetailDocumentV2 = {

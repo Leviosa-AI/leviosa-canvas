@@ -1,3 +1,4 @@
+// Copyright © 2026 주식회사레비오사에이아이. All rights reserved. See LICENSE.
 /**
  * Konva가 집어 준 도형에서 **문서 요소 경로**를 뽑는다(바깥 → 안).
  *

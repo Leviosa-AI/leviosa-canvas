@@ -1,3 +1,4 @@
+// Copyright © 2026 주식회사레비오사에이아이. All rights reserved. See LICENSE.
 /**
  * 기본 스펙과 **좌측 패널 프리셋 카탈로그**.
  *

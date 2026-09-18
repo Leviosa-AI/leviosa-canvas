@@ -1,3 +1,4 @@
+// Copyright © 2026 주식회사레비오사에이아이. All rights reserved. See LICENSE.
 /**
  * 디자인 레퍼런스 — "이런 식으로"를 그림으로 가리키는 입력의 **브라우저 쪽 계약**.
  *

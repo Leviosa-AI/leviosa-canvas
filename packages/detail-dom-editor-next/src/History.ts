@@ -1,3 +1,4 @@
+// Copyright © 2026 주식회사레비오사에이아이. All rights reserved. See LICENSE.
 export class History<T> {
   private past: T[] = [];
   private future: T[] = [];

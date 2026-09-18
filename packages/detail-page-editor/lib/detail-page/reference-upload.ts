@@ -1,3 +1,4 @@
+// Copyright © 2026 주식회사레비오사에이아이. All rights reserved. See LICENSE.
 /**
  * 상품 사진을 브랜드 버킷에 올리는 길 — **줄이기 + presigned 업로드**.
  *

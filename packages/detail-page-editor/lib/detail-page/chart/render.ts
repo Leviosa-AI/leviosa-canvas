@@ -1,3 +1,4 @@
+// Copyright © 2026 주식회사레비오사에이아이. All rights reserved. See LICENSE.
 /**
  * 스펙 → 요소 목록. **순수함수**이고 스토어를 모른다.
  *

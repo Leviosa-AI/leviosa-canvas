@@ -1,3 +1,4 @@
+// Copyright © 2026 주식회사레비오사에이아이. All rights reserved. See LICENSE.
 "use client";
 
 // "그룹 편집" — 그룹으로 묶인 여러 요소(텍스트·SVG 도형)를 자연어 요청 한 번으로 함께

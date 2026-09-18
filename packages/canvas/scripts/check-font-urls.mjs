@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// Copyright © 2026 주식회사레비오사에이아이. All rights reserved. See LICENSE.
 // check-font-urls.mjs — liveness check for the frozen font URLs.
 //
 // --mode=cdn makes every consumer fetch woff2 straight from the address recorded in

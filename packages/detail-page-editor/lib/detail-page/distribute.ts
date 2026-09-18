@@ -1,3 +1,4 @@
+// Copyright © 2026 주식회사레비오사에이아이. All rights reserved. See LICENSE.
 /**
  * 선택 요소끼리 **간격**을 고르게. Figma·Canva의 distribute.
  *

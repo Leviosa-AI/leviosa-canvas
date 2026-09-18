@@ -1,3 +1,4 @@
+// Copyright © 2026 주식회사레비오사에이아이. All rights reserved. See LICENSE.
 // freeze-fonts.mjs — rebuild the frozen font bundle from fonts/catalog.json.
 //
 // The catalog is the SSOT for *which* fonts exist; this script turns it into the

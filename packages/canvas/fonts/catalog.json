@@ -414,7 +414,7 @@
           { "weight": 900, "style": "normal", "url": "https://raw.githubusercontent.com/eunchurn/NanumSquareNeo/7db97f46a9637d40a76ef08e5f8c9a7bcc1c0764/woff2/NanumSquareNeoTTF-eHv.woff2" }
         ]
       },
-      "license": { "name": "NAVER Nanum Font License", "url": "https://campaign.naver.com/nanumsquare_neo/" },
+      "license": { "name": "SIL Open Font License 1.1", "url": "https://help.naver.com/service/11029/contents/18088?lang=ko&osType=PC" },
       "previewText": "나눔스퀘어 네오 NanumSquare Neo"
     },
     {
@@ -433,7 +433,7 @@
           { "weight": 800, "style": "normal", "url": "https://cdn.jsdelivr.net/npm/@kfonts/nanum-square-round@0.2.0/NanumSquareRoundEB.woff2" }
         ]
       },
-      "license": { "name": "NAVER Nanum Font License", "url": "https://campaign.naver.com/nanumsquare_neo/" },
+      "license": { "name": "SIL Open Font License 1.1", "url": "https://help.naver.com/service/11029/contents/18088?lang=ko&osType=PC" },
       "previewText": "나눔스퀘어라운드 NanumSquareRound"
     },
     {
@@ -465,7 +465,7 @@
           { "weight": 400, "style": "normal", "url": "https://raw.githubusercontent.com/fonts-archive/SDSamliphopangcheOutline/f2ba9b8ed062eee8342c10e61d31c18114c4421e/SDSamliphopangcheOutline.ttf", "convert": "woff2" }
         ]
       },
-      "license": { "name": "SIL Open Font License 1.1", "url": "https://spcsamlip.co.kr/sandoll-samlip-hopang/" },
+      "license": { "name": "SIL Open Font License 1.1", "url": "https://web.archive.org/web/20241213062817/https://spcsamlip.co.kr/sandoll-samlip-hopang/" },
       "previewText": "삼립호빵체 아웃라인"
     },
     {

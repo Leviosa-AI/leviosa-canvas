@@ -1,9 +1,10 @@
+// Copyright © 2026 주식회사레비오사에이아이. All rights reserved. See LICENSE.
 /**
  * 사용 키 배선.
  *
  * 재는 것은 "키가 맞느냐"가 아니라 **키를 넣긴 하느냐**다. 배선이 빠져 있으면 아무도
  * 안 죽고 아무 경고도 안 나온다 — 그냥 계량기가 영원히 0을 가리킨다. 그게 이 테스트가
- * 있는 이유다(엔진 쪽 게이트 자체는 패키지의 license.test.ts가 잰다).
+ * 있는 이유다(엔진 쪽 게이트 자체는 패키지의 usage-key.test.ts가 잰다).
  */
 
 import { afterEach, describe, expect, it, vi } from "vitest";

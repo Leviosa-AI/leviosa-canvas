@@ -1,3 +1,4 @@
+// Copyright © 2026 주식회사레비오사에이아이. All rights reserved. See LICENSE.
 /**
  * Byte-level animation detection. No dependencies — the upload panel needs the
  * answer without pulling in the heavy decoders.

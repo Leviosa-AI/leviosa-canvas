@@ -1,3 +1,4 @@
+// Copyright © 2026 주식회사레비오사에이아이. All rights reserved. See LICENSE.
 /**
  * 브랜드 사진을 셀러가 찾는 방식대로 갈래 짓는다 — 제품 · 모델 · 직접 생성 · 기타.
  *

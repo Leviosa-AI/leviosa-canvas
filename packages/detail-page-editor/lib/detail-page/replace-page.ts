@@ -1,3 +1,4 @@
+// Copyright © 2026 주식회사레비오사에이아이. All rights reserved. See LICENSE.
 /**
  * 재저작한 화면 하나를 문서에 갈아 끼운다.
  *

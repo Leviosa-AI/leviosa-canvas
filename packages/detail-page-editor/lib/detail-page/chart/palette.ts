@@ -1,3 +1,4 @@
+// Copyright © 2026 주식회사레비오사에이아이. All rights reserved. See LICENSE.
 /**
  * 팔레트를 **차트 종류에 맞는 슬롯**으로 펼친다.
  *

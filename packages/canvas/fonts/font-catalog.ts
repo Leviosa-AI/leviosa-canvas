@@ -1,3 +1,4 @@
+// Copyright © 2026 주식회사레비오사에이아이. All rights reserved. See LICENSE.
 // Typed view over fonts/catalog.json — the SSOT for which fonts exist.
 //
 // Before this, the font list was copy-pasted in four places (this package's coverage

@@ -1,3 +1,4 @@
+// Copyright © 2026 주식회사레비오사에이아이. All rights reserved. See LICENSE.
 import { parseColor } from "../color";
 import { fmt, PdfBuilder, pdfString, type PdfRef } from "./writer";
 

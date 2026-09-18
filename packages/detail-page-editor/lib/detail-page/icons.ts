@@ -1,3 +1,4 @@
+// Copyright © 2026 주식회사레비오사에이아이. All rights reserved. See LICENSE.
 /**
  * 아이콘 검색 — 편집기 "요소 · 아이콘" 그룹이 쓰는 얇은 층.
  *

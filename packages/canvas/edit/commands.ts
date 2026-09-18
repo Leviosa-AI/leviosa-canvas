@@ -1,3 +1,4 @@
+// Copyright © 2026 주식회사레비오사에이아이. All rights reserved. See LICENSE.
 /**
  * 문서를 고치는 명령들 — 정렬·순서·복제·클립보드.
  *

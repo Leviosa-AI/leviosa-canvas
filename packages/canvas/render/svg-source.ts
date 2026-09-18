@@ -1,3 +1,4 @@
+// Copyright © 2026 주식회사레비오사에이아이. All rights reserved. See LICENSE.
 /**
  * `svg` 요소의 마크업을 다루는 자리 — 디코드, 색 치환, 네임스페이스 보정.
  *

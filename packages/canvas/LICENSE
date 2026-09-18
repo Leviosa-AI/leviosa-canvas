@@ -1,0 +1,83 @@
+Copyright © 2026 주식회사레비오사에이아이. All rights reserved.
+
+PROPRIETARY SOFTWARE — SOURCE VISIBLE; NOT OPEN SOURCE
+
+This notice applies to the software, source code, documentation, and other
+materials distributed in this repository or in packages published from it
+(collectively, the "Software"), except for Third-Party Materials as described
+below.
+
+NO GENERAL LICENSE
+
+The Software may be publicly accessible through services such as GitHub and
+npm for distribution and operational convenience. Public accessibility does
+not place the Software in the public domain and does not, by itself, grant a
+license under the copyright or other intellectual property rights of
+주식회사레비오사에이아이 ("Leviosa").
+
+Except:
+
+(a) as expressly authorized by a separate written agreement authorized by
+    Leviosa;
+
+(b) for rights granted under the applicable terms of GitHub, npm, or another
+    distribution platform, solely to the extent and for the purposes provided
+    by those terms; or
+
+(c) to the extent applicable law permits an act notwithstanding this notice,
+
+no license or permission is granted, expressly, implicitly, by estoppel, or
+otherwise, to reproduce, copy, modify, adapt, translate, merge, prepare
+derivative works from, publish, distribute, sublicense, sell, transmit,
+publicly display, publicly perform, or incorporate the Software, in whole or
+in part, into any other product or service.
+
+Leviosa does not intend public availability of the Software, documentation,
+installation instructions, package metadata, or other related materials to
+constitute an implied license beyond the rights expressly identified above.
+
+THIRD-PARTY MATERIALS
+
+The distribution may contain or bundle software, fonts, assets, or other
+materials owned by third parties ("Third-Party Materials"). Third-Party
+Materials are excluded from the proprietary license restrictions in this
+notice to the extent they are governed by their own licenses.
+
+Third-Party Materials remain subject to their applicable copyright notices,
+license terms, and other accompanying notices. Nothing in this notice
+restricts any right granted under an applicable third-party license. In the
+event of a conflict between this notice and an applicable third-party license
+with respect to Third-Party Materials, the third-party license controls with
+respect to those materials.
+
+NO WARRANTY
+
+TO THE MAXIMUM EXTENT PERMITTED BY APPLICABLE LAW, AND EXCEPT AS EXPRESSLY
+PROVIDED IN A SEPARATE WRITTEN AGREEMENT, THE SOFTWARE IS PROVIDED "AS IS"
+AND "AS AVAILABLE," WITHOUT WARRANTY OF ANY KIND, EXPRESS, IMPLIED, OR
+STATUTORY, INCLUDING WITHOUT LIMITATION WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE, TITLE, OR NON-INFRINGEMENT.
+
+LIMITATION OF LIABILITY
+
+TO THE MAXIMUM EXTENT PERMITTED BY APPLICABLE LAW, AND EXCEPT AS EXPRESSLY
+PROVIDED IN A SEPARATE WRITTEN AGREEMENT, LEVIOSA SHALL NOT BE LIABLE FOR
+ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, CONSEQUENTIAL, OR
+OTHER DAMAGES OR LIABILITIES ARISING FROM OR IN CONNECTION WITH THE
+SOFTWARE OR ITS USE.
+
+NOTHING IN THIS NOTICE EXCLUDES OR LIMITS ANY LIABILITY TO THE EXTENT THAT
+SUCH LIABILITY CANNOT LAWFULLY BE EXCLUDED OR LIMITED.
+
+TRADEMARKS
+
+No license or other right to use any trademark, service mark, trade name,
+logo, or other source identifier of Leviosa is granted by this notice.
+
+LICENSING INQUIRIES
+
+For permission to use or license the Software, contact:
+leviosaai2025@leviosa.ai.kr
+
+A Korean convenience translation is provided in LICENSE.ko.md. The English
+text of this notice controls.

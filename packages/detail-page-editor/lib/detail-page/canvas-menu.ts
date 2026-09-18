@@ -1,3 +1,4 @@
+// Copyright © 2026 주식회사레비오사에이아이. All rights reserved. See LICENSE.
 /**
  * 캔버스 우클릭 메뉴의 항목 구성과 동작. UI와 떼어 놓아 규칙만 테스트한다.
  *

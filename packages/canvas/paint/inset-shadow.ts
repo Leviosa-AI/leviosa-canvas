@@ -1,3 +1,4 @@
+// Copyright © 2026 주식회사레비오사에이아이. All rights reserved. See LICENSE.
 /**
  * 안쪽 그림자 — 캔버스에는 그런 게 «없다». 만들어 쓴다.
  *

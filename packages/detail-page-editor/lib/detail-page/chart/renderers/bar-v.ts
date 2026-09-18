@@ -1,3 +1,4 @@
+// Copyright © 2026 주식회사레비오사에이아이. All rights reserved. See LICENSE.
 /**
  * 세로 막대 — 항목 수가 적고 라벨이 짧을 때(연차 비교, 3~5개 스펙 대비).
  *

@@ -1,3 +1,4 @@
+// Copyright © 2026 주식회사레비오사에이아이. All rights reserved. See LICENSE.
 /**
  * 편집기 이미지 src 를 **캔버스에 그릴 수 있는** data URI 로 바꾼다.
  *

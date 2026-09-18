@@ -1,3 +1,4 @@
+// Copyright © 2026 주식회사레비오사에이아이. All rights reserved. See LICENSE.
 "use client";
 
 // 프롬프트 편집 무료 한도(SVG 15 / 텍스트 30) UI 조각. 텍스트/SVG 편집 패널이 공유한다.

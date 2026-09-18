@@ -1,13 +1,14 @@
+// Copyright © 2026 주식회사레비오사에이아이. All rights reserved. See LICENSE.
 /**
  * 사용 키를 들고 있는 자리.
  *
  * 재는 것은 **아무것도 안 막는다**는 것이다 — 키가 없든 이상하든 편집기는 똑같이
- * 돈다. 한때 여기 붙어 있던 워터마크 판정은 없어졌다(license.ts 머리말).
+ * 돈다. 한때 여기 붙어 있던 워터마크 판정은 없어졌다(usage-key.ts 머리말).
  */
 
 import { afterEach, describe, expect, it } from "vitest";
 
-import { canvasKey, configureCanvas, resetCanvasConfig } from "../license";
+import { canvasKey, configureCanvas, resetCanvasConfig } from "../usage-key";
 
 afterEach(resetCanvasConfig);
 

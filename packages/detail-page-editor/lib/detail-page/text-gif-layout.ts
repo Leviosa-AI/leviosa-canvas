@@ -1,3 +1,4 @@
+// Copyright © 2026 주식회사레비오사에이아이. All rights reserved. See LICENSE.
 /**
  * '텍스트를 GIF로'가 서버에 넘길 **실측 레이아웃**.
  *

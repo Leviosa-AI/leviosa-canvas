@@ -1,3 +1,4 @@
+// Copyright © 2026 주식회사레비오사에이아이. All rights reserved. See LICENSE.
 /**
  * 기본 도형 카탈로그 — "요소 · 도형" 그리드가 그대로 뿌리는 목록.
  *

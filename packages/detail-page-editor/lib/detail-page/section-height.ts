@@ -1,3 +1,4 @@
+// Copyright © 2026 주식회사레비오사에이아이. All rights reserved. See LICENSE.
 /**
  * 섹션(편집기 한 장) 높이 — 재는 법, 바꾸는 법.
  *

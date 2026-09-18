@@ -1,3 +1,4 @@
+// Copyright © 2026 주식회사레비오사에이아이. All rights reserved. See LICENSE.
 import { expandKoreanQuery } from "../lib/detail-page/icon-keywords.ko";
 import { lookupKorean } from "../lib/detail-page/korean-dictionary";
 import { hasHangul } from "../lib/detail-page/hangul-roman";

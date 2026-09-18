@@ -1,3 +1,4 @@
+// Copyright © 2026 주식회사레비오사에이아이. All rights reserved. See LICENSE.
 /**
  * 섹션 높이를 우리 엔진(leviosa-canvas) 위에서도 만질 수 있어야 한다.
  *

@@ -1,3 +1,4 @@
+// Copyright © 2026 주식회사레비오사에이아이. All rights reserved. See LICENSE.
 /**
  * QR·바코드 → SVG. **전부 브라우저 안에서 끝난다** — 서버도, 크레딧도 안 든다.
  *

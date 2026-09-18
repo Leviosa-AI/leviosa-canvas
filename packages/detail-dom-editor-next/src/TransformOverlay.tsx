@@ -1,3 +1,4 @@
+// Copyright © 2026 주식회사레비오사에이아이. All rights reserved. See LICENSE.
 import { useRef, type CSSProperties, type PointerEvent } from "react";
 
 import { SelectionOverlay, type OverlayRect } from "./SelectionOverlay";

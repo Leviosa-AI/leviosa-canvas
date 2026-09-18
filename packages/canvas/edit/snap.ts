@@ -1,3 +1,4 @@
+// Copyright © 2026 주식회사레비오사에이아이. All rights reserved. See LICENSE.
 /**
  * 끌 때 옆 요소에 착 붙는 자리 찾기.
  *

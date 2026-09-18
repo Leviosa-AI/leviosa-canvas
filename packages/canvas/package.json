@@ -1,9 +1,9 @@
 {
   "name": "@leviosa-ai/canvas",
-  "version": "0.8.2",
+  "version": "0.8.3",
   "description": "Leviosa in-house Konva editor engine. Source-only: consumers compile it through Next transpilePackages. Zero runtime dependencies beyond konva/react/react-konva, zero server calls.",
   "type": "module",
-  "license": "UNLICENSED",
+  "license": "SEE LICENSE IN LICENSE",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/Leviosa-AI/leviosa-canvas.git",
@@ -19,7 +19,7 @@
     "./decompose": "./decompose/runtime.js",
     "./fonts": "./fonts/index.ts",
     "./package.json": "./package.json",
-    "./license": "./license.ts",
+    "./license": "./usage-key.ts",
     "./store": "./store.ts",
     "./types": "./types.ts",
     "./use-canvas": "./use-canvas.ts",
@@ -51,6 +51,7 @@
     "leviosa-konva-check-fonts": "scripts/check-font-urls.mjs"
   },
   "files": [
+    "LICENSE.ko.md",
     "*.ts",
     "edit",
     "decompose",

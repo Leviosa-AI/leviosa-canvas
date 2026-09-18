@@ -1,3 +1,4 @@
+// Copyright © 2026 주식회사레비오사에이아이. All rights reserved. See LICENSE.
 /**
  * Pure planning for GIF-aware raster export. When any selected section
  * (Canvas page) contains an animated GIF, the download splits into multiple

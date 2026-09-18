@@ -1,3 +1,4 @@
+// Copyright © 2026 주식회사레비오사에이아이. All rights reserved. See LICENSE.
 /**
  * 정렬 순서(z-order) 한 벌. 우측 패널과 캔버스 우클릭 메뉴가 같은 규칙을 쓴다.
  *

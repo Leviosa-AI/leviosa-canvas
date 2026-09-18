@@ -1,3 +1,4 @@
+// Copyright © 2026 주식회사레비오사에이아이. All rights reserved. See LICENSE.
 /**
  * 첨부한 레퍼런스 사진을 **모델에 보낼 크기**로 줄인다.
  *

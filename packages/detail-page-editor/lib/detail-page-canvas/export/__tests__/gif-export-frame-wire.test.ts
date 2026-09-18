@@ -1,3 +1,4 @@
+// Copyright © 2026 주식회사레비오사에이아이. All rights reserved. See LICENSE.
 /**
  * 움직이는 섹션의 프레임이 서버로 나가는 **전송 포맷**.
  *

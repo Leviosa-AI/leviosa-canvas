@@ -1,3 +1,4 @@
+// Copyright © 2026 주식회사레비오사에이아이. All rights reserved. See LICENSE.
 // The generator is a .mjs CLI, so this test is too — tsconfig has allowJs off and
 // typechecking the script would mean hand-writing a .d.mts for a build tool.
 import { mkdtempSync, symlinkSync } from "node:fs";

@@ -1,3 +1,4 @@
+// Copyright © 2026 주식회사레비오사에이아이. All rights reserved. See LICENSE.
 /**
  * The vocabulary the font picker filters by — 눈누의 태그 방식을 우리 어휘로 추린 것.
  *

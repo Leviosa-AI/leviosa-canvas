@@ -1,3 +1,4 @@
+// Copyright © 2026 주식회사레비오사에이아이. All rights reserved. See LICENSE.
 "use client";
 
 // "프롬프트로 편집" — 선택한 SVG 도형(벡터 장식)을 자연어 요청으로 다시 그린다. 소싱
