@@ -1,3 +1,4 @@
+// Copyright © 2026 주식회사레비오사에이아이. All rights reserved. See LICENSE.
 /**
  * 상세페이지 생성기의 상품 소스(플랫폼) 추상화.
  *

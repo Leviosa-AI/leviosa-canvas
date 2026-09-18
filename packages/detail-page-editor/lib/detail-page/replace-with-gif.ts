@@ -1,3 +1,4 @@
+// Copyright © 2026 주식회사레비오사에이아이. All rights reserved. See LICENSE.
 /**
  * 만든 GIF로 원본(텍스트·그룹·이미지·도형)을 **그 자리 그대로** 갈아 끼운다.
  *

@@ -1,3 +1,4 @@
+// Copyright © 2026 주식회사레비오사에이아이. All rights reserved. See LICENSE.
 /**
  * 엑셀·구글시트에서 붙여넣은 텍스트를 격자로 쪼갠다.
  *

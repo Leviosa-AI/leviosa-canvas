@@ -1,3 +1,4 @@
+// Copyright © 2026 주식회사레비오사에이아이. All rights reserved. See LICENSE.
 /**
  * 요소가 차지하는 네모 — 정렬·스냅·마퀴가 전부 이 하나를 본다.
  *

@@ -1,3 +1,4 @@
+// Copyright © 2026 주식회사레비오사에이아이. All rights reserved. See LICENSE.
 /**
  * 가로 막대 — 상세페이지에서 가장 많이 쓰는 형태.
  *

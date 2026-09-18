@@ -1,3 +1,4 @@
+// Copyright © 2026 주식회사레비오사에이아이. All rights reserved. See LICENSE.
 /** RGBA color parsed from the CSS strings our documents carry. */
 export type ParsedColor = { r: number; g: number; b: number; a: number };
 

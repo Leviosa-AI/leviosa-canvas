@@ -1,3 +1,4 @@
+// Copyright © 2026 주식회사레비오사에이아이. All rights reserved. See LICENSE.
 /**
  * 플랫폼 용량 상한에 파일을 맞추는 사다리.
  *

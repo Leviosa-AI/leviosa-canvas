@@ -1,3 +1,4 @@
+// Copyright © 2026 주식회사레비오사에이아이. All rights reserved. See LICENSE.
 /**
  * 무료 스톡 사진(Pexels) 검색 — 편집기 "사진" 패널이 쓰는 얇은 층.
  *

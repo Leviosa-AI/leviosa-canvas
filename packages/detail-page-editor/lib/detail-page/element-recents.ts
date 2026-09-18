@@ -1,3 +1,4 @@
+// Copyright © 2026 주식회사레비오사에이아이. All rights reserved. See LICENSE.
 /**
  * 요소 서랍의 "최근 사용 / 즐겨찾기".
  *

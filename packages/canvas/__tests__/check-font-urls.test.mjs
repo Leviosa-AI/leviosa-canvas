@@ -1,3 +1,4 @@
+// Copyright © 2026 주식회사레비오사에이아이. All rights reserved. See LICENSE.
 // Companion to the .mjs CLI — see gen-font-css.test.mjs for why these tests are not .ts.
 import { describe, expect, it } from "vitest";
 

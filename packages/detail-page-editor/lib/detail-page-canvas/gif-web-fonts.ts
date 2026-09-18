@@ -1,3 +1,4 @@
+// Copyright © 2026 주식회사레비오사에이아이. All rights reserved. See LICENSE.
 /**
  * 텍스트 GIF 요청에 실어 보낼 **웹폰트 URL**을 편집기 폰트 카탈로그에서 뽑는다.
  *

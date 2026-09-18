@@ -1,3 +1,4 @@
+// Copyright © 2026 주식회사레비오사에이아이. All rights reserved. See LICENSE.
 "use client";
 
 // GIF 이펙트 픽커 — 폰트 픽커와 같은 방식(팝오버 + 실물 미리보기)으로 고른다.

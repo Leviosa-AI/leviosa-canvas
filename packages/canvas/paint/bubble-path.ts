@@ -1,3 +1,4 @@
+// Copyright © 2026 주식회사레비오사에이아이. All rights reserved. See LICENSE.
 /**
  * 말풍선 = 몸통 + 꼬리가 이어진 **하나의 닫힌 path**.
  *

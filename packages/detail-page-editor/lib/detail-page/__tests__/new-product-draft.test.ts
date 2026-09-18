@@ -1,3 +1,4 @@
+// Copyright © 2026 주식회사레비오사에이아이. All rights reserved. See LICENSE.
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 // IndexedDB 는 jsdom 에 없다. 통 하나만 흉내 낸다 — 실제 저장소는 넣고 빼는 것 말고

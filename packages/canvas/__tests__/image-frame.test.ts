@@ -1,3 +1,4 @@
+// Copyright © 2026 주식회사레비오사에이아이. All rights reserved. See LICENSE.
 /**
  * 사진 앉히기. 늘여 그리면 같은 문서인데 사진만 눌린다 — 싱크로 하네스가 sulwhasoo
  * 표지에서 그걸 잡았다(우리 쪽만 확대돼 병이 잘렸다).

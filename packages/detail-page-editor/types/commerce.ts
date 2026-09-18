@@ -1,3 +1,4 @@
+// Copyright © 2026 주식회사레비오사에이아이. All rights reserved. See LICENSE.
 /**
  * 편집기가 커머스 플랫폼 응답에서 **실제로 읽는 것**만.
  *

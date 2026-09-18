@@ -1,3 +1,4 @@
+// Copyright © 2026 주식회사레비오사에이아이. All rights reserved. See LICENSE.
 /**
  * 텍스트 프리셋 — 여러 줄이 한 덩어리로 들어가는 글 묶음.
  *

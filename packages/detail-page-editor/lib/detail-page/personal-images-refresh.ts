@@ -1,3 +1,4 @@
+// Copyright © 2026 주식회사레비오사에이아이. All rights reserved. See LICENSE.
 // 개인 이미지·GIF 갤러리('내 이미지') 자동 갱신용 초경량 pub/sub.
 //
 // 생성/업로드가 성공하면 notifyPersonalImagesChanged()를 부르고, 마운트된 '내 이미지'

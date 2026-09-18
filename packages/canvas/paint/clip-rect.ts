@@ -1,3 +1,4 @@
+// Copyright © 2026 주식회사레비오사에이아이. All rights reserved. See LICENSE.
 /**
  * Pure helpers for clipping HTML-decomposed decoration to its owning card
  * rectangle. Kept free of React/Canvas/Konva imports so both the native Konva

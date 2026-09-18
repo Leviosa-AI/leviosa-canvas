@@ -1,3 +1,4 @@
+// Copyright © 2026 주식회사레비오사에이아이. All rights reserved. See LICENSE.
 "use client";
 
 // "프롬프트로 편집" — 선택한 차트·표를 자연어 요청으로 고친다("행 하나 더 넣고 단위를

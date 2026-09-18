@@ -1,3 +1,4 @@
+// Copyright © 2026 주식회사레비오사에이아이. All rights reserved. See LICENSE.
 /**
  * SVG 요소의 색을 **읽어 내는** 자리.
  *

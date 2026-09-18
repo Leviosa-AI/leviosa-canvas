@@ -1,3 +1,4 @@
+// Copyright © 2026 주식회사레비오사에이아이. All rights reserved. See LICENSE.
 /**
  * 게이지 — 값 하나를 최댓값 대비로 보여준다(만족도, 달성률, 개선율).
  *

@@ -1,3 +1,4 @@
+// Copyright © 2026 주식회사레비오사에이아이. All rights reserved. See LICENSE.
 /**
  * '수치를 GIF로' 요청 본문 만들기 + 선택 텍스트에서 숫자 읽어내기.
  *

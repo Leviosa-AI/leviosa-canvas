@@ -1,3 +1,4 @@
+// Copyright © 2026 주식회사레비오사에이아이. All rights reserved. See LICENSE.
 "use client";
 
 // 브랜드 GIF 패널 — 브랜드 이미지에서 GIF만 떼어내 만든 경로별로 나눠 보여준다.

@@ -1,3 +1,4 @@
+// Copyright © 2026 주식회사레비오사에이아이. All rights reserved. See LICENSE.
 /**
  * 도형 → SVG. 화면에 그리는 규칙(`render/element-view.tsx`의 `FigureBody`)과 같은
  * 그림이 나와야 한다 — 여기가 어긋나면 GIF·내보내기만 다르게 나온다.

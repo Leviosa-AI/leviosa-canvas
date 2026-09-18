@@ -1,3 +1,4 @@
+// Copyright © 2026 주식회사레비오사에이아이. All rights reserved. See LICENSE.
 import { describe, expect, it, vi } from "vitest";
 import { createRef } from "react";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";

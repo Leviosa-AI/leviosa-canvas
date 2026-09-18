@@ -1,3 +1,4 @@
+// Copyright © 2026 주식회사레비오사에이아이. All rights reserved. See LICENSE.
 /**
  * 페이지를 픽셀로 뽑는 길 — 내려받기·미리보기·GIF가 전부 여기로 온다.
  *

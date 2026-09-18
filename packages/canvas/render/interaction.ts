@@ -1,3 +1,4 @@
+// Copyright © 2026 주식회사레비오사에이아이. All rights reserved. See LICENSE.
 /**
  * 캔버스에서 무엇을 집었는가, 그리고 끌고 놓은 결과를 문서에 어떻게 되돌려 쓰는가.
  *

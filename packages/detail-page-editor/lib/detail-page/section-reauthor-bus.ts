@@ -1,3 +1,4 @@
+// Copyright © 2026 주식회사레비오사에이아이. All rights reserved. See LICENSE.
 // 화면 재저작 요청용 초경량 pub/sub.
 //
 // 요청은 캔버스 옆 페이지 툴바(화면 하나에 붙어 있는 컨트롤)에서 나오고, 실제 일은

@@ -1,3 +1,4 @@
+// Copyright © 2026 주식회사레비오사에이아이. All rights reserved. See LICENSE.
 /**
  * 스펙 → **렌더에 바로 쓸 수 있는 형태**로 고르는 단계.
  *

@@ -1,3 +1,4 @@
+// Copyright © 2026 주식회사레비오사에이아이. All rights reserved. See LICENSE.
 /**
  * 저작이 만든 사진인지 **주소만 보고** 알아낸다.
  *

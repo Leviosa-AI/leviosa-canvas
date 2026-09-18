@@ -1,3 +1,4 @@
+// Copyright © 2026 주식회사레비오사에이아이. All rights reserved. See LICENSE.
 /**
  * 사전에 없는 한국어 낱말을 **국립국어원 한국어기초사전**에 한 번 물어본다.
  *

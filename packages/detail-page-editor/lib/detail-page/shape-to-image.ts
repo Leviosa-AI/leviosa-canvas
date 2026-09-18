@@ -1,3 +1,4 @@
+// Copyright © 2026 주식회사레비오사에이아이. All rights reserved. See LICENSE.
 /**
  * 편집기 도형(벡터) → 투명 PNG data URI.
  *

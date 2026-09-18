@@ -1,3 +1,4 @@
+// Copyright © 2026 주식회사레비오사에이아이. All rights reserved. See LICENSE.
 /**
  * 꺾은선 — 시간에 따른 변화(사용 주차별 개선, 월별 판매).
  *

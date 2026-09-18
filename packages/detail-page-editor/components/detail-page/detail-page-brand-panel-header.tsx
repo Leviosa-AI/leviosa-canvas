@@ -1,3 +1,4 @@
+// Copyright © 2026 주식회사레비오사에이아이. All rights reserved. See LICENSE.
 "use client";
 
 // 브랜드 자산 패널들(이미지 · GIF · 도형)이 공유하는 머리글.

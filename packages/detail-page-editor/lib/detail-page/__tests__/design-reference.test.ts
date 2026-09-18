@@ -1,3 +1,4 @@
+// Copyright © 2026 주식회사레비오사에이아이. All rights reserved. See LICENSE.
 /**
  * 디자인 레퍼런스 경계 계약 — 서버와 **같은 규칙**을 브라우저에서도 건다.
  *

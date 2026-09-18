@@ -1,3 +1,4 @@
+// Copyright © 2026 주식회사레비오사에이아이. All rights reserved. See LICENSE.
 import type { SelectableElement } from "./detail-page-selection";
 import type { StoreLike } from "../../lib/detail-page/spec-group/sync";
 import type { CanvasStore } from "@leviosa-ai/canvas/store";

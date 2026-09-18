@@ -1,3 +1,4 @@
+// Copyright © 2026 주식회사레비오사에이아이. All rights reserved. See LICENSE.
 /**
  * 페이지 한 장이 그릴 그림의 주소 모으기.
  *

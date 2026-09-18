@@ -1,3 +1,4 @@
+// Copyright © 2026 주식회사레비오사에이아이. All rights reserved. See LICENSE.
 /**
  * 합성 프레임 → H.264 MP4, 브라우저 안에서.
  *

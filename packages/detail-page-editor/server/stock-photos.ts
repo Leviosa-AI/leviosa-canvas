@@ -1,3 +1,4 @@
+// Copyright © 2026 주식회사레비오사에이아이. All rights reserved. See LICENSE.
 /**
  * 무료 스톡 사진 검색 프록시(Pexels) — 소비자가 마운트하는 라우트.
  *

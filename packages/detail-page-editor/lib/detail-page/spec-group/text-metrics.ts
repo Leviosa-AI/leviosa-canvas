@@ -1,3 +1,4 @@
+// Copyright © 2026 주식회사레비오사에이아이. All rights reserved. See LICENSE.
 /**
  * 폰트 없이 재는 글자 치수. 차트·표 레이아웃이 같은 자를 쓴다.
  *

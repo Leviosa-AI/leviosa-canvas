@@ -1,3 +1,4 @@
+// Copyright © 2026 주식회사레비오사에이아이. All rights reserved. See LICENSE.
 /**
  * 새 상품 브리프 초안 — 시작 화면(`/branding/detail-page-generator/new`)과 생성 화면
  * 사이의 **손바꿈**.

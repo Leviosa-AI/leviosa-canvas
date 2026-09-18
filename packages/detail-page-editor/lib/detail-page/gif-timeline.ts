@@ -1,3 +1,4 @@
+// Copyright © 2026 주식회사레비오사에이아이. All rights reserved. See LICENSE.
 /**
  * Pure timeline math for encoding a section as one animated GIF. A section may
  * hold several source GIFs of different lengths; we sample a single shared

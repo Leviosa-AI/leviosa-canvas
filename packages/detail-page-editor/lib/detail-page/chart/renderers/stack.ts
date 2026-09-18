@@ -1,3 +1,4 @@
+// Copyright © 2026 주식회사레비오사에이아이. All rights reserved. See LICENSE.
 /**
  * 누적 막대 — 항목별 구성(성분 비중, 비용 구성)을 나란히 견준다.
  *

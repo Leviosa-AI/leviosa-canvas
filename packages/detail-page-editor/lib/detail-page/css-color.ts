@@ -1,3 +1,4 @@
+// Copyright © 2026 주식회사레비오사에이아이. All rights reserved. See LICENSE.
 /**
  * Canvas/Konva 색 문자열을 HEX로 접는다.
  *

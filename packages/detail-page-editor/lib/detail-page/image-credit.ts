@@ -1,3 +1,4 @@
+// Copyright © 2026 주식회사레비오사에이아이. All rights reserved. See LICENSE.
 // 편집기 AI 이미지(개인 생성 / 우측 실시간 편집) 크레딧 게이트 유틸.
 //
 // 백엔드는 잔액을 못 읽어 원자적 decrement가 <1배에서만 실패한다. 안정성을 위한

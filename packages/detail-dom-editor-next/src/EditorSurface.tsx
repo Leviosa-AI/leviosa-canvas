@@ -1,3 +1,4 @@
+// Copyright © 2026 주식회사레비오사에이아이. All rights reserved. See LICENSE.
 import { useLayoutEffect, useMemo, useRef, useState, type MouseEvent } from "react";
 
 import type { DetailDocumentPatchV1, DetailDocumentV2, DpnextNode } from "../../detail-document-next/src";

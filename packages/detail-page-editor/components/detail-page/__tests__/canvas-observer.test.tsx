@@ -1,3 +1,4 @@
+// Copyright © 2026 주식회사레비오사에이아이. All rights reserved. See LICENSE.
 /**
  * 편집기 컴포넌트가 스토어 변경에 다시 그려지는가 (G7-b).
  *

@@ -1,3 +1,4 @@
+// Copyright © 2026 주식회사레비오사에이아이. All rights reserved. See LICENSE.
 /**
  * 캔버스 위 층에 물리는 얼굴 (G4).
  *

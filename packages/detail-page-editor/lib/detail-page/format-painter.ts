@@ -1,3 +1,4 @@
+// Copyright © 2026 주식회사레비오사에이아이. All rights reserved. See LICENSE.
 /**
  * 서식 복사·붙이기(Canva의 "서식 붓").
  *

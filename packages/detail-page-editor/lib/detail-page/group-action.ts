@@ -1,3 +1,4 @@
+// Copyright © 2026 주식회사레비오사에이아이. All rights reserved. See LICENSE.
 /**
  * ⌘G / ⌘⇧G(그리고 우클릭 메뉴)가 지금 선택에 대해 무엇을 해야 하는가.
  *

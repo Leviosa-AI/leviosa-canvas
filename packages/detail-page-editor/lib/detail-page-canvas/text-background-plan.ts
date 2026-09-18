@@ -1,3 +1,4 @@
+// Copyright © 2026 주식회사레비오사에이아이. All rights reserved. See LICENSE.
 import { parseCssGradient, type ParsedGradient } from "@leviosa-ai/canvas/paint/konva-fallback";
 import { isTransparentColor } from "@leviosa-ai/canvas/paint/text-highlight-bands";
 
