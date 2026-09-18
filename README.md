@@ -29,6 +29,11 @@ Leviosa의 자체 편집기 엔진. Polotno를 대체하려고 직접 만들었�
 
 ## 쓰는 법
 
+> **라이선스.** 이 저장소와 npm 패키지는 오픈소스가 아니다. 아래 설치·연동 안내는
+> 주식회사레비오사에이아이가 허락한 사용자만을 위한 것이며, 공개되어 있다는 사실만으로
+> `LICENSE`·플랫폼 약관·법률이 정한 범위를 넘는 사용 권한이 생기지 않는다.
+> 문의: leviosaai2025@leviosa.ai.kr ([LICENSE](LICENSE), [한국어](LICENSE.ko.md))
+
 ```sh
 npm i @leviosa-ai/canvas konva react-konva
 ```
