@@ -1,0 +1,24 @@
+Copyright (c) 2026 Leviosa AI. All rights reserved.
+
+PROPRIETARY AND CONFIDENTIAL. NOT OPEN SOURCE.
+
+This software and its source code (the "Software") are the proprietary
+property of Leviosa AI. The Software is made publicly visible solely for
+distribution to Leviosa AI's own applications. Public visibility of the
+source code, including through the npm registry or GitHub, does not grant
+any license or right to use it.
+
+No permission is granted to any person, except as expressly authorized in a
+separate written agreement with Leviosa AI, to use, copy, modify, merge,
+publish, distribute, sublicense, sell, or create derivative works of the
+Software, in whole or in part, or to incorporate it into any other product
+or service.
+
+Third-party components bundled with the Software (including the fonts under
+packages/canvas/fonts) remain subject to their own licenses, as listed in
+their accompanying notices. This notice does not restrict rights granted by
+those licenses.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED. IN NO EVENT SHALL LEVIOSA AI BE LIABLE FOR ANY CLAIM, DAMAGES, OR
+OTHER LIABILITY ARISING FROM OR IN CONNECTION WITH THE SOFTWARE.
