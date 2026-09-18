@@ -1,3 +1,4 @@
+// Copyright © 2026 주식회사레비오사에이아이. All rights reserved. See LICENSE.
 /**
  * leviosa-canvas — 우리 편집기 엔진.
  *
@@ -28,7 +29,7 @@ export {
   useSelectionKey,
 } from "./use-canvas";
 
-export { canvasKey, configureCanvas, type CanvasConfig } from "./license";
+export { canvasKey, configureCanvas, type CanvasConfig } from "./usage-key";
 
 export { CanvasView } from "./render/canvas-view";
 export {

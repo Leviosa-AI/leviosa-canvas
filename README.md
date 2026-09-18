@@ -51,7 +51,7 @@ configureCanvas({ key: process.env.NEXT_PUBLIC_LEVIOSA_CANVAS_KEY });
 ```
 
 사용 키는 **보호 수단이 아니라 계량기**다. 없어도 편집기는 똑같이 돌고, 우리 도메인과
-localhost에서는 아예 안 묻는다. 자세한 것은 `packages/canvas/license.ts` 머리말.
+localhost에서는 아예 안 묻는다. 자세한 것은 `packages/canvas/usage-key.ts` 머리말.
 
 ## 개발
 

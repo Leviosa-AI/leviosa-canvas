@@ -1,3 +1,4 @@
+// Copyright © 2026 주식회사레비오사에이아이. All rights reserved. See LICENSE.
 /**
  * 사용 키.
  *
@@ -16,6 +17,11 @@
  * 1. **네트워크를 안 탄다.** 검증을 서버로 보내면 엔진의 "서버 호출 0건"이 깨지고,
  *    소싱 서버가 흔들릴 때 편집기가 같이 죽는다.
  * 2. **아무것도 안 던진다.** 키가 틀렸다고 편집기가 멎으면 안 된다.
+
+ *
+ * 파일 이름이 `license.ts` 가 아닌 이유: 대소문자를 안 가리는 파일시스템(macOS)에서
+ * `./license` 가 옆의 `LICENSE` 텍스트로 풀린다. 구독 경로 `@leviosa-ai/canvas/license`
+ * 는 `exports` 로 그대로 둔다.
  */
 
 let configuredKey: string | null = null;

@@ -19,7 +19,7 @@
     "./decompose": "./decompose/runtime.js",
     "./fonts": "./fonts/index.ts",
     "./package.json": "./package.json",
-    "./license": "./license.ts",
+    "./license": "./usage-key.ts",
     "./store": "./store.ts",
     "./types": "./types.ts",
     "./use-canvas": "./use-canvas.ts",
