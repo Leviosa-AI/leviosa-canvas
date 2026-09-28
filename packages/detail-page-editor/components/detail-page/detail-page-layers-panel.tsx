@@ -131,10 +131,12 @@ function displayName(el: ElementLike, t: TFn): string {
   return layerMeta(el.type, t).label;
 }
 
-// 잠금 토글: 스톡 편집기에는 단일 locked 세터가 없다. 스톡 레이어 패널과 동일하게
-// 네 편집 플래그를 현재 locked 값으로 되돌린다(locked=true면 모두 true→해제).
-function toggleLock(el: ElementLike) {
+// 잠금 토글. 엔진이 보는 것은 `locked` 하나다(element-view·hotkeys 가 `el.locked` 만
+// 검사한다) — 예전엔 편집 플래그만 뒤집고 `locked` 는 안 건드려서 잠금이 안 걸렸다.
+// 스톡 편집기 시절의 플래그들도 같이 맞춰 둔다(해가 없고, 옛 문서가 그걸 읽는다).
+export function toggleLock(el: ElementLike) {
   el.set({
+    locked: !el.locked,
     draggable: el.locked,
     contentEditable: el.locked,
     styleEditable: el.locked,
@@ -161,6 +163,8 @@ function IconButton({
       type="button"
       title={title}
       aria-label={title}
+      // 토글(눈·자물쇠)만 `active` 를 준다. 삭제처럼 안 주는 버튼엔 속성이 안 붙는다.
+      aria-pressed={active}
       disabled={disabled}
       onClick={(e) => {
         e.stopPropagation();
@@ -467,7 +471,7 @@ const LayerRow = observer(function LayerRow({
           </IconButton>
           <IconButton
             title={el.locked ? t("detailPage.layers.unlock") : t("detailPage.layers.lock")}
-            active={el.locked}
+            active={el.locked === true}
             onClick={() => toggleLock(el)}
           >
             {el.locked ? <Lock size={14} /> : <Unlock size={14} />}

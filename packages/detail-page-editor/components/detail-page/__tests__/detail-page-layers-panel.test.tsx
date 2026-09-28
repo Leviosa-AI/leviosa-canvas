@@ -164,19 +164,29 @@ describe("DetailPageLayersPanel", () => {
     expect(screen.queryByText("detailPage.layers.shape")).not.toBeInTheDocument();
   });
 
-  it("locks an unlocked layer by clearing its edit flags", async () => {
+  it("locks an unlocked layer — `locked` is what the engine reads", async () => {
     const user = userEvent.setup();
     const unlocked = el({ id: "u1", locked: false });
     render(<DetailPageLayersPanel store={makeStore([unlocked])} />);
     await user.click(screen.getByRole("button", { name: "detailPage.layers.lock" }));
-    // locked=false → set every edit flag to false (the stock editor's lock semantics).
     expect(unlocked.set).toHaveBeenCalledWith({
+      locked: true,
       draggable: false,
       contentEditable: false,
       styleEditable: false,
       resizable: false,
       removable: false,
     });
+  });
+
+  it("unlocks a locked layer and the icon follows `el.locked`", async () => {
+    const user = userEvent.setup();
+    const locked = el({ id: "l1", locked: true });
+    render(<DetailPageLayersPanel store={makeStore([locked])} />);
+    const button = screen.getByRole("button", { name: "detailPage.layers.unlock" });
+    expect(button).toHaveAttribute("aria-pressed", "true");
+    await user.click(button);
+    expect(locked.set).toHaveBeenCalledWith(expect.objectContaining({ locked: false }));
   });
 
   it("deletes a removable layer through the store", async () => {
