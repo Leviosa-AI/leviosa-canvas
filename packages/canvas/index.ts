@@ -41,6 +41,7 @@ export {
   isClipboardEmpty,
   moveElements,
   pasteElements,
+  pasteExternal,
   type AlignMode,
   type OrderMove,
 } from "./edit/commands";

@@ -830,11 +830,13 @@ export function CanvasView({
       handleCanvasHotkey(event, store, {
         // 줌 버튼과 같은 범위로 가둔다(shell/zoom-buttons.tsx).
         setScale: (next) => store.setScale(Math.max(0.05, Math.min(5, next))),
+        // ⌘A·⌘V 가 들어가 있는 그룹을 따르게 한다.
+        scopeId,
       });
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [interactive, store]);
+  }, [interactive, store, scopeId]);
 
   /**
    * 끌기 한 번 동안만 사는 것들 — 스냅 상대와 내 상자.
