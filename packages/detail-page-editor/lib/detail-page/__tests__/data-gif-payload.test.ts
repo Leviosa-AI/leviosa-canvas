@@ -69,12 +69,13 @@ describe("buildDataGifPayload", () => {
       marker: "#f7f14a",
       width: 200,
       height: 60,
+      baseline: 42,
       background: "#ffffff",
       brandId: "brand_1",
     });
     expect(payload).toMatchObject({
       kind: "count_up",
-      count_up: { to: 98.6, font_size: 42, font_weight: 800, marker: "#f7f14a" },
+      count_up: { to: 98.6, font_size: 42, font_weight: 800, marker: "#f7f14a", baseline: 42 },
       background: "#ffffff",
       brand_id: "brand_1",
     });

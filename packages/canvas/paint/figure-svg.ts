@@ -50,7 +50,7 @@ export function figureToSvg(el: FigureLike): string | null {
 
   const paint =
     attr("fill", fill || "none") +
-    attr("stroke", stroke || undefined) +
+    attr("stroke", strokeWidth > 0 ? stroke : undefined) +
     attr("stroke-width", strokeWidth || undefined) +
     attr("stroke-dasharray", dash || undefined);
 

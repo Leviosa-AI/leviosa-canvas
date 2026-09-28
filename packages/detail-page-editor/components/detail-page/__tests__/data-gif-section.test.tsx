@@ -220,10 +220,14 @@ describe("CountUpGifSection — 원본 타이포 물려받기", () => {
     });
   });
 
-  it("자간을 그대로 넘긴다", async () => {
-    expect(await generateWith({ letterSpacing: -1.5 })).toMatchObject({
-      letterSpacing: -1.5,
-    });
+  it("em 자간을 서버가 사용하는 px로 넘긴다", async () => {
+    const arg = await generateWith({ fontSize: 28, letterSpacing: -0.017 });
+    expect(arg.letterSpacing).toBeCloseTo(-0.476);
+  });
+
+  it("숫자의 CSS 행간으로 기준선을 계산한다", async () => {
+    const arg = await generateWith({ fontSize: 28, height: 48, lineHeight: "48.16px" });
+    expect(arg.baseline).toBeCloseTo(33.88);
   });
 
   // 상자가 글자보다 넓으면 정렬이 곧 자리다 — 안 넘기면 서버가 늘 가운데로 그린다.

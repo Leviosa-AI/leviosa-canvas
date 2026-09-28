@@ -13,6 +13,8 @@
  * 나온다.
  */
 
+import { isSingleLineBox, lineHeightRatio } from "@leviosa-ai/canvas/render/attrs";
+
 export type TextElementLike = {
   x?: unknown;
   y?: unknown;
@@ -26,6 +28,7 @@ export type TextElementLike = {
   lineHeight?: unknown;
   align?: unknown;
   verticalAlign?: unknown;
+  letterSpacing?: unknown;
 };
 
 export type Box = { x: number; y: number; width: number; height: number };
@@ -52,7 +55,6 @@ export type Measure = (spec: {
 }) => number;
 
 /** Canvas 텍스트 기본값(model/text-model.js). */
-const DEFAULT_LINE_HEIGHT = 1.2;
 const DEFAULT_FONT_SIZE = 14;
 
 /** 접기 폭주 방지 — 폭이 말도 안 되게 좁아도 무한 루프에 빠지지 않게. */
@@ -171,17 +173,18 @@ export function layoutTextLines(
     const fontSize = Math.max(1, Math.round(num(el.fontSize, DEFAULT_FONT_SIZE)));
     const fontWeight = toFontWeight(el.fontWeight);
     const fontFamily = String(el.fontFamily ?? "");
-    const lineHeight = Math.max(
-      0.5,
-      num(el.lineHeight, DEFAULT_LINE_HEIGHT) || DEFAULT_LINE_HEIGHT,
-    );
+    const lineHeight = lineHeightRatio(el.lineHeight, fontSize);
     const step = fontSize * lineHeight;
     const anchor = anchorOf(el.align);
-    const lines = wrapText(String(el.text ?? ""), num(el.width), measure, {
-      fontSize,
-      fontWeight,
-      fontFamily,
-    });
+    const letterSpacing = num(el.letterSpacing) * fontSize;
+    const measureWithSpacing: Measure = (spec) =>
+      measure(spec) + spec.text.length * letterSpacing;
+    const lines = wrapText(
+      String(el.text ?? ""),
+      isSingleLineBox(el) ? 0 : num(el.width),
+      measureWithSpacing,
+      { fontSize, fontWeight, fontFamily },
+    );
     if (lines.length === 0) continue;
 
     // 세로 정렬: 요소 높이가 줄 높이 합보다 크면 top/middle/bottom에 따라 밀린다.
@@ -189,7 +192,9 @@ export function layoutTextLines(
     const slack = Math.max(0, num(el.height) - block);
     const vertical = String(el.verticalAlign ?? "top").trim().toLowerCase();
     const offset =
-      vertical === "middle" ? slack / 2 : vertical === "bottom" ? slack : 0;
+      vertical === "middle" || vertical === "center"
+        ? slack / 2
+        : vertical === "bottom" ? slack : 0;
 
     const x = anchorX(el, anchor) - box.x;
     const top = num(el.y) + offset - box.y;

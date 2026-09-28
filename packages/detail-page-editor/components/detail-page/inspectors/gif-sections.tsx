@@ -679,14 +679,17 @@ export const CountUpGifSection = observer(function CountUpGifSection({
       // 안 들고 있으면 굵기가 `fontStyle` 쪽에 실린다. 그냥 Number() 하면 `"normal"` 이
       // NaN 이라 기본값으로 떨어져, 보통 굵기 숫자가 GIF 에서 전부 ExtraBold 로 굳었다.
       const fontWeight = toFontWeight(first.fontWeight ?? first.fontStyle);
+      const fontSize = Math.round(num(first.fontSize, 42));
+      const [line] = textGifLines([first], box);
       const urls = await onGenerate({
         kind: "count_up",
         ...parsed,
         color: toHexColor(str(first.fill), "#111111"),
-        fontSize: Math.round(num(first.fontSize, 42)),
+        fontSize,
         fontWeight,
         fontFamily,
-        letterSpacing: num(first.letterSpacing, 0),
+        letterSpacing: num(first.letterSpacing, 0) * fontSize,
+        baseline: line.y + fontSize * 0.35,
         // 상자가 글자보다 넓으면 정렬이 곧 자리다 — 안 넘기면 왼쪽에 적어 둔 숫자가
         // GIF 안에서 가운데로 옮겨 앉는다.
         anchor: textAnchorOf(first.align),

@@ -37,6 +37,7 @@ export type ShapeElementLike = {
   cornerRadius?: unknown;
   subType?: unknown;
   colorsReplace?: unknown;
+  custom?: { gradient?: unknown };
   id?: unknown;
 };
 
@@ -94,20 +95,21 @@ export function gradientToSvgPaint(
 /**
  * ``figureToSvg``가 만든 마크업의 그라데이션 채우기를 defs로 바꿔 끼운다.
  *
- * 그 함수는 ``fill``을 문자열 그대로 박기 때문에 ``linear-gradient(...)``가 무효한
- * paint가 되어 도형이 통째로 검게 굳는다.
+ * 화면과 같은 우선순위로 fill, custom.gradient를 읽는다. 디컴포저는 투명 fill과
+ * custom.gradient를 함께 저장하므로 fill만 읽으면 색이 사라진다.
  */
 export function patchFigureGradient(
   markup: string,
   el: ShapeElementLike,
 ): string {
   const fill = String(el.fill ?? "");
-  const paint = gradientToSvgPaint(fill, `dp-grad-${String(el.id ?? "shape")}`);
+  const gradient = parseStops(fill) ? fill : String(el.custom?.gradient ?? "");
+  const paint = gradientToSvgPaint(gradient, `dp-grad-${String(el.id ?? "shape")}`);
   if (!paint) return markup;
   const withDefs = markup.includes("<defs>")
     ? markup.replace("<defs>", `<defs>${paint.def}`)
     : markup.replace(/<svg([^>]*)>/, `<svg$1><defs>${paint.def}</defs>`);
-  return withDefs.split(`fill="${fill}"`).join(`fill="${paint.ref}"`);
+  return withDefs.split(`fill="${fill || "none"}"`).join(`fill="${paint.ref}"`);
 }
 
 /**
