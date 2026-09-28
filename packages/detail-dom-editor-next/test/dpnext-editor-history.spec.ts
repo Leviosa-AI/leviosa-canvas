@@ -2,7 +2,14 @@
 import { describe, expect, it } from "vitest";
 import { act, renderHook, waitFor } from "@testing-library/react";
 
-import { applyPatch, documentSha256, type DetailDocumentV2 } from "../../detail-document-next/src";
+import {
+  applyPatch,
+  documentSha256,
+  DpnextRevisionConflict,
+  type DetailDocumentPatchV1,
+  type DetailDocumentV2,
+  type DpnextPatchOperation,
+} from "../../detail-document-next/src";
 import { History, replaceText, useEditorController } from "../src";
 
 describe("dpnext editor history", () => {
@@ -73,5 +80,91 @@ describe("dpnext editor history", () => {
     expect(redoCommit?.patch.base_revision).toBe(2);
     expect(result.current.state.document.revision).toBe(3);
     expect(result.current.state.document.sections[0].children?.[0].content).toBe("edited");
+  });
+
+  const twoSections = (documentId: string): DetailDocumentV2 => ({
+    schema_version: "detail-document-v2",
+    document_id: documentId,
+    revision: 0,
+    canvas: { width: 750 },
+    sections: [
+      { id: "sec_a", type: "section", children: [{ id: "txt_a", type: "text", content: "a" }] },
+      { id: "sec_b", type: "section", children: [{ id: "txt_b", type: "text", content: "b" }] },
+    ],
+    assets: {},
+  });
+  const patchOf = (state: { document: DetailDocumentV2; sha256: string }, operation: DpnextPatchOperation): DetailDocumentPatchV1 => ({
+    schema_version: "detail-document-patch-v1",
+    document_id: state.document.document_id,
+    base_revision: state.document.revision,
+    base_sha256: state.sha256,
+    operations: [operation],
+  });
+  const sectionIds = (document: DetailDocumentV2) => document.sections.map((section) => section.id);
+
+  it("serializes concurrent commits and rejects the one whose base went stale", async () => {
+    const document = twoSections("dpnd_race");
+    const { result } = renderHook(() => useEditorController(document));
+    await waitFor(() => expect(result.current.ready).toBe(true));
+    const base = result.current.state;
+    let outcomes: PromiseSettledResult<unknown>[] = [];
+    await act(async () => {
+      outcomes = await Promise.allSettled([
+        result.current.applyValidatedPatch(replaceText(base.document, base.sha256, "txt_a", "first")),
+        result.current.applyValidatedPatch(replaceText(base.document, base.sha256, "txt_b", "second")),
+      ]);
+    });
+    expect(outcomes[0].status).toBe("fulfilled");
+    expect(outcomes[1].status).toBe("rejected");
+    expect((outcomes[1] as PromiseRejectedResult).reason).toBeInstanceOf(DpnextRevisionConflict);
+    expect(result.current.state.document.revision).toBe(1);
+    expect(result.current.state.document.sections[0].children?.[0].content).toBe("first");
+    expect(result.current.state.document.sections[1].children?.[0].content).toBe("b");
+  });
+
+  it("undoes a top-level section delete by re-inserting it at its index", async () => {
+    const document = twoSections("dpnd_undo_delete");
+    const { result } = renderHook(() => useEditorController(document));
+    await waitFor(() => expect(result.current.ready).toBe(true));
+    await act(async () => {
+      await result.current.applyValidatedPatch(patchOf(result.current.state, { op: "remove_node", node_id: "sec_a" }));
+    });
+    expect(sectionIds(result.current.state.document)).toEqual(["sec_b"]);
+
+    await act(async () => result.current.undo());
+    expect(sectionIds(result.current.state.document)).toEqual(["sec_a", "sec_b"]);
+    expect(result.current.state.document.sections[0].children?.[0].content).toBe("a");
+    expect(result.current.state.canRedo).toBe(true);
+
+    await act(async () => result.current.redo());
+    expect(sectionIds(result.current.state.document)).toEqual(["sec_b"]);
+  });
+
+  it("undoes a top-level section duplicate by removing the copy", async () => {
+    const document = twoSections("dpnd_undo_dup");
+    const { result } = renderHook(() => useEditorController(document));
+    await waitFor(() => expect(result.current.ready).toBe(true));
+    await act(async () => {
+      await result.current.applyValidatedPatch(patchOf(result.current.state, {
+        op: "duplicate_node",
+        node_id: "sec_a",
+        value: { sec_a: "sec_a2", txt_a: "txt_a2" },
+      }));
+    });
+    expect(sectionIds(result.current.state.document)).toEqual(["sec_a", "sec_a2", "sec_b"]);
+
+    await act(async () => result.current.undo());
+    expect(sectionIds(result.current.state.document)).toEqual(["sec_a", "sec_b"]);
+
+    await act(async () => result.current.redo());
+    expect(sectionIds(result.current.state.document)).toEqual(["sec_a", "sec_a2", "sec_b"]);
+  });
+
+  it("peeks without moving the history cursor", () => {
+    const history = new History(0);
+    history.push(1);
+    expect(history.peek("undo")).toBe(0);
+    expect(history.peek("redo")).toBeNull();
+    expect(history.current()).toBe(1);
   });
 });
