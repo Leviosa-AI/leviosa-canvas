@@ -22,7 +22,14 @@ import {
 import { showTextOps } from "./pdf/text-ops";
 import { fmt, PdfBuilder } from "./pdf/writer";
 import { decodeSvgDataUri } from "./svg";
-import { isItalic, layoutText, normalizeFontWeight, transformText } from "./text-layout";
+import { elementMatrix, IDENTITY } from "./frame";
+import {
+  highlightBands,
+  isItalic,
+  layoutText,
+  normalizeFontWeight,
+  transformText,
+} from "./text-layout";
 
 /**
  * Serializes a Canvas document to an Adobe Illustrator (.ai) file.
@@ -101,6 +108,12 @@ function shadingSpec(
 
 /** Rotate around the element's own origin, the way Konva does. */
 function rotationOps(el: ExportElement): { open: string[]; close: string[] } {
+  if (el.type === "group") {
+    // 그룹은 옮기고 돌린 자리가 자식들의 원점이다(자식 좌표는 그룹 원점 기준).
+    const m = elementMatrix(el, IDENTITY);
+    if (m.every((v, i) => v === IDENTITY[i])) return { open: [], close: [] };
+    return { open: ["q", `${m.map(fmt).join(" ")} cm`], close: ["Q"] };
+  }
   const degrees = num(el.rotation);
   if (!degrees) return { open: [], close: [] };
   const rad = (degrees * Math.PI) / 180;
@@ -242,13 +255,27 @@ function textOps(el: ExportElement, env: AiEnv): string[] {
   });
 
   const ops: string[] = ["q"];
+  // 형광펜 띠는 글자보다 먼저 — 뒤에 깔린다. 요소 불투명도는 띠에도 먹는다.
+  for (const band of highlightBands(el)) {
+    const bandPaint = parsePaint(band.color);
+    if (!bandPaint) continue;
+    const bandAlpha = num(el.opacity, 1) * bandPaint.alpha;
+    ops.push(
+      "q",
+      ...(bandAlpha < 1 ? [`/${env.pool.alpha(bandAlpha)} gs`] : []),
+      `${rgbOps(bandPaint.color)} rg`,
+      ...rectPath(x + band.x, y + band.y, band.width, band.height, band.cornerRadius),
+      "f",
+      "Q",
+    );
+  }
   const alpha = num(el.opacity, 1) * (paint?.alpha ?? 1);
   if (alpha < 1) ops.push(`/${env.pool.alpha(alpha)} gs`);
   ops.push(`${rgbOps(color)} rg`);
 
   layout.lines.forEach((line, i) => {
     if (!line) return;
-    const lineWidth = env.measure(el, line) * layout.scaleX;
+    const lineWidth = env.measure(el, line);
     const anchor =
       el.align === "center"
         ? x + (width - lineWidth) / 2
@@ -267,7 +294,6 @@ function textOps(el: ExportElement, env: AiEnv): string[] {
         baseline,
         text: line,
         measure: (t) => env.measure(el, t),
-        scaleX: layout.scaleX,
         glyph: (char) => env.pool.textGlyph(fontRes, char),
         skewX: env.pool.syntheticItalic(fontRes) ? Math.tan(Math.PI / 15) : 0,
       }),
