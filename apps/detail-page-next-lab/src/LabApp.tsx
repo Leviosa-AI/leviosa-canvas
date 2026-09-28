@@ -38,9 +38,10 @@ import {
 } from "../../../packages/detail-dom-renderer-next/src";
 import { fixture, fixtureAssetUrls } from "./fixture";
 import {
-  createDpnextSessionNonce,
+  allowedParentOrigins,
   DPNEXT_LAB_PROTOCOL,
   DPNEXT_LAB_PROTOCOL_VERSION,
+  isDpnextSessionNonce,
   trustedDpnextMessage,
   type DpnextLabMessage,
 } from "./protocol";
@@ -55,7 +56,7 @@ function findNode(nodes: DpnextNode[], nodeId: string): DpnextNode | null {
 }
 
 function postToParent(message: DpnextLabMessage, targetOrigin: string): void {
-  if (window.parent === window) return;
+  if (window.parent === window || !isDpnextSessionNonce(message.sessionNonce)) return;
   window.parent.postMessage(message, targetOrigin);
 }
 
@@ -67,7 +68,9 @@ export function LabApp() {
   const documentSource = query.get("doc");
   const fontBundle = query.get("fontBundle");
   if (fontBundle) configureDetailPageEditor({ assets: { fontBundle } });
-  const sessionNonce = useMemo(() => query.get("nonce") || createDpnextSessionNonce(), [query]);
+  // nonce 는 상위 창이 넘겨야 한다. 없으면 스스로 만들지 않고 통신을 끊는다.
+  const sessionNonce = query.get("nonce") ?? "";
+  const parentOrigins = useMemo(() => allowedParentOrigins(query, window.location.origin), [query]);
   const controller = useEditorController(fixture);
   const {
     applyValidatedPatch,
@@ -77,10 +80,25 @@ export function LabApp() {
     undo,
   } = controller;
   const { document, sha256, selection } = controller.state;
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(
+    embedded && !isDpnextSessionNonce(sessionNonce) ? "nonce 가 없어 상위 창과 통신하지 않습니다." : null,
+  );
   const [assetUrls, setAssetUrls] = useState<Record<string, string>>(fixtureAssetUrls);
   const [canvasDocument, setCanvasDocument] = useState<DocumentJson | null>(null);
-  const parentOrigin = useRef(window.location.origin);
+  const parentOrigin = useRef(parentOrigins[0]);
+  const latest = useRef(controller.state);
+  latest.current = controller.state;
+  const dirty = useRef(false);
+  const markDirty = useCallback((snapshot: { document: DetailDocumentV2; sha256: string }) => {
+    if (dirty.current) return;
+    dirty.current = true;
+    postToParent(envelope(sessionNonce, {
+      type: "dirty",
+      dirty: true,
+      revision: snapshot.document.revision,
+      sha256: snapshot.sha256,
+    }), parentOrigin.current);
+  }, [sessionNonce]);
 
   useEffect(() => {
     if (!documentSource) return;
@@ -156,12 +174,25 @@ export function LabApp() {
   }, [canvasFonts, canvasStore]);
 
   useEffect(() => {
+    if (!isDpnextSessionNonce(sessionNonce)) return;
     const receive = (event: MessageEvent) => {
-      const expected = { source: window.parent, origin: window.location.origin, sessionNonce };
+      const expected = { source: window.parent, origins: parentOrigins, sessionNonce };
       const message = trustedDpnextMessage(event, expected);
       if (!message) return;
+      parentOrigin.current = event.origin;
+      if (message.type === "save-request") {
+        // 편집은 이미 patch 로 넘어갔다. 상위 창이 저장할 revision/SHA 를 알려 주고 dirty 를 내린다.
+        postToParent(envelope(sessionNonce, {
+          type: "dirty",
+          dirty: dirty.current,
+          revision: latest.current.document.revision,
+          sha256: latest.current.sha256,
+        }), event.origin);
+        dirty.current = false;
+        return;
+      }
       try {
-        parentOrigin.current = event.origin;
+        dirty.current = false;
         void loadDocument(message.document).catch((cause: unknown) => {
           const errorMessage = cause instanceof Error ? cause.message : "문서를 읽지 못했습니다.";
           setError(errorMessage);
@@ -177,9 +208,10 @@ export function LabApp() {
       }
     };
     window.addEventListener("message", receive);
-    postToParent(envelope(sessionNonce, { type: "ready" }), parentOrigin.current);
+    // 어느 허용 origin 이 상위 창인지 아직 모른다. origin 이 다른 대상에는 브라우저가 전달하지 않는다.
+    for (const origin of parentOrigins) postToParent(envelope(sessionNonce, { type: "ready" }), origin);
     return () => window.removeEventListener("message", receive);
-  }, [loadDocument, sessionNonce, setControllerSelection]);
+  }, [loadDocument, parentOrigins, sessionNonce, setControllerSelection]);
 
   const resolveAsset = useCallback<AssetResolver>((assetId, asset) => {
     const resolved = assetUrls[assetId];
@@ -206,13 +238,14 @@ export function LabApp() {
     (patch: DetailDocumentPatchV1) => {
       try {
         void applyValidatedPatch(patch)
-          .then(() => {
+          .then((snapshot) => {
             if (embedded) {
               postToParent(envelope(sessionNonce, {
                 type: "patch",
                 patch,
                 nodeIds: selection,
               }), parentOrigin.current);
+              markDirty(snapshot);
             }
             setError(null);
           })
@@ -223,7 +256,7 @@ export function LabApp() {
         setError(cause instanceof Error ? cause.message : "수정 사항을 적용하지 못했습니다.");
       }
     },
-    [applyValidatedPatch, embedded, selection, sessionNonce],
+    [applyValidatedPatch, embedded, markDirty, selection, sessionNonce],
   );
 
   useEffect(() => {
@@ -242,6 +275,7 @@ export function LabApp() {
             patch: commit.patch,
             nodeIds: selection,
           }), parentOrigin.current);
+          markDirty(commit);
         })
         .catch((cause: unknown) => {
           setError(cause instanceof Error ? cause.message : "실행 취소를 적용하지 못했습니다.");
@@ -249,7 +283,7 @@ export function LabApp() {
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [embedded, redo, selection, sessionNonce, undo]);
+  }, [embedded, markDirty, redo, selection, sessionNonce, undo]);
 
   const select = (nodeIds: string[]) => {
     setControllerSelection(nodeIds);
