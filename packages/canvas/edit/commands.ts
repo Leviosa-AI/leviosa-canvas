@@ -11,6 +11,7 @@ import { withFreshIds } from "../store";
 import type { ElementJson, PageJson } from "../types";
 import { createId } from "../types";
 import { frameInsertIndex, FRAME_KEY } from "../render/frames";
+import { loadImage } from "../render/image-cache";
 import { applyInTransaction } from "../render/interaction";
 import { elementRect, moveElementTo, unionRect } from "./rect";
 
@@ -212,11 +213,15 @@ export function clearClipboard(): void {
   }
 }
 
+/**
+ * 클립보드에는 **페이지 좌표**로 적는다. 그룹 안에서 복사해 밖(또는 다른 그룹)에
+ * 붙여도 눈에 보이던 자리에 놓이게 — 붙일 때 들어갈 컨테이너 기준으로 되돌린다.
+ */
 export function copyElements(store: CanvasStore): void {
   const els = store.selectedElements;
   if (!els.length) return;
   writeClip({
-    data: els.map((el) => el.toJSON()),
+    data: els.map((el) => ({ ...el.toJSON(), ...el.absolutePosition })),
     pageId: store.activePage?.id ?? "",
   });
 }
@@ -229,25 +234,47 @@ export function cutElements(store: CanvasStore): void {
 }
 
 /**
+ * 붙일 자리 — 들어가 있는 그룹(`scopeId`)이 이 페이지에 있으면 그 안, 아니면 페이지.
+ * `origin`은 그 컨테이너의 페이지 좌표 원점이다(페이지면 0,0).
+ */
+function pasteTarget(
+  store: CanvasStore,
+  page: CanvasPage,
+  scopeId?: string | null,
+): { into: CanvasPage | CanvasElement; origin: { x: number; y: number } } {
+  const scope = scopeId ? store.getElementById(scopeId) : null;
+  if (scope?.isContainer && store.getPageOfElement(scope.id) === page) {
+    // ponytail: 돌린 그룹 안에는 회전을 안 풀고 x/y만 뺀다 — 돌린 그룹에 붙이는 일이 흔해지면 역회전을 넣는다.
+    return { into: scope, origin: scope.absolutePosition };
+  }
+  return { into: page, origin: { x: 0, y: 0 } };
+}
+
+/**
  * 붙여넣는다. **같은 페이지면 살짝 어긋나게** 놓는다 — 정확히 겹쳐 놓으면 붙었는지
  * 아닌지 화면으로 알 수가 없다.
+ *
+ * `scopeId`를 주면(더블클릭으로 들어간 그룹) 그 그룹 안에 붙인다.
  */
-export function pasteElements(store: CanvasStore): string[] {
+export function pasteElements(
+  store: CanvasStore,
+  scopeId?: string | null,
+): string[] {
   const page = store.activePage;
   if (!page) return [];
   const clip = readClip();
   if (!clip.data.length) return [];
   const shift = clip.pageId === page.id ? Math.round(store.width / 20) : 0;
+  const { into, origin } = pasteTarget(store, page, scopeId);
 
   const made: string[] = [];
   applyInTransaction(store, () => {
     for (const json of clip.data) {
       const fresh = withFreshIds(json);
-      if (shift) {
-        fresh.x = (typeof fresh.x === "number" ? fresh.x : 0) + shift;
-        fresh.y = (typeof fresh.y === "number" ? fresh.y : 0) + shift;
-      }
-      made.push(page.addElement(fresh).id);
+      fresh.x = (typeof fresh.x === "number" ? fresh.x : 0) + shift - origin.x;
+      fresh.y = (typeof fresh.y === "number" ? fresh.y : 0) + shift - origin.y;
+      const el = into.addElement(fresh);
+      if (el) made.push(el.id);
     }
   });
   // 다음 붙여넣기는 방금 놓은 자리에서 또 어긋나야 한다(계단처럼 쌓인다).
@@ -255,11 +282,122 @@ export function pasteElements(store: CanvasStore): string[] {
     data: made
       .map((id) => store.getElementById(id))
       .filter((el): el is CanvasElement => el !== null)
-      .map((el) => el.toJSON()),
+      .map((el) => ({ ...el.toJSON(), ...el.absolutePosition })),
     pageId: page.id,
   });
   store.selectElements(made);
   return made;
+}
+
+/**
+ * 바깥(OS 클립보드·파일)에서 온 것을 붙인다 — 그림 파일은 `image`, 글자는 `text`.
+ *
+ * 셸이 `window`의 `paste` 이벤트에서 `clipboardData.files`·`getData("text/plain")`을
+ * 꺼내 부른다. 그림 주소는 `URL.createObjectURL`이라 **이 탭에서만 산다** — 저장하기
+ * 전에 셸이 올려서 `src`를 갈아 끼워야 한다.
+ *
+ * 그림은 원래 크기로 놓되 페이지의 80%를 넘으면 줄이고, 페이지 가운데에 둔다.
+ */
+export async function pasteExternal(
+  store: CanvasStore,
+  input: { files?: ArrayLike<File>; text?: string },
+  scopeId?: string | null,
+): Promise<string[]> {
+  const page = store.activePage;
+  if (!page) return [];
+  const images = Array.from(input.files ?? []).filter((file) =>
+    file.type.startsWith("image/"),
+  );
+  // 그림을 복사하면 브라우저가 파일 이름·주소를 글자로도 같이 싣는다 — 그림이 있으면 글자는 버린다.
+  const text = images.length ? "" : (input.text ?? "").trim();
+  if (!images.length && !text) return [];
+
+  const W = page.width;
+  const H = page.height;
+  const sized = await Promise.all(
+    images.map(async (file) => {
+      const src = URL.createObjectURL(file);
+      const img = await loadImage(src);
+      const w = img?.naturalWidth || 300;
+      const h = img?.naturalHeight || 300;
+      const k = Math.min(1, (W * 0.8) / w, (H * 0.8) / h);
+      return { src, width: w * k, height: h * k };
+    }),
+  );
+
+  const { into, origin } = pasteTarget(store, page, scopeId);
+  const jsons: ElementJson[] = sized.map((one) => ({
+    type: "image",
+    src: one.src,
+    x: (W - one.width) / 2 - origin.x,
+    y: (H - one.height) / 2 - origin.y,
+    width: one.width,
+    height: one.height,
+  }));
+  if (text) {
+    const fontSize = 32;
+    const width = W * 0.6;
+    const height = fontSize * 1.4 * text.split("\n").length;
+    jsons.push({
+      type: "text",
+      text,
+      fontSize,
+      x: (W - width) / 2 - origin.x,
+      y: (H - height) / 2 - origin.y,
+      width,
+      height,
+    });
+  }
+
+  const made: string[] = [];
+  applyInTransaction(store, () => {
+    for (const json of jsons) {
+      const el = into.addElement(json);
+      if (el) made.push(el.id);
+    }
+  });
+  store.selectElements(made);
+  return made;
+}
+
+// ---------------------------------------------------------------------------
+// 뒤집기·잠금·숨김
+// ---------------------------------------------------------------------------
+
+/** 고른 것을 좌우(`flipX`)·상하(`flipY`)로 뒤집는다. 잠긴 것은 건너뛴다. */
+export function flipElements(store: CanvasStore, axis: "x" | "y"): boolean {
+  const els = store.selectedElements.filter((el) => !el.locked);
+  if (!els.length) return false;
+  const key = axis === "x" ? "flipX" : "flipY";
+  applyInTransaction(store, () => {
+    for (const el of els) el.set({ [key]: el[key] !== true });
+  });
+  return true;
+}
+
+/**
+ * 고른 것 중 **하나라도 안 잠겼으면 전부 잠그고**, 전부 잠겼으면 전부 푼다.
+ * 섞인 선택에서 하나씩 뒤집으면 누를 때마다 상태가 엇갈려 손이 헷갈린다.
+ */
+export function toggleLock(store: CanvasStore): boolean {
+  const els = store.selectedElements;
+  if (!els.length) return false;
+  const locked = els.some((el) => !el.locked);
+  applyInTransaction(store, () => {
+    for (const el of els) el.set({ locked });
+  });
+  return true;
+}
+
+/** 숨김도 같은 규칙 — 하나라도 보이면 전부 숨기고, 전부 숨었으면 전부 보인다. */
+export function toggleVisible(store: CanvasStore): boolean {
+  const els = store.selectedElements;
+  if (!els.length) return false;
+  const visible = els.every((el) => el.visible === false);
+  applyInTransaction(store, () => {
+    for (const el of els) el.set({ visible });
+  });
+  return true;
 }
 
 // ---------------------------------------------------------------------------
