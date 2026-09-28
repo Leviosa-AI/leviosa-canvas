@@ -209,7 +209,7 @@ export function NumberField({
           onPointerMove={onScrubMove}
           onPointerUp={onScrubUp}
           onPointerCancel={onScrubUp}
-          className="cursor-ew-resize select-none touch-none py-1.5 pl-2 pr-1.5 text-xs font-le-medium text-le-ink-400 hover:text-le-ink-600"
+          className="cursor-ew-resize select-none touch-none whitespace-nowrap py-1.5 pl-2 pr-1.5 text-xs font-le-medium text-le-ink-400 hover:text-le-ink-600"
           title={t("detailPage.properties.scrubHint", { label })}
         >
           {label}
