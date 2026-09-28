@@ -1,5 +1,5 @@
 // Copyright © 2026 주식회사레비오사에이아이. All rights reserved. See LICENSE.
-import { screen } from "@testing-library/react";
+import { act, fireEvent, screen } from "@testing-library/react";
 import { beforeAll, describe, expect, it, vi } from "vitest";
 
 /**
@@ -20,10 +20,19 @@ vi.mock("@leviosa-ai/canvas", () => ({
   SectionTab: () => <button type="button" />,
   configureCanvas: () => {},
 }));
+// 편집기가 만든 스토어를 붙잡아 둔다 — 저장 시험이 그 스토어를 바꿔 본다.
+const seen = vi.hoisted(() => ({ store: null as unknown }));
 vi.mock("../leviosa-canvas-workspace", () => ({
-  LeviosaCanvasWorkspace: ({ children }: { children?: React.ReactNode }) => (
-    <div>{children}</div>
-  ),
+  LeviosaCanvasWorkspace: ({
+    children,
+    store,
+  }: {
+    children?: React.ReactNode;
+    store: unknown;
+  }) => {
+    seen.store = store;
+    return <div>{children}</div>;
+  },
 }));
 vi.mock("../detail-page-properties-panel", () => ({
   DetailPageProperties: () => <div data-testid="default-inspector" />,
@@ -47,7 +56,10 @@ vi.mock("../../../lib/detail-page-canvas/editor-fonts", () => ({
 }));
 
 import { DetailPageEditor } from "../detail-page-editor";
-import type { DetailPageHostSlots } from "../detail-page-host-context";
+import {
+  DetailPageSaveConflictError,
+  type DetailPageHostSlots,
+} from "../detail-page-host-context";
 import { renderWithDetailPageHost } from "./host-stub";
 
 const DOCUMENT = {
@@ -137,5 +149,65 @@ describe("편집기 영역 슬롯", () => {
     expect(screen.getByTestId("default-sidebar")).toBeInTheDocument();
     expect(screen.getByTestId("default-inspector")).toBeInTheDocument();
     expect(screen.getByText("editor.save")).toBeInTheDocument();
+  });
+});
+
+describe("편집기 저장", () => {
+  const change = () =>
+    act(() => {
+      (seen.store as { addPage: (json?: unknown) => unknown }).addPage();
+    });
+
+  it("바뀌면 «변경됨», 저장 버튼이 리비전을 싣고 보내면 «저장됨»", async () => {
+    const onSave = vi.fn(async () => ({ revision: 8 }));
+    renderWithDetailPageHost(
+      <DetailPageEditor
+        initialDocument={{ ...(DOCUMENT as object), revision: 7 } as never}
+        onSave={onSave}
+      />,
+    );
+    expect(screen.queryByText("editor.unsaved")).not.toBeInTheDocument();
+
+    change();
+    expect(screen.getByText("editor.unsaved")).toBeInTheDocument();
+
+    await act(async () => {
+      fireEvent.click(screen.getByText("editor.save"));
+    });
+    expect(onSave).toHaveBeenCalledWith(expect.anything(), {
+      reason: "manual",
+      revision: 7,
+    });
+    expect(screen.getByText("editor.saved")).toBeInTheDocument();
+    expect(screen.queryByText("editor.unsaved")).not.toBeInTheDocument();
+
+    // 다음 변경이 «저장됨»을 끈다. 다음 저장은 서버가 돌려준 리비전을 싣는다.
+    change();
+    expect(screen.queryByText("editor.saved")).not.toBeInTheDocument();
+    await act(async () => {
+      fireEvent.click(screen.getByText("editor.save"));
+    });
+    expect(onSave).toHaveBeenLastCalledWith(expect.anything(), {
+      reason: "manual",
+      revision: 8,
+    });
+  });
+
+  it("충돌로 거절되면 알리고 변경을 붙잡아 둔다", async () => {
+    const error = vi.fn();
+    const onSave = vi.fn(async () => {
+      throw new DetailPageSaveConflictError();
+    });
+    renderWithDetailPageHost(
+      <DetailPageEditor initialDocument={DOCUMENT} onSave={onSave} />,
+      { toast: { error } },
+    );
+
+    change();
+    await act(async () => {
+      fireEvent.click(screen.getByText("editor.save"));
+    });
+    expect(error).toHaveBeenCalledWith("editor.saveConflict");
+    expect(screen.getByText("editor.unsaved")).toBeInTheDocument();
   });
 });

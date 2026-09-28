@@ -47,7 +47,10 @@
       "aiNote": "Font subsets preserve appearance; typing new characters requires the same font installed",
       "aiOverflowNote": "Taller than the {{limit}}px artboard limit — saved as one artboard per page",
       "exporting": "Exporting...",
-      "downloadAction": "Download"
+      "downloadAction": "Download",
+      "unsaved": "Unsaved",
+      "saveRetrying": "Couldn't save. Retrying shortly.",
+      "saveConflict": "This document was saved elsewhere first. Your changes are kept — check before reloading."
     },
     "detailPage": {
       "properties": {

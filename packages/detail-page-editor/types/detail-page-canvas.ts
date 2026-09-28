@@ -19,4 +19,9 @@ export type LeviosaCanvasDocument = {
   canvas_json: Record<string, unknown>;
   fonts: Array<Record<string, unknown>>;
   source: "leviosa_canvas_editor";
+  /**
+   * 서버가 준 문서 리비전(etag·버전 번호). 있으면 `onSave` 의 `meta.revision` 으로
+   * 되돌아가 충돌 감지에 쓰인다. 없으면 감지를 안 한다.
+   */
+  revision?: string | number;
 };

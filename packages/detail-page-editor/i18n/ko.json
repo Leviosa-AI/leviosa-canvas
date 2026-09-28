@@ -47,7 +47,10 @@
       "aiNote": "폰트 서브셋으로 모양을 보존하며, 새 글자 입력에는 같은 폰트 설치가 필요합니다",
       "aiOverflowNote": "높이가 아트보드 한계({{limit}}px)를 넘어 페이지별 아트보드로 저장됩니다",
       "exporting": "내보내는 중...",
-      "downloadAction": "다운로드"
+      "downloadAction": "다운로드",
+      "unsaved": "변경됨",
+      "saveRetrying": "저장하지 못했어요. 잠시 후 다시 시도할게요.",
+      "saveConflict": "다른 곳에서 먼저 저장된 문서예요. 변경은 남겨 두었으니 새로고침 전에 확인해 주세요."
     },
     "detailPage": {
       "properties": {

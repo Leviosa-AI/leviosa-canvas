@@ -32,7 +32,10 @@ import { useDetailPageEditUsage } from "./edit-quota-ui";
 import type { ImageTier } from "../../lib/detail-page/image-credit";
 import { DetailPageHistoryButtons } from "./detail-page-history-buttons";
 import { DetailPageDownloadDialog } from "./detail-page-download-dialog";
-import { useDetailPageHost } from "./detail-page-host-context";
+import {
+  isDetailPageSaveConflict,
+  useDetailPageHost,
+} from "./detail-page-host-context";
 import { SectionReauthorController } from "./section-reauthor-controller";
 import type {
   GenerateGifFn,
@@ -52,11 +55,19 @@ export type DetailPageEditorProps = {
    * 문서를 저장한다. `reason` 은 왜 지금 저장하는가다 — 앱이 이걸 보고 무거운 뒷일
    * (상세페이지의 HTML 굽기 같은)을 할지 말지 고른다. 자동저장은 `auto`, 저장 버튼은
    * `manual`, 탭을 닫거나 편집기를 떠날 때는 `leave` 로 온다.
+   *
+   * `leave` 는 페이지가 내려가는 중일 수 있다 — 요청이 끊기지 않게 `keepalive`
+   * (`fetch(…, { keepalive: true })`·`sendBeacon`)로 보내는 것은 앱이 한다.
+   *
+   * `revision` 은 편집기가 아는 마지막 리비전이다(문서의 `revision`, 또는 앞선
+   * `onSave` 가 돌려준 것). 서버가 그보다 새 것을 갖고 있으면 덮어쓰지 말고
+   * `DetailPageSaveConflictError`(또는 `{ conflict: true }` 인 오류)로 거절하면 된다 —
+   * 편집기가 알리고 변경을 붙잡아 둔다. 새 리비전을 돌려주면 다음 저장에 실린다.
    */
   onSave: (
     document: LeviosaCanvasDocument,
-    meta: { reason: SaveReason },
-  ) => Promise<void>;
+    meta: { reason: SaveReason; revision?: string | number },
+  ) => Promise<void | { revision?: string | number }>;
   /**
    * 자동저장 간격(ms). 없으면 자동저장을 안 한다.
    *
@@ -171,7 +182,7 @@ export function DetailPageEditor({
   selectDetailPageEditorProfile(initialDocument);
   const { t } = useTranslation("branding");
   // 요금제 모달은 호스트가 꽂는다 — 편집기가 열지만 무엇을 얼마에 파는지는 앱이 안다.
-  const { slots } = useDetailPageHost();
+  const { slots, toast } = useDetailPageHost();
   // 영역 슬롯. 색·모서리는 토큰으로 바꾸지만, 무엇이 어디에 놓이는가는 앱이 정한다.
   const SidebarSlot = slots?.EditorSidebar;
   const HeaderSlot = slots?.EditorHeader;
@@ -222,6 +233,15 @@ export function DetailPageEditor({
 
   const documentRef = useRef(initialDocument);
   documentRef.current = initialDocument;
+  // 충돌 감지에 실을 리비전. 앱이 새 문서를 넣어 주면 그 리비전으로, `onSave` 가
+  // 새 리비전을 돌려주면 그것으로 옮긴다. 앱이 저장 뒤에 옛 문서를 다시 넣는 일이
+  // 있어서, 문서 쪽 값은 **바뀌었을 때만** 따른다.
+  const revisionRef = useRef(initialDocument.revision);
+  const seenRevisionRef = useRef(initialDocument.revision);
+  if (seenRevisionRef.current !== initialDocument.revision) {
+    seenRevisionRef.current = initialDocument.revision;
+    revisionRef.current = initialDocument.revision;
+  }
 
   const runSave = useCallback(
     async (reason: SaveReason) => {
@@ -230,20 +250,42 @@ export function DetailPageEditor({
       try {
         // 회색 자리표시 이미지는 빈 src 로 되돌려 저장한다 — 편집기에서만 쓰는 그림이다.
         const cleanJson = clearPlaceholderImageSrc(store.toJSON() as CanvasJson);
-        await onSave({ ...documentRef.current, canvas_json: cleanJson }, { reason });
+        const result = await onSave(
+          { ...documentRef.current, canvas_json: cleanJson },
+          { reason, revision: revisionRef.current },
+        );
+        if (result && result.revision !== undefined) revisionRef.current = result.revision;
         setSaveOk(true);
       } catch (error) {
-        setSaveError(error instanceof Error ? error.message : t("editor.saveError"));
-        // 자동저장은 조용히 넘어가지만 실패는 알려 줘야 다음에 다시 보낸다.
-        if (reason !== "manual") throw error;
+        setSaveError(
+          isDetailPageSaveConflict(error)
+            ? t("editor.saveConflict")
+            : error instanceof Error
+              ? error.message
+              : t("editor.saveError"),
+        );
+        // 다시 보낼지·알릴지는 `useAutoSave` 가 정한다 — 여기서 삼키면 dirty 가 풀린다.
+        throw error;
       }
     },
     [onSave, store, t],
   );
 
-  const handleSave = useCallback(() => void runSave("manual"), [runSave]);
-
-  const unsaved = useAutoSave({ store, delayMs: autoSaveDelayMs, save: runSave });
+  const { dirty: unsaved, flush } = useAutoSave({
+    store,
+    delayMs: autoSaveDelayMs,
+    save: runSave,
+    onError: (error) =>
+      toast.error(
+        isDetailPageSaveConflict(error) ? t("editor.saveConflict") : t("editor.saveRetrying"),
+      ),
+    // 충돌은 다시 보내 봐야 또 거절이다. 변경만 붙잡아 둔다.
+    retry: (error) => !isDetailPageSaveConflict(error),
+  });
+  // 저장 버튼·⌘S 도 자동저장과 같은 줄에 선다 — 따로 보내면 겹친 요청이 거절된다.
+  const handleSave = useCallback(() => void flush("manual"), [flush]);
+  // «저장됨»은 그 뒤로 아무것도 안 바뀌었을 때만 참이다.
+  const savedNow = saveOk && !unsaved;
 
   // The canvas subtree only depends on the stable store and sidebar
   // contract. Memoize it so QA/save/overlay updates never recreate the heavy
@@ -281,7 +323,7 @@ export function DetailPageEditor({
 
   const canvas = useMemo(() => {
     // ⌘G / ⌘Z: 우리 손버릇 맵을 쓴다(`edit/hotkeys.ts`).
-    const hotkeys = <EditorHotkeys store={store} />;
+    const hotkeys = <EditorHotkeys store={store} onSave={handleSave} />;
     // ⌘F: 20섹션에 흩어진 브랜드명·용량 표기를 한 번에 고친다.
     const findReplace = <FindReplacePanel store={store} />;
 
@@ -314,7 +356,7 @@ export function DetailPageEditor({
         </div>
       </div>
     );
-  }, [store, sidebarSections, SidebarSlot, chosenFrame, onChooseFrame]);
+  }, [store, sidebarSections, SidebarSlot, chosenFrame, onChooseFrame, handleSave, uploadFile]);
 
   const aiValue = useMemo(
     () => ({
@@ -379,9 +421,16 @@ export function DetailPageEditor({
         {historyPart}
         <span className="mx-1 h-5 w-px bg-le-ink-200" aria-hidden="true" />
 
-        {saveOk ? (
+        {savedNow ? (
           <span className="hidden text-xs font-le-medium text-le-ok-600 sm:inline">
             {t("editor.saved")}
+          </span>
+        ) : unsaved ? (
+          <span
+            data-le-save-state="unsaved"
+            className="hidden text-xs font-le-medium text-le-ink-500 sm:inline"
+          >
+            {t("editor.unsaved")}
           </span>
         ) : null}
         {saveError ? (
@@ -440,7 +489,7 @@ export function DetailPageEditor({
     <HeaderSlot
       productName={productName?.trim() || t("editor.untitled")}
       onBack={onBack}
-      save={{ run: handleSave, saving, ok: saveOk, error: saveError, unsaved }}
+      save={{ run: handleSave, saving, ok: savedNow, error: saveError, unsaved }}
       parts={{
         history: historyPart,
         download: downloadPart,
