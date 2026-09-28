@@ -189,6 +189,18 @@ describe("EditorHotkeys", () => {
     expect(event.defaultPrevented).toBe(true);
   });
 
+  it("요소 ⌘C 는 OS 클립보드에 표식을 남긴다 — 옛 OS 내용이 ⌘V 로 새지 않게", () => {
+    const writeText = vi.fn().mockResolvedValue(undefined);
+    vi.stubGlobal("navigator", { clipboard: { writeText } });
+    render(
+      createElement(EditorHotkeys, {
+        store: { selectedElementsIds: ["t1"], selectedElements: [{ id: "t1", type: "text" }] },
+      }),
+    );
+    fireEvent.keyDown(document, { code: "KeyC", key: "c", metaKey: true });
+    expect(writeText).toHaveBeenCalledWith("leviosa-canvas:elements");
+  });
+
   it("이미지 ⌘C 는 엔진 클립보드에도 넣어서 ⌘V 가 방금 복사한 것을 붙인다", () => {
     vi.stubGlobal(
       "ClipboardItem",

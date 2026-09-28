@@ -49,6 +49,15 @@ import { GroupDrillIn } from "./group-drill-in";
 import { HoverHighlightOverlay } from "./hover-highlight-overlay";
 import { CanvasSectionHeightHandle } from "./section-height-handle";
 import { loadEditorFont } from "../../lib/detail-page-canvas/editor-fonts";
+import {
+  imageFiles,
+  insertImageFiles,
+  planPaste,
+} from "../../lib/detail-page/canvas-paste";
+import { useOptionalDetailPageHost } from "./detail-page-host-context";
+import { insertText, TEXT_SIZE_PRESETS } from "./detail-page-text-panel";
+import { pasteElements } from "@leviosa-ai/canvas/edit/commands";
+import { useTranslation } from "react-i18next";
 import { ZoomButtons } from "@leviosa-ai/canvas";
 import { CanvasView } from "@leviosa-ai/canvas/render/canvas-view";
 import {
@@ -100,6 +109,7 @@ export function LeviosaCanvasWorkspace({
   chosenFrame,
   onChooseFrame,
   children,
+  uploadFile,
 }: {
   store: CanvasStore;
   gap?: number;
@@ -111,8 +121,68 @@ export function LeviosaCanvasWorkspace({
   onChooseFrame?: (frameKey: string) => void;
   /** 작업 영역 위에 얹을 것(찾기·바꾸기 같은 편집기 고유 층). */
   children?: ReactNode;
+  /** 끌어다 놓거나 붙여넣은 그림을 올린다. 없으면 그림 드롭·붙여넣기를 안 받는다. */
+  uploadFile?: (file: File) => Promise<string>;
 }) {
   useCanvasVersion(store);
+  const { t } = useTranslation("branding");
+  const toast = useOptionalDetailPageHost()?.toast;
+  const uploadRef = useRef(uploadFile);
+  uploadRef.current = uploadFile;
+  const insertFiles = useCallback(
+    (files: File[]) => {
+      const upload = uploadRef.current;
+      if (!upload || !files.length) return;
+      void insertImageFiles(store, files, upload).catch(() =>
+        toast?.error(t("detailPage.photos.uploadFailed")),
+      );
+    },
+    [store, t, toast],
+  );
+
+  // OS 클립보드 붙여넣기(다른 앱의 그림·글자). 무엇을 붙일지는 `canvas-paste` 가 고른다.
+  useEffect(() => {
+    let fallback: ReturnType<typeof setTimeout> | null = null;
+    const typing = () => {
+      const el = document.activeElement as HTMLElement | null;
+      return (
+        !!el &&
+        (el.tagName === "INPUT" || el.tagName === "TEXTAREA" || el.isContentEditable)
+      );
+    };
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (!(event.metaKey || event.ctrlKey) || event.code !== "KeyV") return;
+      if (event.altKey || event.shiftKey || typing()) return;
+      // 엔진의 ⌘V 는 기본 동작을 막아서 `paste` 이벤트가 안 뜬다. 엔진에 안 넘기고
+      // 브라우저가 `paste` 를 띄우게 둔다.
+      event.stopPropagation();
+      // `paste` 를 안 띄우는 환경도 있다 — 그때는 엔진 붙여넣기로 돌아간다.
+      if (fallback) clearTimeout(fallback);
+      fallback = setTimeout(() => {
+        fallback = null;
+        pasteElements(store);
+      }, 50);
+    };
+    const onPaste = (event: ClipboardEvent) => {
+      if (typing()) return;
+      if (fallback) {
+        clearTimeout(fallback);
+        fallback = null;
+      }
+      event.preventDefault();
+      const plan = planPaste(event.clipboardData, Boolean(uploadRef.current));
+      if (plan.kind === "engine") pasteElements(store);
+      else if (plan.kind === "files") insertFiles(plan.files);
+      else insertText(store, plan.text, TEXT_SIZE_PRESETS[2]);
+    };
+    document.addEventListener("keydown", onKeyDown, { capture: true });
+    window.addEventListener("paste", onPaste);
+    return () => {
+      if (fallback) clearTimeout(fallback);
+      document.removeEventListener("keydown", onKeyDown, { capture: true });
+      window.removeEventListener("paste", onPaste);
+    };
+  }, [store, insertFiles]);
   const outerRef = useRef<HTMLDivElement>(null);
   const innerRef = useRef<HTMLDivElement>(null);
   const [viewport, setViewport] = useState({ width: 0, height: 0 });
@@ -406,6 +476,19 @@ export function LeviosaCanvasWorkspace({
     <div
       ref={outerRef}
       data-lc-workspace=""
+      // 탐색기에서 끌어 온 그림을 받는다. 자리는 붙여넣기와 같이 활성 화면 가운데다.
+      // ponytail: 놓은 좌표에 두지 않는다 — 필요하면 clientX/Y 를 판 좌표로 바꿔 넘긴다.
+      onDragOver={(event) => {
+        if (!uploadRef.current || !event.dataTransfer?.types.includes("Files")) return;
+        event.preventDefault();
+        event.dataTransfer.dropEffect = "copy";
+      }}
+      onDrop={(event) => {
+        const files = imageFiles(event.dataTransfer?.files);
+        if (!uploadRef.current || !files.length) return;
+        event.preventDefault();
+        insertFiles(files);
+      }}
       style={{
         width: "100%",
         height: "100%",

@@ -349,6 +349,7 @@ export function DetailPageEditor({
             gap={4}
             chosenFrame={chosenFrame}
             onChooseFrame={onChooseFrame}
+            uploadFile={uploadFile}
           >
             {findReplace}
             <DetailPagePagesTimeline store={store} />

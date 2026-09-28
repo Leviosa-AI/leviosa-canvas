@@ -12,6 +12,10 @@ import {
   type MenuElement,
 } from "../../lib/detail-page/canvas-menu";
 import { groupAction, type GroupStore } from "../../lib/detail-page/group-action";
+import {
+  CANVAS_CLIPBOARD_MARK,
+  markCanvasCopy,
+} from "../../lib/detail-page/canvas-paste";
 
 /**
  * Takes over the Canvas hotkeys that are broken for a document made of groups,
@@ -86,7 +90,13 @@ export function copySelectedImageToClipboard(store: {
   if (!src || (el.type !== "image" && el.type !== "svg")) return false;
   if (typeof ClipboardItem === "undefined" || !navigator.clipboard?.write) return false;
   navigator.clipboard
-    .write([new ClipboardItem({ "image/png": elementToPngBlob(src) })])
+    .write([
+      new ClipboardItem({
+        "image/png": elementToPngBlob(src),
+        // 편집기 안에서 ⌘V 하면 그림을 다시 올리지 않고 이 요소를 붙인다(canvas-paste).
+        "text/plain": new Blob([CANVAS_CLIPBOARD_MARK], { type: "text/plain" }),
+      }),
+    ])
     .catch((err) => {
       // taint(CORS 미허용)나 권한 거부 시 조용히 로그만 — 크래시 방지.
       console.warn("[detail-page] 이미지 클립보드 복사 실패:", err);
@@ -155,7 +165,16 @@ export function EditorHotkeys({
           copyElements(s as unknown as CanvasStore);
           e.preventDefault();
           e.stopPropagation();
+        } else if (s.selectedElementsIds?.length) {
+          // 엔진이 자기 클립보드에 넣는다. OS 클립보드에는 표식을 남겨 ⌘V 가 옛
+          // OS 내용 대신 이것을 붙이게 한다(canvas-paste).
+          markCanvasCopy();
         }
+        return;
+      }
+
+      if (e.code === "KeyX" && !e.shiftKey && !e.altKey && s.selectedElementsIds?.length) {
+        markCanvasCopy();
         return;
       }
 

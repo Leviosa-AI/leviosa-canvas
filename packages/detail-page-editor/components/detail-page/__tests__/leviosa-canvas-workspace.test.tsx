@@ -44,6 +44,8 @@ vi.mock("react-konva/es/ReactKonvaCore", () => {
 import { LeviosaCanvasWorkspace } from "../leviosa-canvas-workspace";
 import { PAGES_TIMELINE_HEIGHT } from "../detail-page-pages-timeline";
 import { createCanvasStore } from "@leviosa-ai/canvas/store";
+import { clearClipboard, copyElements } from "@leviosa-ai/canvas/edit/commands";
+import { CANVAS_CLIPBOARD_MARK } from "../../../lib/detail-page/canvas-paste";
 import { selectDetailPageEditorProfile } from "../../../lib/detail-page/editor-profile";
 
 function store() {
@@ -292,5 +294,90 @@ describe("LeviosaCanvasWorkspace", () => {
       </LeviosaCanvasWorkspace>,
     );
     expect(screen.getByText("덧댄 층")).toBeTruthy();
+  });
+});
+
+/** OS 클립보드 붙여넣기와 파일 드롭 — 엔진의 ⌘V 는 자기 클립보드만 본다. */
+describe("LeviosaCanvasWorkspace — 붙여넣기·드롭", () => {
+  afterEach(() => {
+    clearClipboard();
+    vi.useRealTimers();
+  });
+
+  function paste(text: string, files: File[] = []) {
+    const event = new Event("paste", { bubbles: true, cancelable: true });
+    Object.defineProperty(event, "clipboardData", {
+      value: {
+        getData: (type: string) => (type === "text/plain" ? text : ""),
+        files,
+      },
+    });
+    act(() => {
+      window.dispatchEvent(event);
+    });
+    return event;
+  }
+
+  const ids = (s: ReturnType<typeof store>) => s.pages[0].children.map((el) => el.id);
+
+  it("다른 앱의 글자는 글상자로 넣는다", () => {
+    const s = store();
+    render(<LeviosaCanvasWorkspace store={s} />);
+    paste("밖에서 온 글");
+    const added = s.pages[0].children.at(-1);
+    expect(added?.type).toBe("text");
+    expect(added?.text).toBe("밖에서 온 글");
+  });
+
+  it("다른 앱의 그림은 올려서 넣는다", async () => {
+    const s = store();
+    const uploadFile = vi.fn(async () => "https://s3/pasted.png");
+    render(<LeviosaCanvasWorkspace store={s} uploadFile={uploadFile} />);
+    const png = new File(["x"], "a.png", { type: "image/png" });
+    paste("", [png]);
+    await act(async () => {});
+    expect(uploadFile).toHaveBeenCalledWith(png);
+  });
+
+  it("편집기 안에서 복사한 것(표식)은 엔진 클립보드에서 붙인다", () => {
+    const s = store();
+    s.selectElements(["a"]);
+    copyElements(s);
+    render(<LeviosaCanvasWorkspace store={s} />);
+    const before = ids(s).length;
+    paste(CANVAS_CLIPBOARD_MARK);
+    expect(ids(s).length).toBe(before + 1);
+    expect(s.pages[0].children.at(-1)?.text).toBe("가");
+  });
+
+  it("⌘V 가 paste 이벤트를 못 띄우면 엔진 붙여넣기로 돌아간다", () => {
+    vi.useFakeTimers();
+    const s = store();
+    s.selectElements(["a"]);
+    copyElements(s);
+    render(<LeviosaCanvasWorkspace store={s} />);
+    const before = ids(s).length;
+    fireEvent.keyDown(document, { code: "KeyV", key: "v", metaKey: true });
+    expect(ids(s).length).toBe(before);
+    act(() => {
+      vi.advanceTimersByTime(60);
+    });
+    expect(ids(s).length).toBe(before + 1);
+  });
+
+  it("탐색기에서 끌어 온 그림을 전부 올린다", async () => {
+    const s = store();
+    const uploadFile = vi.fn(async () => "https://s3/dropped.png");
+    const { container } = render(<LeviosaCanvasWorkspace store={s} uploadFile={uploadFile} />);
+    const files = [
+      new File(["x"], "a.png", { type: "image/png" }),
+      new File(["y"], "b.jpg", { type: "image/jpeg" }),
+    ];
+    const root = container.querySelector<HTMLElement>("[data-lc-workspace]")!;
+    fireEvent.dragOver(root, { dataTransfer: { types: ["Files"], files, dropEffect: "" } });
+    fireEvent.drop(root, { dataTransfer: { types: ["Files"], files } });
+    await act(async () => {});
+    await act(async () => {});
+    expect(uploadFile).toHaveBeenCalledTimes(2);
   });
 });
