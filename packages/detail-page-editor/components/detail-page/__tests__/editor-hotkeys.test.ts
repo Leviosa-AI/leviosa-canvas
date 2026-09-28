@@ -1,7 +1,12 @@
 // Copyright © 2026 주식회사레비오사에이아이. All rights reserved. See LICENSE.
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { copySelectedImageToClipboard } from "../editor-hotkeys";
+import { createElement } from "react";
+import { fireEvent, render } from "@testing-library/react";
+import { createCanvasStore } from "@leviosa-ai/canvas/store";
+import { clearClipboard, pasteElements } from "@leviosa-ai/canvas/edit/commands";
+
+import { EditorHotkeys, copySelectedImageToClipboard } from "../editor-hotkeys";
 import { groupAction, groupableIds } from "../../../lib/detail-page/group-action";
 
 /**
@@ -132,5 +137,59 @@ describe("copySelectedImageToClipboard", () => {
     expect(
       copySelectedImageToClipboard(sel([{ type: "image", src: "https://s3/x.jpg" }])),
     ).toBe(false);
+  });
+});
+
+describe("EditorHotkeys", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    clearClipboard();
+  });
+
+  it("⌘S 는 브라우저 저장 대신 문서를 저장한다", () => {
+    const onSave = vi.fn();
+    render(createElement(EditorHotkeys, { store: {}, onSave }));
+    const event = new KeyboardEvent("keydown", {
+      code: "KeyS",
+      key: "s",
+      metaKey: true,
+      bubbles: true,
+      cancelable: true,
+    });
+    document.dispatchEvent(event);
+    expect(onSave).toHaveBeenCalledOnce();
+    expect(event.defaultPrevented).toBe(true);
+  });
+
+  it("이미지 ⌘C 는 엔진 클립보드에도 넣어서 ⌘V 가 방금 복사한 것을 붙인다", () => {
+    vi.stubGlobal(
+      "ClipboardItem",
+      class {
+        constructor(public items: unknown) {}
+      },
+    );
+    vi.stubGlobal("navigator", {
+      clipboard: { write: vi.fn().mockResolvedValue(undefined) },
+    });
+    const store = createCanvasStore({
+      width: 800,
+      height: 600,
+      pages: [
+        {
+          id: "p1",
+          children: [
+            { id: "img", type: "image", src: "https://s3/x.jpg", width: 10, height: 10 },
+          ],
+        },
+      ],
+    } as never);
+    store.selectElements(["img"]);
+    render(createElement(EditorHotkeys, { store }));
+
+    fireEvent.keyDown(document, { code: "KeyC", key: "c", metaKey: true });
+    const made = pasteElements(store);
+
+    expect(made).toHaveLength(1);
+    expect(store.getElementById(made[0])?.src).toBe("https://s3/x.jpg");
   });
 });
