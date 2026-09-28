@@ -173,7 +173,7 @@ export function whyNotMove(
   if (dstParentId && (dst as LayerElement).type !== "group") return "notGroup";
 
   if ((from.parent?.id ?? null) === dstParentId) {
-    return (from.parent ?? page).setElementZIndex ? null : "unsupported";
+    return ((from.parent ?? page) as ParentLike).setElementZIndex ? null : "unsupported";
   }
   if (typeof (dst as ParentLike).addElement !== "function") return "unsupported";
   if (typeof s.deleteElements !== "function") return "unsupported";
