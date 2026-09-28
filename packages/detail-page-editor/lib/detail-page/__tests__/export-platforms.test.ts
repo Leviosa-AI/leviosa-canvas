@@ -6,8 +6,22 @@ import {
   exportPlatform,
   platformPixelRatio,
 } from "../export-platforms";
+import ko from "../../../i18n/ko.json";
+import en from "../../../i18n/en.json";
 
 describe("EXPORT_PLATFORMS", () => {
+  it("플랫폼 이름은 두 언어 번들에 모두 있다(화면은 labelKey 로 그린다)", () => {
+    const lookup = (bundle: unknown, key: string) =>
+      key.split(".").reduce<unknown>(
+        (node, part) => (node as Record<string, unknown> | undefined)?.[part],
+        (bundle as { branding: unknown }).branding,
+      );
+    for (const p of EXPORT_PLATFORMS) {
+      expect(lookup(ko, p.labelKey), p.value).toBe(p.label);
+      expect(typeof lookup(en, p.labelKey), p.value).toBe("string");
+    }
+  });
+
   it("모든 플랫폼이 움직이는 형식을 하나 이상 받고, 첫 항목이 기본이다", () => {
     for (const p of EXPORT_PLATFORMS) {
       expect(p.animation.length, p.value).toBeGreaterThan(0);

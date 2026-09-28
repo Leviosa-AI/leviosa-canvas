@@ -996,6 +996,16 @@
           "compact": "정보 밀집형",
           "cozy": "포근한"
         }
+      },
+      "exportPlatforms": {
+        "naver": "네이버 스마트 스토어",
+        "coupang": "쿠팡",
+        "cafe24": "카페24",
+        "gmarket": "지마켓 · 옥션",
+        "11st": "11번가",
+        "kakao": "카카오톡 스토어",
+        "ohouse": "오늘의집",
+        "general": "일반(범용)"
       }
     }
   },

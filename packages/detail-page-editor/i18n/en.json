@@ -996,6 +996,16 @@
           "compact": "Compact",
           "cozy": "Cozy"
         }
+      },
+      "exportPlatforms": {
+        "naver": "Naver Smart Store",
+        "coupang": "Coupang",
+        "cafe24": "Cafe24",
+        "gmarket": "Gmarket · Auction",
+        "11st": "11st",
+        "kakao": "KakaoTalk Store",
+        "ohouse": "Ohouse",
+        "general": "General"
       }
     }
   },
