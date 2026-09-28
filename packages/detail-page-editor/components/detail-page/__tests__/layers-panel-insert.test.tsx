@@ -75,7 +75,7 @@ describe("레이어 패널 × 실제 삽입", () => {
     });
 
     const count = Number(view.container.querySelector(".tabular-nums")?.textContent);
-    const rows = view.container.querySelectorAll('[role="button"][draggable]');
+    const rows = view.container.querySelectorAll('[role="treeitem"][draggable]');
     expect(count).toBe(3);
     expect(rows).toHaveLength(count);
   });

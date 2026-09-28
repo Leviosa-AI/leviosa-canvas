@@ -1,4 +1,10 @@
 // Copyright © 2026 주식회사레비오사에이아이. All rights reserved. See LICENSE.
+import { lineHeightRatio } from "@leviosa-ai/canvas/render/attrs";
+import {
+  computeHighlightBands,
+  type HighlightBand,
+} from "@leviosa-ai/canvas/paint/text-highlight-bands";
+
 import type { ExportElement } from "./document-model";
 
 /**
@@ -14,8 +20,6 @@ export type TextLayout = {
   /** Line pitch in px. */
   leading: number;
   blockHeight: number;
-  /** Horizontal condensation applied when wrapping would overflow the box. */
-  scaleX: number;
   /** Vertical offset of the first line produced by verticalAlign. */
   offsetY: number;
 };
@@ -117,27 +121,43 @@ export function wrapText(text: string, maxWidth: number, measure: MeasureText): 
  * Lay out a text element: wrapped lines, per-line leading, and the vertical
  * offset produced by verticalAlign within the element box.
  *
- * The decomposer sizes text boxes from DOM measurements, which can be a few
- * percent narrower than canvas metrics. The element height caps the line
- * count (round(h / leading)); when wrapping would exceed it, the text is
- * horizontally condensed (scaleX) until it fits, instead of overflowing onto
- * extra lines that overlap following elements.
+ * 화면(`@leviosa-ai/canvas/render/element-view`의 TextBody)과 같은 규칙이다. 한 줄
+ * 높이 상자(높이 ≤ 줄 높이 × 1.6)는 접지 않고 넘치게 두고, 나머지는 상자 폭에서 접는다.
+ * 줄 수를 상자 높이로 자르거나 글자를 옆으로 눌러 담지 않는다 — 한때 60%까지 눌렀는데
+ * 화면에는 그런 규칙이 없어서, 내보낸 파일만 글자가 좁아졌다.
  */
 export function layoutText(el: ExportElement, measure: MeasureText): TextLayout {
   const width = Number(el.width) || 0;
   const height = Number(el.height) || 0;
   const text = transformText(el);
   const leading = resolveLeading(el);
-  const maxLines = Math.max(1, Math.round(height / leading) || 1);
-  let scaleX = 1;
-  let lines = wrapText(text, width, measure);
-  while (lines.length > maxLines && scaleX > 0.6) {
-    scaleX = Math.round((scaleX - 0.02) * 100) / 100;
-    lines = wrapText(text, width / scaleX, measure);
-  }
+  const singleLine = height <= leading * 1.6;
+  const lines = singleLine ? text.split("\n") : wrapText(text, width, measure);
   const blockHeight = lines.length * leading;
   let offsetY = 0;
   if (el.verticalAlign === "middle") offsetY = (height - blockHeight) / 2;
   else if (el.verticalAlign === "bottom") offsetY = height - blockHeight;
-  return { lines, leading, blockHeight, scaleX, offsetY: Math.max(0, offsetY) };
+  return { lines, leading, blockHeight, offsetY: Math.max(0, offsetY) };
+}
+
+/**
+ * 형광펜 띠(`custom.highlightColor`) — 글자 **뒤에** 줄마다 하나씩, 상자 로컬 좌표.
+ *
+ * 화면(TextBody)이 부르는 `computeHighlightBands`를 같은 입력으로 부른다 — 줄 나눔과
+ * 띠 모양을 여기서 다시 셈하면 화면과 갈라진다. 띠가 없으면 빈 배열.
+ */
+export function highlightBands(el: ExportElement): Array<HighlightBand & { color: string }> {
+  const color = el.custom?.highlightColor;
+  if (typeof color !== "string" || !color) return [];
+  const fontSize = Number(el.fontSize) || 14;
+  return computeHighlightBands({
+    text: transformText(el),
+    fontSize,
+    fontFamily: el.fontFamily || "sans-serif",
+    fontWeight: el.fontWeight ?? "normal",
+    boxWidth: Number(el.width) || 0,
+    lineHeightRatio: lineHeightRatio(el.lineHeight, fontSize),
+    align: el.align || "left",
+    color,
+  }).map((band) => ({ ...band, color }));
 }

@@ -79,6 +79,11 @@ export function TextEditorOverlay({
         ? savedAnchorWidth - box.width
         : 0;
   const position = el.absolutePosition;
+  // 돌린 그룹 안 글자는 조상 회전까지 더해야 캔버스 위 글자와 겹친다.
+  let turn = num(el, "rotation", 0);
+  for (let node = el.parent; node && "isContainer" in node; node = (node as CanvasElement).parent) {
+    turn += num(node as CanvasElement, "rotation", 0);
+  }
   const singleLine = isSingleLineBox(el);
   const style = konvaFontStyle(el);
 
@@ -103,7 +108,7 @@ export function TextEditorOverlay({
         position: "absolute",
         left: position.x * scale,
         top: position.y * scale,
-        transform: `scale(${scale}) rotate(${num(el, "rotation", 0)}deg)`,
+        transform: `scale(${scale}) rotate(${turn}deg)`,
         transformOrigin: "top left",
         // 상자 자체는 문서 단위 그대로 — 배율은 transform이 혼자 진다.
         width: box.width,

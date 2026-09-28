@@ -29,6 +29,9 @@ export default defineConfig({
         test: {
           name: "detail-page-editor",
           globals: true,
+          // 다운로드 창·크롭 오버레이 테스트는 홀로 1.5~2초다. 세 프로젝트가 한꺼번에
+          // 돌면 기본 5초를 넘겨 무작위로 죽는다 — 느린 것을 고치는 게 아니라 기다려 준다.
+          testTimeout: 15_000,
           environment: "jsdom",
           setupFiles: ["./test/setup.ts", "./test/setup-editor.tsx"],
           include: [

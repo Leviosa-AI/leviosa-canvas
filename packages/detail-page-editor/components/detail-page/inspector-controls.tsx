@@ -1,7 +1,8 @@
 // Copyright © 2026 주식회사레비오사에이아이. All rights reserved. See LICENSE.
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useId, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 
 /**
  * 우측 인스펙터가 공유하는 작은 컨트롤들.
@@ -10,6 +11,90 @@ import { useEffect, useRef, useState } from "react";
  * 써야 하는데, 패널이 차트 인스펙터를 import하고 차트 인스펙터가 다시 패널을 import하면
  * 순환이 된다.
  */
+
+/** 엔진 `store.history` 중 여기서 쓰는 두 개. 없는 스토어(테스트 가짜 등)면 그냥 건너뛴다. */
+export type HistoryLike = {
+  startTransaction?: () => void;
+  endTransaction?: () => void;
+};
+
+/** 요소(또는 스토어)에서 히스토리를 찾는다. 엔진 요소는 `el.store` 를 들고 있다. */
+export function historyOf(target: unknown): HistoryLike | undefined {
+  const t = target as { history?: HistoryLike; store?: { history?: HistoryLike } } | null;
+  return t?.history ?? t?.store?.history;
+}
+
+/** 여러 번의 set 을 undo 한 단계로 묶는다. */
+export function transact(history: HistoryLike | undefined, run: () => void): void {
+  history?.startTransaction?.();
+  try {
+    run();
+  } finally {
+    history?.endTransaction?.();
+  }
+}
+
+// 지금 페이지 어딘가에서 포인터를 누르고 있는가. 슬라이더를 끄는 중이면 손을 뗄 때까지
+// 한 제스처로 본다. 캡처 단계로 한 번만 건다(컨트롤마다 pointerdown 을 달 필요가 없다).
+let pointerHeld = false;
+let pointerTracked = false;
+function trackPointer() {
+  if (pointerTracked || typeof window === "undefined") return;
+  pointerTracked = true;
+  window.addEventListener("pointerdown", () => (pointerHeld = true), true);
+  const release = () => (pointerHeld = false);
+  window.addEventListener("pointerup", release, true);
+  window.addEventListener("pointercancel", release, true);
+}
+
+trackPointer();
+
+/** 포인터 없이 들어온 연속 변경(키보드·네이티브 색 선택 창)을 끊어 보는 간격. */
+export const GESTURE_IDLE_MS = 400;
+
+/**
+ * 슬라이더·색 선택처럼 값이 연달아 들어오는 입력을 undo **한 단계**로 묶는다.
+ *
+ * 첫 변경에서 트랜잭션을 열고, 포인터를 누르고 있었으면 뗄 때, 아니면 잠깐 멈출 때
+ * 닫는다. 언마운트되면 열린 것을 닫는다.
+ * ponytail: 포인터 없는 입력은 멈춤(GESTURE_IDLE_MS)으로 끊는다 — 입력마다 시작/끝
+ * 이벤트를 받게 되면 그걸로 바꾼다.
+ */
+export function useGestureTransaction(history: HistoryLike | undefined) {
+  const historyRef = useRef(history);
+  historyRef.current = history;
+  const open = useRef<HistoryLike | null>(null);
+  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const end = useCallback(() => {
+    if (timer.current) clearTimeout(timer.current);
+    timer.current = null;
+    window.removeEventListener("pointerup", end);
+    window.removeEventListener("pointercancel", end);
+    const h = open.current;
+    open.current = null;
+    h?.endTransaction?.();
+  }, []);
+
+  const change = useCallback(
+    (run: () => void) => {
+      if (!open.current) {
+        const h = historyRef.current ?? {};
+        h.startTransaction?.();
+        open.current = h;
+        window.addEventListener("pointerup", end);
+        window.addEventListener("pointercancel", end);
+      }
+      run();
+      if (timer.current) clearTimeout(timer.current);
+      timer.current = pointerHeld ? null : setTimeout(end, GESTURE_IDLE_MS);
+    },
+    [end],
+  );
+
+  useEffect(() => end, [end]);
+  return { change, end };
+}
 
 export function Section({
   title,
@@ -37,6 +122,8 @@ export function NumberField({
   max,
   suffix,
   label,
+  ariaLabel,
+  history,
 }: {
   value: number;
   onChange: (v: number) => void;
@@ -46,7 +133,14 @@ export function NumberField({
   suffix?: string;
   // 지정하면 이 라벨이 피그마식 드래그 스크럽 핸들이 된다(좌우 드래그로 값 증감).
   label?: string;
+  /** 보이는 라벨이 없을 때 스크린리더용 이름. */
+  ariaLabel?: string;
+  /** 주면 스크럽 드래그 한 번이 undo 한 단계가 된다. */
+  history?: HistoryLike;
 }) {
+  const { t } = useTranslation("branding");
+  const id = useId();
+  const gesture = useGestureTransaction(history);
   const [local, setLocal] = useState(String(value));
   useEffect(() => {
     setLocal(String(Math.round(value * 100) / 100));
@@ -93,11 +187,12 @@ export function NumberField({
     d.moved = true;
     const next = round(d.base + dx * step * (e.shiftKey ? 10 : 1));
     setLocal(String(next));
-    onChange(next);
+    gesture.change(() => onChange(next));
   };
   const onScrubUp = (e: React.PointerEvent) => {
     if (!drag.current) return;
     drag.current = null;
+    gesture.end();
     try {
       (e.target as HTMLElement).releasePointerCapture(e.pointerId);
     } catch {
@@ -108,21 +203,23 @@ export function NumberField({
   return (
     <div className="flex items-center rounded-le-md border border-le-ink-200 bg-le-surface pr-2 focus-within:border-le-ink-400">
       {label ? (
-        <span
-          aria-hidden="true"
+        <label
+          htmlFor={id}
           onPointerDown={onScrubDown}
           onPointerMove={onScrubMove}
           onPointerUp={onScrubUp}
           onPointerCancel={onScrubUp}
-          className="cursor-ew-resize select-none touch-none py-1.5 pl-2 pr-1.5 text-xs font-le-medium text-le-ink-400 hover:text-le-ink-600"
-          title={`${label} — 좌우로 드래그해 값 조절 (Shift ×10)`}
+          className="cursor-ew-resize select-none touch-none whitespace-nowrap py-1.5 pl-2 pr-1.5 text-xs font-le-medium text-le-ink-400 hover:text-le-ink-600"
+          title={t("detailPage.properties.scrubHint", { label })}
         >
           {label}
-        </span>
+        </label>
       ) : (
         <span className="pl-2" />
       )}
       <input
+        id={id}
+        aria-label={label ? undefined : ariaLabel}
         type="text"
         inputMode="decimal"
         value={local}
@@ -162,6 +259,8 @@ export function ToggleButton({
     <button
       type="button"
       title={title}
+      aria-label={title}
+      aria-pressed={active}
       onClick={onClick}
       className={[
         "flex h-8 flex-1 items-center justify-center rounded-le-md border transition-colors",

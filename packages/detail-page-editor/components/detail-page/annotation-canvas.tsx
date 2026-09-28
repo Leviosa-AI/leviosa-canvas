@@ -19,6 +19,7 @@ import {
   Type,
   Undo2,
 } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 /**
  * 그림으로 가리키는 편집 — 이미지·화면 위에 덧그리는 주석 캔버스.
@@ -120,7 +121,7 @@ function loadImage(src: string): Promise<HTMLImageElement> {
     // 동일 출처 프록시를 타는 경우에도 캔버스 오염을 막으려면 명시해야 한다.
     img.crossOrigin = "anonymous";
     img.onload = () => resolve(img);
-    img.onerror = () => reject(new Error("이미지를 불러오지 못했습니다."));
+    img.onerror = () => reject(new Error(`annotation image failed to load: ${src.slice(0, 64)}`));
     img.src = src;
   });
 }
@@ -262,6 +263,10 @@ export const AnnotationCanvas = forwardRef<
   { imageUrl, maxEdge = 2048, onChange, labels },
   ref,
 ) {
+  const { t } = useTranslation("branding");
+  // 라벨을 안 넘겨도 번역된 기본값이 나온다. 넘기면 그것이 이긴다.
+  const label = (key: Tool | "color" | "undo" | "redo" | "note") =>
+    labels?.[key] ?? t(`detailPage.annotate.tools.${key}`);
   const wrapRef = useRef<HTMLDivElement>(null);
   const imgRef = useRef<HTMLImageElement>(null);
   const svgRef = useRef<SVGSVGElement>(null);
@@ -667,12 +672,12 @@ export const AnnotationCanvas = forwardRef<
   const selectedBox = selected ? annotationBox(selected) : null;
 
   const TOOLS: [Tool, string, React.ReactNode][] = [
-    ["pen", labels?.pen ?? "그리기", <Pencil key="p" size={16} />],
-    ["rect", labels?.rect ?? "박스", <Square key="r" size={16} />],
-    ["arrow", labels?.arrow ?? "화살표", <ArrowUpRight key="a" size={16} />],
-    ["text", labels?.text ?? "메모", <Type key="t" size={16} />],
-    ["eraser", labels?.eraser ?? "지우개", <Eraser key="e" size={16} />],
-    ["select", labels?.select ?? "이동", <MousePointer2 key="s" size={16} />],
+    ["pen", label("pen"), <Pencil key="p" size={16} />],
+    ["rect", label("rect"), <Square key="r" size={16} />],
+    ["arrow", label("arrow"), <ArrowUpRight key="a" size={16} />],
+    ["text", label("text"), <Type key="t" size={16} />],
+    ["eraser", label("eraser"), <Eraser key="e" size={16} />],
+    ["select", label("select"), <MousePointer2 key="s" size={16} />],
   ];
 
   return (
@@ -766,7 +771,7 @@ export const AnnotationCanvas = forwardRef<
               <input
                 autoFocus
                 value={textEditor.value}
-                placeholder={labels?.note ?? "메모 입력"}
+                placeholder={label("note")}
                 onChange={(e) =>
                   setTextEditor({ ...textEditor, value: e.target.value })
                 }
@@ -817,7 +822,7 @@ export const AnnotationCanvas = forwardRef<
             <button
               key={c}
               type="button"
-              aria-label={`${labels?.color ?? "색상"} ${c}`}
+              aria-label={`${label("color")} ${c}`}
               aria-pressed={color === c}
               onClick={() => setColor(c)}
               className="flex h-8 w-6 items-center justify-center"
@@ -835,8 +840,8 @@ export const AnnotationCanvas = forwardRef<
           <span className="mx-1 h-5 w-px bg-le-ink-200" />
           <button
             type="button"
-            title={labels?.undo ?? "실행 취소"}
-            aria-label={labels?.undo ?? "실행 취소"}
+            title={label("undo")}
+            aria-label={label("undo")}
             disabled={!history.past.length}
             onClick={undo}
             className="flex h-8 w-8 items-center justify-center rounded-le-lg text-le-ink-500 transition-colors hover:bg-le-ink-100 hover:text-le-ink-900 disabled:cursor-not-allowed disabled:opacity-30"
@@ -845,8 +850,8 @@ export const AnnotationCanvas = forwardRef<
           </button>
           <button
             type="button"
-            title={labels?.redo ?? "다시 실행"}
-            aria-label={labels?.redo ?? "다시 실행"}
+            title={label("redo")}
+            aria-label={label("redo")}
             disabled={!history.future.length}
             onClick={redo}
             className="flex h-8 w-8 items-center justify-center rounded-le-lg text-le-ink-500 transition-colors hover:bg-le-ink-100 hover:text-le-ink-900 disabled:cursor-not-allowed disabled:opacity-30"

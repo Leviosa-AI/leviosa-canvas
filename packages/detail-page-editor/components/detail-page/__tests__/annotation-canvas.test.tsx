@@ -161,3 +161,12 @@ describe("AnnotationCanvas", () => {
     ).toBe(true);
   });
 });
+
+describe("AnnotationCanvas 기본 라벨", () => {
+  it("labels 를 안 넘기면 번역 키로 이름이 붙는다(하드코딩 한국어가 아니다)", () => {
+    render(<AnnotationCanvas imageUrl="data:image/png;base64,AAA" />);
+    expect(screen.getByLabelText("detailPage.annotate.tools.pen")).toBeTruthy();
+    expect(screen.getByLabelText("detailPage.annotate.tools.undo")).toBeTruthy();
+    expect(screen.queryByLabelText("그리기")).toBeNull();
+  });
+});

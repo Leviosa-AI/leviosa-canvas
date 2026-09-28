@@ -33,6 +33,13 @@ export class History<T> {
     return this.future.length > 0;
   }
 
+  // 커서를 옮기지 않고 undo/redo 대상 상태를 본다.
+  peek(direction: "undo" | "redo"): T | null {
+    const stack = direction === "undo" ? this.past : this.future;
+    const target = stack.at(-1);
+    return target === undefined ? null : this.clone(target);
+  }
+
   undo(): T {
     const previous = this.past.pop();
     if (!previous) return this.current();

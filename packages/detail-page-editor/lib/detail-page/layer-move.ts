@@ -3,22 +3,18 @@
  * 레이어 트리에서 요소를 끌어 옮긴다 — 같은 부모 안 순서 바꾸기, 그룹 안으로 넣기,
  * 그룹 밖으로 빼기 (Figma의 레이어 패널과 같은 조작).
  *
- * **왜 이렇게 도는가.** 스톡 편집기에는 요소의 부모를 바꾸는 공개 API가 없다.
- * ``page.addElement``는 페이지에만 있고, ``setElementZIndex``는 같은 부모 안에서만
- * 자리를 옮긴다. 부모를 바꾸는 유일한 공개 수단이 ``ungroupElements`` /
- * ``groupElements`` 다 — 실제로 Canvas 내부도 이 둘에서만 MST ``detach``로 노드를
- * 다른 부모에 옮겨 붙인다. 그래서 그룹을 **해체했다가 원하는 자식 목록으로 다시
- * 묶는다**. ``groupElements(ids, attrs)``의 attrs가 기본값을 덮으므로 **그룹 id와
- * name·custom을 그대로 넘겨** 같은 그룹으로 되살릴 수 있다(문서·계약이 그룹 id를
- * 참조하므로 id 보존이 핵심이다). 자식 순서는 넘긴 ids 순서 그대로다.
+ * **어떻게 옮기는가.** 엔진에는 부모를 바꾸는 API가 따로 없다. 대신 페이지와 그룹이
+ * 둘 다 ``addElement(json, { index })`` 를 갖고 있고 json 의 id 를 그대로 쓰므로,
+ * 떼어 낸(``deleteElements``) 요소를 새 부모의 원하는 칸에 **같은 id로** 다시 붙인다.
+ * 트랜잭션 하나로 묶어 undo 한 번에 돌아간다.
  *
- * 해체·재구성한 그룹은 페이지 맨 끝(맨 앞)으로 붙으므로, 원래 있던 칸을 다시 세어
- * 되돌린다. 삭제·이동으로 인덱스가 밀리니 "원래 내 앞에 있었고 지금도 살아있는 것"의
- * 개수로 목표 칸을 구한다.
+ * 예전에는 그룹을 해체했다가 다시 묶었다. 스톡 편집기의 ``ungroupElements`` 가 자식을
+ * 페이지로 올려 버려서 **페이지 직속 그룹만** 다룰 수 있었고, 중첩 그룹이 얽히면
+ * 아무 말 없이 안 옮겼다. 지금 길은 깊이를 안 가린다.
  *
- * **한계.** 페이지 직속 그룹만 다룬다. ``ungroupElements``는 자식을 ``e.page`` 로
- * 올려버려서 중첩 그룹에 쓰면 계층이 납작해지고 엉뚱한 요소가 지워진다. 중첩 그룹이
- * 얽힌 이동은 ``false``를 돌려주고 아무것도 건드리지 않는다.
+ * 자식 x/y 는 부모(그룹) 원점 기준이다. 부모가 바뀌면 두 원점의 차이만큼 옮겨서
+ * 화면 자리를 지킨다. ponytail: 조상 그룹의 회전·배율은 안 본다 — 엔진의 절대 좌표도
+ * x/y 만 더한다(``absolutePosition``). 회전된 그룹을 드나들면 자리가 틀어진다.
  */
 
 // children은 호출자마다 타입이 다르게 잡혀 있어(Canvas 모델·테스트 픽스처) unknown으로
@@ -34,15 +30,18 @@ type ParentLike = {
   id?: string;
   children?: unknown;
   setElementZIndex?: (id: string, index: number) => void;
+  addElement?: (json: Record<string, unknown>, options?: { index?: number }) => unknown;
 };
 
 type StoreLike = {
   activePage?: ParentLike;
   selectElements?: (ids: string[]) => void;
-  groupElements?: (ids: string[], attrs?: Record<string, unknown>) => unknown;
-  ungroupElements?: (ids: string[]) => void;
-  history?: { transaction?: (fn: () => void) => unknown };
+  deleteElements?: (ids: string[]) => void;
+  history?: { startTransaction?: () => void; endTransaction?: () => void };
 };
+
+/** 옮기기를 거절한 이유. 레이어 패널이 이걸 문구로 바꿔 알린다. */
+export type MoveRefusal = "missing" | "intoSelf" | "notGroup" | "unsupported";
 
 /** 드롭 지점: 어느 부모의(페이지는 null) 몇 번째 칸인가. index가 클수록 앞. */
 export type DropSpot = { parentId: string | null; index: number };
@@ -128,129 +127,106 @@ export function dropSpot(
   return { parentId: parent?.id ?? null, index: zone === "before" ? i + 1 : i };
 }
 
-/** 그룹을 되살릴 때 쓸 속성. children은 빼고(재구성할 목록으로 대체) id는 지킨다. */
-function groupAttrs(group: LayerElement): Record<string, unknown> {
-  const raw =
-    typeof group.toJSON === "function"
-      ? { ...group.toJSON() }
-      : ({ ...group } as Record<string, unknown>);
-  delete raw.children;
-  raw.id = group.id;
-  return raw;
+function num(value: unknown): number {
+  return typeof value === "number" && Number.isFinite(value) ? value : 0;
+}
+
+/** ``id`` 그룹 안 좌표계의 원점(페이지 기준). 페이지면 0. */
+function originOf(page: ParentLike, id: string | null): { x: number; y: number } {
+  if (!id) return { x: 0, y: 0 };
+  const walk = (list: LayerElement[]): { x: number; y: number } | null => {
+    for (const el of list) {
+      const own = el as { x?: unknown; y?: unknown };
+      if (el.id === id) return { x: num(own.x), y: num(own.y) };
+      const inner = walk(kids(el));
+      if (inner) return { x: inner.x + num(own.x), y: inner.y + num(own.y) };
+    }
+    return null;
+  };
+  return walk(kids(page)) ?? { x: 0, y: 0 };
 }
 
 /**
- * 재구성으로 페이지 끝에 붙은 요소를 원래 칸으로 되돌린다.
+ * ``dragId``를 ``spot``으로 옮길 수 없는 이유. 옮길 수 있으면 null.
  *
- * ``beforeIds``는 손대기 전 페이지 직속 id 목록, ``originalIndex``는 그 안에서의 자리.
- * 그 앞에 있었고 **지금도 남아 있는** 것의 수가 곧 목표 칸이다.
+ * 패널이 드롭 전에 불러 "왜 안 되는지"를 알린다 — 예전엔 조용히 아무 일도 안 일어나서
+ * 사람이 드래그를 몇 번이고 다시 했다.
  */
-function restorePageSlot(
-  page: ParentLike,
-  id: string,
-  beforeIds: string[],
-  originalIndex: number,
-): void {
-  if (!page.setElementZIndex || originalIndex < 0) return;
-  const alive = new Set(kids(page).map((el) => el.id));
-  if (!alive.has(id)) return;
-  let target = 0;
-  for (let i = 0; i < originalIndex; i += 1) {
-    if (alive.has(beforeIds[i])) target += 1;
+export function whyNotMove(
+  store: unknown,
+  dragId: string,
+  spot: DropSpot,
+): MoveRefusal | null {
+  const s = store as StoreLike;
+  const page = s.activePage;
+  if (!page || !dragId) return "missing";
+  const from = locate(page, dragId);
+  if (!from) return "missing";
+
+  const dstParentId = spot.parentId ?? null;
+  // 자기 자신 또는 자기 자손 안으로는 넣을 수 없다(트리가 끊긴다).
+  if (dstParentId === dragId) return "intoSelf";
+  if (dstParentId && contains(elementById(page, dragId), dstParentId)) return "intoSelf";
+
+  const dst = dstParentId ? elementById(page, dstParentId) : page;
+  if (!dst) return "missing";
+  if (dstParentId && (dst as LayerElement).type !== "group") return "notGroup";
+
+  if ((from.parent?.id ?? null) === dstParentId) {
+    return ((from.parent ?? page) as ParentLike).setElementZIndex ? null : "unsupported";
   }
-  page.setElementZIndex(id, target);
+  if (typeof (dst as ParentLike).addElement !== "function") return "unsupported";
+  if (typeof s.deleteElements !== "function") return "unsupported";
+  return null;
 }
 
 function runInTransaction(store: StoreLike, fn: () => void): void {
-  const transaction = store.history?.transaction;
-  if (typeof transaction !== "function") {
+  // 떼기·붙이기가 여러 변경으로 나뉘어도 undo 한 번에 되돌아가게 묶는다.
+  store.history?.startTransaction?.();
+  try {
     fn();
-    return;
+  } finally {
+    store.history?.endTransaction?.();
   }
-  // 해체·재구성이 여러 액션으로 나뉘어도 undo 한 번에 되돌아가게 묶는다.
-  transaction.call(store.history, fn);
 }
 
 /**
  * ``dragId``를 ``spot``으로 옮긴다. 옮겼으면 true.
  *
- * 실패(중첩 그룹, 자기 자손으로 넣기, 필요한 API 없음)하면 아무것도 바꾸지 않고 false.
+ * 옮길 수 없으면(``whyNotMove``) 아무것도 바꾸지 않고 false.
  */
 export function moveLayer(store: unknown, dragId: string, spot: DropSpot): boolean {
+  if (whyNotMove(store, dragId, spot)) return false;
   const s = store as StoreLike;
-  const page = s.activePage;
-  if (!page || !dragId) return false;
-
-  const from = locate(page, dragId);
-  if (!from) return false;
-
-  const srcParentId = from.parent?.id ?? null;
+  const page = s.activePage as ParentLike;
+  const from = locate(page, dragId)!;
+  const srcParent = from.parent;
   const dstParentId = spot.parentId ?? null;
 
-  // 자기 자신 또는 자기 자손 안으로는 넣을 수 없다(트리가 끊긴다).
-  if (dstParentId === dragId) return false;
-  if (dstParentId && contains(elementById(page, dragId), dstParentId)) return false;
-
-  if (srcParentId === dstParentId) {
-    const parent = (from.parent ?? page) as ParentLike;
-    if (!parent.setElementZIndex) return false;
+  if ((srcParent?.id ?? null) === dstParentId) {
+    const parent = (srcParent ?? page) as ParentLike;
     const count = kids(parent).length;
-    parent.setElementZIndex(dragId, clamp(spot.index, 0, Math.max(0, count - 1)));
+    parent.setElementZIndex?.(dragId, clamp(spot.index, 0, Math.max(0, count - 1)));
     return true;
   }
 
-  const srcGroup = from.parent;
-  const dstGroup = dstParentId ? elementById(page, dstParentId) : null;
-  if (dstParentId && (!dstGroup || dstGroup.type !== "group")) return false;
-
-  // 페이지 직속 그룹만 해체·재구성할 수 있다(위 주석의 한계).
-  const pageIds = kids(page).map((el) => el.id);
-  if (srcGroup && !pageIds.includes(srcGroup.id)) return false;
-  if (dstGroup && !pageIds.includes(dstGroup.id)) return false;
-  if (typeof s.ungroupElements !== "function" || typeof s.groupElements !== "function") {
-    return false;
-  }
-
-  const srcIndex = srcGroup ? pageIds.indexOf(srcGroup.id) : -1;
-  const dstIndex = dstGroup ? pageIds.indexOf(dstGroup.id) : -1;
-  const srcAttrs = srcGroup ? groupAttrs(srcGroup) : null;
-  const dstAttrs = dstGroup ? groupAttrs(dstGroup) : null;
-  const srcRemaining = srcGroup
-    ? kids(srcGroup)
-        .map((el) => el.id)
-        .filter((id) => id !== dragId)
-    : [];
-  const dstNext = dstGroup ? kids(dstGroup).map((el) => el.id) : [];
-  if (dstGroup) dstNext.splice(clamp(spot.index, 0, dstNext.length), 0, dragId);
+  const dst = (dstParentId ? elementById(page, dstParentId) : page) as ParentLike;
+  const el = kids(srcParent ?? page)[from.index];
+  const json: Record<string, unknown> =
+    typeof el.toJSON === "function" ? { ...el.toJSON() } : { ...el };
+  json.id = dragId;
+  // 부모 원점이 바뀐다 — 화면 자리를 지키려면 두 원점의 차이만큼 옮긴다.
+  const a = originOf(page, srcParent?.id ?? null);
+  const b = originOf(page, dstParentId);
+  json.x = num(json.x) + a.x - b.x;
+  json.y = num(json.y) + a.y - b.y;
 
   runInTransaction(s, () => {
-    if (srcGroup) {
-      s.ungroupElements?.([srcGroup.id]);
-      // 자식이 하나도 안 남으면 빈 그룹을 되살리지 않는다(Figma와 같다).
-      if (srcRemaining.length > 0) s.groupElements?.(srcRemaining, srcAttrs ?? {});
-    }
-    if (dstGroup) {
-      s.ungroupElements?.([dstGroup.id]);
-      s.groupElements?.(dstNext, dstAttrs ?? {});
-    }
-
-    // 되살린 그룹들을 원래 칸으로. 원래 인덱스가 작은 것부터 처리해야 자리가 안 밀린다.
-    const restore: Array<{ id: string; index: number }> = [];
-    if (srcGroup && srcRemaining.length > 0) {
-      restore.push({ id: srcGroup.id, index: srcIndex });
-    }
-    if (dstGroup) restore.push({ id: dstGroup.id, index: dstIndex });
-    restore
-      .sort((a, b) => a.index - b.index)
-      .forEach((item) => restorePageSlot(page, item.id, pageIds, item.index));
-
-    // 그룹 밖으로 나온 경우엔 페이지에서의 칸도 정해준다.
-    if (!dstGroup && page.setElementZIndex) {
-      const count = kids(page).length;
-      page.setElementZIndex(dragId, clamp(spot.index, 0, Math.max(0, count - 1)));
-    }
-
-    // group/ungroup이 선택을 바꿔놓으므로 끌던 요소로 되돌린다.
+    s.deleteElements?.([dragId]);
+    // 자식이 하나도 안 남은 그룹은 지운다(Figma와 같다).
+    if (srcParent && kids(srcParent).length === 0) s.deleteElements?.([srcParent.id]);
+    dst.addElement?.(json, { index: clamp(spot.index, 0, kids(dst).length) });
+    // 지우기가 선택을 풀어 놓으므로 끌던 요소로 되돌린다.
     s.selectElements?.([dragId]);
   });
 

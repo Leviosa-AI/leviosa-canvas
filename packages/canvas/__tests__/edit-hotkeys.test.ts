@@ -68,6 +68,28 @@ describe("handleCanvasHotkey", () => {
     expect(store.getElementById("a")!.x).toBe(999);
   });
 
+  it("슬라이더(range)에 초점이 있어도 ⌘Z 는 되돌린다", () => {
+    const store = createCanvasStore(doc());
+    store.getElementById("a")!.set({ x: 999 });
+    const range = document.createElement("input");
+    range.type = "range";
+    document.body.appendChild(range);
+    range.focus();
+    try {
+      press(store, { key: "z", metaKey: true });
+      expect(store.getElementById("a")!.x).toBe(100);
+      const text = document.createElement("input");
+      document.body.appendChild(text);
+      text.focus();
+      store.getElementById("a")!.set({ x: 555 });
+      press(store, { key: "z", metaKey: true });
+      expect(store.getElementById("a")!.x).toBe(555);
+      text.remove();
+    } finally {
+      range.remove();
+    }
+  });
+
   it("⌘A는 현재 페이지를 전부 고른다", () => {
     const store = createCanvasStore(doc());
     press(store, { code: "KeyA", metaKey: true });
@@ -125,9 +147,16 @@ describe("handleCanvasHotkey", () => {
     expect(store.pages[0].children.map((el) => el.id)).toEqual(["a", "b"]);
   });
 
-  it("⌘+ 는 배율을 맡은 사람이 있을 때만 먹는다", () => {
+  it("⌘+ / ⌘− 는 배율을 곱으로 바꾸고, 맡은 사람이 없으면 스토어에 쓴다", () => {
     const store = createCanvasStore(doc());
-    expect(press(store, { code: "Equal", metaKey: true })).toBe(false);
+    expect(press(store, { code: "Equal", metaKey: true })).toBe(true);
+    expect(store.scale).toBeCloseTo(1.1);
+    press(store, { code: "Minus", metaKey: true });
+    expect(store.scale).toBeCloseTo(1);
+    store.setScale(7.9);
+    press(store, { code: "Equal", metaKey: true });
+    expect(store.scale).toBe(8);
+
     let asked = 0;
     const event = new KeyboardEvent("keydown", {
       code: "Equal",
@@ -135,9 +164,84 @@ describe("handleCanvasHotkey", () => {
       cancelable: true,
     });
     expect(
-      handleCanvasHotkey(event, store, { setScale: () => (asked += 1) }),
+      handleCanvasHotkey(event, store, { setScale: (s) => (asked = s) }),
     ).toBe(true);
-    expect(asked).toBe(1);
+    expect(asked).toBe(8);
+  });
+
+  it("⌘1은 100%, ⌘0은 맞추기를 맡은 사람이 있을 때만", () => {
+    const store = createCanvasStore(doc());
+    store.setScale(0.4);
+    press(store, { code: "Digit1", metaKey: true });
+    expect(store.scale).toBe(1);
+    expect(press(store, { code: "Digit0", metaKey: true })).toBe(false);
+    let fit = 0;
+    const event = new KeyboardEvent("keydown", {
+      code: "Digit0",
+      metaKey: true,
+      cancelable: true,
+    });
+    expect(handleCanvasHotkey(event, store, { fitToScreen: () => (fit += 1) })).toBe(true);
+    expect(fit).toBe(1);
+  });
+
+  it("⌘G가 못 묶으면 이벤트를 안 먹는다", () => {
+    const store = createCanvasStore({
+      pages: [
+        {
+          id: "p1",
+          children: [
+            { id: "a", type: "figure" },
+            { id: "g", type: "group", children: [{ id: "c", type: "figure" }] },
+          ],
+        },
+      ],
+    });
+    store.selectElements(["a", "c"]);
+    expect(press(store, { code: "KeyG", metaKey: true })).toBe(false);
+  });
+
+  it("⌘A는 숨긴 것을 빼고, 들어가 있는 그룹 안을 고른다", () => {
+    const store = createCanvasStore(doc());
+    store.getElementById("b")!.set({ visible: false });
+    press(store, { code: "KeyA", metaKey: true });
+    expect(store.selectedElementsIds).toEqual(["a"]);
+
+    store.getElementById("b")!.set({ visible: true });
+    const group = store.groupElements(["a", "b"])!;
+    const event = new KeyboardEvent("keydown", {
+      code: "KeyA",
+      metaKey: true,
+      cancelable: true,
+    });
+    handleCanvasHotkey(event, store, { scopeId: group.id });
+    expect(store.selectedElementsIds).toEqual(["a", "b"]);
+  });
+
+  it("⇧H·⇧V는 뒤집고, 한 번 더 누르면 되돌린다", () => {
+    const store = createCanvasStore(doc());
+    store.selectElements(["a"]);
+    expect(press(store, { code: "KeyH", shiftKey: true })).toBe(true);
+    expect(store.getElementById("a")!.flipX).toBe(true);
+    press(store, { code: "KeyV", shiftKey: true });
+    expect(store.getElementById("a")!.flipY).toBe(true);
+    press(store, { code: "KeyH", shiftKey: true });
+    expect(store.getElementById("a")!.flipX).toBe(false);
+  });
+
+  it("⌘⇧L은 잠그고 풀며, ⌘⇧H는 숨기고 보인다", () => {
+    const store = createCanvasStore(doc());
+    store.selectElements(["a", "b"]);
+    store.getElementById("a")!.set({ locked: true });
+    press(store, { code: "KeyL", metaKey: true, shiftKey: true });
+    expect(store.selectedElements.map((el) => el.locked)).toEqual([true, true]);
+    press(store, { code: "KeyL", metaKey: true, shiftKey: true });
+    expect(store.selectedElements.map((el) => el.locked)).toEqual([false, false]);
+
+    press(store, { code: "KeyH", metaKey: true, shiftKey: true });
+    expect(store.getElementById("a")!.visible).toBe(false);
+    press(store, { code: "KeyH", metaKey: true, shiftKey: true });
+    expect(store.getElementById("a")!.visible).toBe(true);
   });
 
   it("글자를 치는 중에는 끼어들지 않는다", () => {

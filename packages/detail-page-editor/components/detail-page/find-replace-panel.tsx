@@ -59,10 +59,13 @@ export const FindReplacePanel = observer(function FindReplacePanel({
   const [caseSensitive, setCaseSensitive] = useState(false);
   const [cursor, setCursor] = useState(0);
 
+  // 다시 그려지는 것(observer)만으로는 memo 가 안 풀린다 — 스토어도 pages 배열도
+  // 같은 객체라서다. 문서가 바뀔 때마다 오르는 `version` 을 의존성에 둔다.
+  const version = (s as { version?: number }).version;
   const matches = useMemo(
     () => (open ? collectTextMatches(s.pages ?? [], query, { caseSensitive }) : []),
-    // 관찰형이라 텍스트가 바뀌면 이 memo도 다시 돈다(pages는 mobx 배열).
-    [s, open, query, caseSensitive],
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [s, open, query, caseSensitive, version],
   );
   const total = totalOccurrences(matches);
   const at = matches.length ? Math.min(cursor, matches.length - 1) : 0;

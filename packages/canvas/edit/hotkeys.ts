@@ -18,19 +18,29 @@ import {
   copyElements,
   cutElements,
   duplicateElements,
+  flipElements,
   moveElements,
   pasteElements,
+  toggleLock,
+  toggleVisible,
   type AlignMode,
 } from "./commands";
 
 /** 글자를 치는 중이면 손버릇이 끼어들지 않는다. */
+/** 글자를 받지 않는 input 종류. 슬라이더를 끌고 나서 ⌘Z 를 눌러도 되돌아가야 한다. */
+const NOT_TYPING_INPUTS = new Set([
+  "range", "checkbox", "radio", "button", "submit", "reset", "color", "file", "image",
+]);
+
 function isTyping(): boolean {
   const active =
     typeof document === "undefined" ? null : document.activeElement;
   if (!active) return false;
   const tag = active.tagName;
+  if (tag === "INPUT") {
+    return !NOT_TYPING_INPUTS.has((active as HTMLInputElement).type);
+  }
   return (
-    tag === "INPUT" ||
     tag === "TEXTAREA" ||
     (active as HTMLElement).isContentEditable === true
   );
@@ -56,9 +66,17 @@ const ARROWS: Record<string, [number, number]> = {
 };
 
 export type HotkeyOptions = {
-  /** 배율을 바꾸는 사람. 안 주면 ⌘+ / ⌘− 는 그냥 넘긴다(작업 영역이 배율을 쥔 경우). */
+  /** 배율을 바꾸는 사람. 안 주면 `store.setScale`에 바로 쓴다. */
   setScale?: (scale: number) => void;
+  /** ⌘0 — 화면에 맞추기. 안 주면 ⌘0은 그냥 넘긴다(맞출 화면 크기를 엔진이 모른다). */
+  fitToScreen?: () => void;
+  /** 더블클릭으로 들어가 있는 그룹. ⌘A·⌘V가 그 안을 대상으로 한다. */
+  scopeId?: string | null;
 };
+
+const ZOOM_STEP = 1.1;
+const ZOOM_MIN = 0.1;
+const ZOOM_MAX = 8;
 
 /**
  * 키 하나를 처리한다. **처리했으면 true** — 부른 쪽이 그걸로 다음 처리를 멈춘다.
@@ -98,15 +116,25 @@ export function handleCanvasHotkey(
     return done();
   }
 
+  // ⌘A — 들어가 있는 그룹이 있으면 그 안, 아니면 페이지 최상위. 숨긴 것은 안 고른다.
   if (mod && event.code === "KeyA") {
     const page = store.activePage;
     if (!page) return false;
+    const scope = options.scopeId ? store.getElementById(options.scopeId) : null;
+    const list = scope?.isContainer ? scope.children : page.children;
     store.selectElements(
-      page.children
-        .filter((el) => bool(el, "selectable", true))
+      list
+        .filter((el) => el.visible !== false && bool(el, "selectable", true))
         .map((el) => el.id),
     );
     return done();
+  }
+
+  if (mod && shift && !alt && event.code === "KeyL") {
+    return toggleLock(store) ? done() : false;
+  }
+  if (mod && shift && !alt && event.code === "KeyH") {
+    return toggleVisible(store) ? done() : false;
   }
 
   if (mod && event.code === "KeyC") {
@@ -118,7 +146,7 @@ export function handleCanvasHotkey(
     return done();
   }
   if (mod && event.code === "KeyV") {
-    pasteElements(store);
+    pasteElements(store, options.scopeId);
     return done();
   }
   if (mod && event.code === "KeyD") {
@@ -129,9 +157,16 @@ export function handleCanvasHotkey(
   if (mod && event.code === "KeyG") {
     const first = store.selectedElements[0];
     if (first?.isContainer && ids.length === 1) store.ungroupElements([first.id]);
-    else if (ids.length > 1) store.groupElements(ids);
-    else return false;
+    // 묶지 못했으면(부모가 다름 등) 이벤트를 안 먹는다 — 브라우저·셸이 받게.
+    else if (ids.length < 2 || !store.groupElements(ids)) return false;
     return done();
+  }
+
+  // ⇧H 좌우 뒤집기 · ⇧V 상하 뒤집기.
+  if (shift && !mod && !alt && (event.code === "KeyH" || event.code === "KeyV")) {
+    return flipElements(store, event.code === "KeyH" ? "x" : "y")
+      ? done()
+      : false;
   }
 
   const arrow = ARROWS[event.code];
@@ -161,10 +196,22 @@ export function handleCanvasHotkey(
     return done();
   }
 
+  // ⌘+ / ⌘− 는 곱으로(×1.1 · ÷1.1) — 더하기면 작은 배율에서 한 번에 확 튄다.
+  // ⌘1 은 100%, ⌘0 은 화면에 맞추기.
+  const setScale = options.setScale ?? store.setScale;
   if (mod && (event.code === "Equal" || event.code === "Minus")) {
-    const setScale = options.setScale;
-    if (!setScale) return false;
-    setScale(store.scale + (event.code === "Equal" ? 0.1 : -0.1));
+    const next =
+      event.code === "Equal" ? store.scale * ZOOM_STEP : store.scale / ZOOM_STEP;
+    setScale(Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, next)));
+    return done();
+  }
+  if (mod && event.code === "Digit1") {
+    setScale(1);
+    return done();
+  }
+  if (mod && event.code === "Digit0") {
+    if (!options.fitToScreen) return false;
+    options.fitToScreen();
     return done();
   }
 

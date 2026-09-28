@@ -16,43 +16,56 @@
  * 단축키와 메뉴가 같은 판정을 써야 하므로 컴포넌트에서 떼어 놓았다.
  */
 
+type GroupNode = { id: string; type?: string; children?: GroupNode[] };
+
 /** ``groupAction``이 실제로 읽는 것 전부. */
 export type GroupStore = {
   selectedElementsIds?: string[];
-  pages?: Array<{ id: string; children?: Array<{ id: string; type?: string }> }>;
+  pages?: Array<{ id: string; children?: GroupNode[] }>;
 };
 
 /**
- * 선택 중 **페이지 직속** 자식인 id들. 그룹 묶기는 형제끼리만 뜻이 있다 — 드릴인해서
- * 고른 그룹 자식을 ⌘G가 새 그룹으로 뽑아낼 이유가 없다.
+ * 선택 중 **한 부모를 나눠 가진** 형제들. 그룹 묶기는 형제끼리만 뜻이 있다 — 엔진의
+ * ``groupElements`` 도 부모가 다르면 거절한다.
+ *
+ * 예전엔 페이지 직속만 봤다. 엔진이 그룹 안에서도 묶고 푸는 지금은 드릴인해서 고른
+ * 그룹 안 형제들도 묶인다. 선택이 여러 부모에 걸치면 가장 얕은 쪽을 고른다(같은
+ * 깊이면 트리에서 먼저 나오는 쪽) — 드릴인 선택이 섞여도 바깥 판단이 이긴다.
  */
-export function groupableIds(store: GroupStore): string[] {
+function siblingSelection(store: GroupStore): GroupNode[] {
   const selected = new Set(store.selectedElementsIds ?? []);
   if (!selected.size) return [];
-  const out: string[] = [];
-  for (const page of store.pages ?? []) {
-    for (const child of page.children ?? []) {
-      if (selected.has(child.id)) out.push(child.id);
+  const byParent = new Map<object, { depth: number; nodes: GroupNode[] }>();
+  const walk = (list: GroupNode[], parent: object, depth: number) => {
+    for (const child of list) {
+      if (selected.has(child.id)) {
+        const entry = byParent.get(parent) ?? { depth, nodes: [] };
+        entry.nodes.push(child);
+        byParent.set(parent, entry);
+      }
+      if (child.children?.length) walk(child.children, child, depth + 1);
     }
+  };
+  for (const page of store.pages ?? []) walk(page.children ?? [], page, 0);
+  let best: { depth: number; nodes: GroupNode[] } | null = null;
+  for (const entry of byParent.values()) {
+    if (!best || entry.depth < best.depth) best = entry;
   }
-  return out;
+  return best?.nodes ?? [];
+}
+
+export function groupableIds(store: GroupStore): string[] {
+  return siblingSelection(store).map((node) => node.id);
 }
 
 export function groupAction(
   store: GroupStore,
   shift: boolean,
 ): { kind: "group" | "ungroup"; ids: string[] } | null {
-  const ids = groupableIds(store);
+  const nodes = siblingSelection(store);
+  const ids = nodes.map((node) => node.id);
   if (!ids.length) return null;
-  const typeOf = (id: string) => {
-    for (const page of store.pages ?? []) {
-      for (const child of page.children ?? []) {
-        if (child.id === id) return child.type;
-      }
-    }
-    return undefined;
-  };
-  const groups = ids.filter((id) => typeOf(id) === "group");
+  const groups = nodes.filter((node) => node.type === "group").map((node) => node.id);
   // ⌘⇧G는 늘 해제. 그룹 하나만 골라 ⌘G를 눌렀을 때도 해제다(스톡 편집기의 토글을 유지 —
   // 사람들이 이미 익힌 동작).
   if (shift || (ids.length === 1 && groups.length === 1)) {

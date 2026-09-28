@@ -184,12 +184,16 @@ export class CanvasElement implements CanvasContainer {
     return this.parent ? this.parent.children.indexOf(this) : -1;
   }
 
-  /** 페이지 좌표계 기준 위치 — 그룹 안 요소는 조상들의 x/y가 더해진다. */
+  /**
+   * 페이지 좌표계 기준 위치 — 그룹 안 요소는 조상들의 회전과 x/y를 거친다
+   * (Konva가 그리는 순서 그대로: 조상 원점 기준으로 돌리고 옮긴다).
+   */
   get absolutePosition(): { x: number; y: number } {
     let x = this.x ?? 0;
     let y = this.y ?? 0;
     let node = this.parent;
     while (node instanceof CanvasElement) {
+      [x, y] = rotatePoint(x, y, node.rotation ?? 0);
       x += node.x ?? 0;
       y += node.y ?? 0;
       node = node.parent;
@@ -247,6 +251,15 @@ export class CanvasElement implements CanvasContainer {
     }
     return json;
   }
+}
+
+/** 원점 기준으로 `deg`도 돌린 점. 0도면 그대로(부동소수 찌꺼기를 안 만든다). */
+function rotatePoint(x: number, y: number, deg: number): [number, number] {
+  if (!deg) return [x, y];
+  const rad = (deg * Math.PI) / 180;
+  const cos = Math.cos(rad);
+  const sin = Math.sin(rad);
+  return [x * cos - y * sin, x * sin + y * cos];
 }
 
 /** 트리 전체의 id를 새로 딴 복제본. 복제·붙여넣기가 같이 쓴다. */
@@ -430,6 +443,8 @@ type Snapshot = {
 };
 
 const HISTORY_DEPTH = 100;
+/** 같은 이름의 변경이 이 안에 이어지면 undo 한 단계로 합친다(`coalesce`). */
+const COALESCE_MS = 300;
 
 export class CanvasHistory {
   private readonly store: CanvasStore;
@@ -440,6 +455,9 @@ export class CanvasHistory {
   private pending: Snapshot | null = null;
   /** undo/redo가 상태를 되돌리는 동안의 변경은 기록하지 않는다. */
   private applying = false;
+  /** 바로 앞 단계의 `coalesce` 이름과 시각. 이름 없는 단계가 끼면 끊긴다. */
+  private lastKey: string | null = null;
+  private lastAt = 0;
 
   constructor(store: CanvasStore) {
     this.store = store;
@@ -453,16 +471,35 @@ export class CanvasHistory {
     };
   }
 
-  private push(snapshot: Snapshot): void {
-    this.past.push(snapshot);
-    if (this.past.length > HISTORY_DEPTH) this.past.shift();
+  private push(snapshot: Snapshot, key: string | null = null): void {
+    const now = Date.now();
+    const merge =
+      key !== null &&
+      key === this.lastKey &&
+      now - this.lastAt < COALESCE_MS &&
+      this.past.length > 0;
+    // 합칠 때는 새 스냅샷을 버린다 — 맨 위에 이미 «첫 틱 직전» 상태가 있다.
+    if (!merge) {
+      this.past.push(snapshot);
+      if (this.past.length > HISTORY_DEPTH) this.past.shift();
+    }
     this.future = [];
+    this.lastKey = key;
+    this.lastAt = now;
   }
 
-  /** 변경 **직전**에 불린다. 트랜잭션 안이면 시작 시점 것만 남긴다. */
-  record(): void {
-    if (this.applying || this.depth > 0) return;
-    this.push(this.snapshot());
+  /**
+   * 변경 **직전** 상태. 기록할 자리가 아니면(트랜잭션 안·되돌리는 중) null.
+   * `mutate`가 이걸 잡아 두었다가 실제로 바뀌었을 때만 `commit`한다 — 안 바뀐
+   * 변경이 undo 단계를 쌓고 redo를 날리지 않게.
+   */
+  capture(): Snapshot | null {
+    if (this.applying || this.depth > 0) return null;
+    return this.snapshot();
+  }
+
+  commit(snapshot: Snapshot): void {
+    this.push(snapshot);
   }
 
   startTransaction(): void {
@@ -472,6 +509,10 @@ export class CanvasHistory {
   }
 
   endTransaction(): void {
+    this.finishTransaction(null);
+  }
+
+  private finishTransaction(key: string | null): void {
     if (this.applying || this.depth === 0) return;
     this.depth -= 1;
     if (this.depth > 0) return;
@@ -480,7 +521,28 @@ export class CanvasHistory {
     if (!pending) return;
     // 트랜잭션이 실제로 아무것도 안 바꿨으면 undo 단계를 만들지 않는다.
     if (pending.json === JSON.stringify(this.store.toJSON())) return;
-    this.push(pending);
+    this.push(pending, key);
+  }
+
+  /**
+   * 슬라이더·타자처럼 틱마다 들어오는 변경을 undo **한 단계**로 합친다.
+   *
+   * `run`을 트랜잭션 하나로 돌리고, 바로 앞 단계가 같은 `key`로 `COALESCE_MS` 안에
+   * 남은 것이면 그 단계에 합친다. ⌘Z 한 번이면 끌기 시작 전으로 돌아간다.
+   *
+   * ```ts
+   * store.history.coalesce(`opacity:${id}`, () => el.set({ opacity }));
+   * ```
+   *
+   * 다른 이름·이름 없는 변경·undo/redo가 끼면 끊긴다.
+   */
+  coalesce(key: string, run: () => void): void {
+    this.startTransaction();
+    try {
+      run();
+    } finally {
+      this.finishTransaction(key);
+    }
   }
 
   /** 되돌리는 중인가. 그 동안의 선택은 사람이 한 것이 아니다. */
@@ -509,6 +571,7 @@ export class CanvasHistory {
   undo(): void {
     const prev = this.past.pop();
     if (!prev) return;
+    this.lastKey = null;
     this.future.push(this.snapshot());
     this.apply(prev);
   }
@@ -516,6 +579,7 @@ export class CanvasHistory {
   redo(): void {
     const next = this.future.pop();
     if (!next) return;
+    this.lastKey = null;
     this.past.push(this.snapshot());
     this.apply(next);
   }
@@ -525,6 +589,7 @@ export class CanvasHistory {
     this.future = [];
     this.pending = null;
     this.depth = 0;
+    this.lastKey = null;
   }
 }
 
@@ -611,10 +676,11 @@ export class CanvasStore {
 
   /**
    * 모든 문서 변경의 단일 통로. `run`이 true를 돌려주면 실제로 바뀐 것으로 보고
-   * 히스토리에 직전 상태를 남기고 구독자에게 알린다.
+   * 히스토리에 직전 상태를 남기고 구독자에게 알린다. false면 undo 단계도 안 생기고
+   * redo도 그대로 남는다.
    */
   mutate(run: () => boolean): void {
-    if (this.notifyDepth === 0) this.history.record();
+    const before = this.notifyDepth === 0 ? this.history.capture() : null;
     this.notifyDepth += 1;
     try {
       if (run()) {
@@ -625,6 +691,7 @@ export class CanvasStore {
       this.notifyDepth -= 1;
       if (this.notifyDepth === 0 && this.dirty) {
         this.dirty = false;
+        if (before) this.history.commit(before);
         this.notify();
         this.notifyChange();
       }
@@ -855,7 +922,13 @@ export class CanvasStore {
     return group;
   }
 
-  /** 그룹을 풀어 자식을 그룹이 있던 자리에 되돌린다(좌표를 부모 기준으로 환산). */
+  /**
+   * 그룹을 풀어 자식을 그룹이 있던 자리에 되돌린다(좌표를 부모 기준으로 환산).
+   *
+   * 그룹의 회전·불투명도도 자식에 얹는다 — 안 그러면 돌려 둔 그룹을 풀자마자 자식이
+   * 똑바로 서고 반투명이 풀린다. 그룹에 없던 값은 자식에도 새로 안 만든다(무손실).
+   * 그룹 scale은 엔진이 그리지 않으므로(트랜스포머가 폭·높이로 흡수) 옮기지 않는다.
+   */
   ungroupElements(ids: string[]): void {
     const groups = ids
       .map((id) => this.getElementById(id))
@@ -873,9 +946,16 @@ export class CanvasStore {
         const at = siblings.indexOf(group);
         if (at < 0) continue;
         const kids = [...group.children];
+        const turn = group.rotation ?? 0;
+        const alpha = group.opacity;
         for (const kid of kids) {
-          setAttr(kid, "x", (kid.x ?? 0) + (group.x ?? 0));
-          setAttr(kid, "y", (kid.y ?? 0) + (group.y ?? 0));
+          const [rx, ry] = rotatePoint(kid.x ?? 0, kid.y ?? 0, turn);
+          setAttr(kid, "x", rx + (group.x ?? 0));
+          setAttr(kid, "y", ry + (group.y ?? 0));
+          if (turn) setAttr(kid, "rotation", (kid.rotation ?? 0) + turn);
+          if (typeof alpha === "number" && alpha !== 1) {
+            setAttr(kid, "opacity", (kid.opacity ?? 1) * alpha);
+          }
           kid.parent = parent;
           kid.version += 1;
           freed.push(kid.id);
@@ -903,16 +983,24 @@ export class CanvasStore {
     return page;
   }
 
+  /**
+   * 페이지를 지운다. **마지막 한 장은 안 지운다** — 빈 문서는 그릴 판이 없어 편집기가
+   * 멈춘다. 보고 있던 페이지·선택도 같은 변경 안에서 옮겨 구독자가 한 번에 안다.
+   */
   deletePages(ids: string[]): void {
     const remove = new Set(ids);
-    if (!this.pages.some((page) => remove.has(page.id))) return;
+    const rest = this.pages.filter((page) => !remove.has(page.id));
+    if (rest.length === this.pages.length || !rest.length) return;
     this.mutate(() => {
-      this.pages = this.pages.filter((page) => !remove.has(page.id));
+      this.pages = rest;
+      if (!this.activePageId || remove.has(this.activePageId)) {
+        this.activePageId = rest[0].id;
+      }
+      this.selectedElementsIds = this.selectedElementsIds.filter(
+        (id) => this.getElementById(id) !== null,
+      );
       return true;
     });
-    if (this.activePageId && remove.has(this.activePageId)) {
-      this.activePageId = this.pages[0]?.id ?? null;
-    }
   }
 
   setSize(width: number, height: number): void {

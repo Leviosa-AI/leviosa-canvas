@@ -17,6 +17,7 @@ import "konva/lib/shapes/Transformer";
 
 import type Konva from "konva";
 import {
+  memo,
   useCallback,
   useEffect,
   useMemo,
@@ -29,7 +30,12 @@ import { Layer, Line, Rect, Stage, Transformer } from "react-konva/es/ReactKonva
 
 import { CanvasElement, withFreshIds, type CanvasPage, type CanvasStore } from "../store";
 import { num, str } from "../types";
-import { elementRect, moveElementTo, type Rect as DocRect } from "../edit/rect";
+import {
+  elementRect,
+  moveElementTo,
+  unionRect,
+  type Rect as DocRect,
+} from "../edit/rect";
 import { handleCanvasHotkey } from "../edit/hotkeys";
 import {
   rectFromPoints,
@@ -40,7 +46,7 @@ import {
 import { useCanvasVersion, usePageVersion, useSelectionKey } from "../use-canvas";
 import { EditContext, type EditHandlers } from "./edit-context";
 import { frameOf, groupFrames } from "./frames";
-import { ElementView } from "./element-view";
+import { ElementView, FontsVersionContext } from "./element-view";
 import { elementPath, isTransformerPart, type HitNode } from "./hit-path";
 import {
   absorbTransform,
@@ -73,6 +79,71 @@ function scopeOf(
     };
   }
   return { list: page.children, ox: 0, oy: 0 };
+}
+
+/**
+ * 누른 요소로 고칠 선택.
+ *
+ * 이미 골라 둔 것을 (시프트 없이) 누르면 **선택을 그대로 둔다** — 여럿을 골라 놓고 그중
+ * 하나를 잡아 끌면 다 같이 움직여야 한다. 거기서 하나로 줄여 버리면 끌기가 그 하나만 옮긴다.
+ */
+export function nextSelection(
+  current: string[],
+  id: string,
+  shift: boolean,
+): string[] {
+  if (shift) return toggleSelection(current, id);
+  return current.includes(id) ? current : [id];
+}
+
+/**
+ * 마퀴 상자에 걸린 요소들. 잠긴 것·숨긴 것은 안 걸린다.
+ * 시프트를 누른 채 그었으면 지금 선택에 **더한다**(Figma와 같다).
+ */
+export function marqueeSelection(
+  store: CanvasStore,
+  page: CanvasPage,
+  scopeId: string | null,
+  box: DocRect,
+  shift: boolean,
+): string[] {
+  const { list, ox, oy } = scopeOf(store, page, scopeId);
+  const hit = list
+    .filter((el) => {
+      if (el.locked || el.visible === false) return false;
+      const rect = elementRect(el);
+      return rectsOverlap(box, {
+        x: rect.x + ox,
+        y: rect.y + oy,
+        width: rect.width,
+        height: rect.height,
+      });
+    })
+    .map((el) => el.id);
+  if (!shift) return hit;
+  const current = store.selectedElementsIds;
+  return [...current, ...hit.filter((id) => !current.includes(id))];
+}
+
+/** 끌 때 붙을 상대 — 같이 끌리는 것(선택 전부)과 숨긴 것은 뺀다. */
+export function snapTargets(
+  list: ReadonlyArray<CanvasElement>,
+  moving: ReadonlyArray<string>,
+): DocRect[] {
+  return list
+    .filter((el) => !moving.includes(el.id) && el.visible !== false)
+    .map((el) => elementRect(el));
+}
+
+/** 글자를 치는 중인가 — 그때의 Esc는 입력칸의 것이다. */
+function isTyping(): boolean {
+  const active = typeof document === "undefined" ? null : document.activeElement;
+  if (!active) return false;
+  return (
+    active.tagName === "INPUT" ||
+    active.tagName === "TEXTAREA" ||
+    (active as HTMLElement).isContentEditable === true
+  );
 }
 
 type GuideState = { pageId: string; guides: Guide[]; ox: number; oy: number } | null;
@@ -222,22 +293,34 @@ function SelectionLayer({
         borderStroke="#2563eb"
         anchorStroke="#2563eb"
         anchorSize={8}
+        // 손잡이로 뒤집으면 scale이 음수가 되는데, 문서는 폭·높이만 들고 있어 그걸 못
+        // 받는다. 뒤집기는 flipX/flipY 속성으로만 한다(element-view가 그린다).
         flipEnabled={false}
+        rotationSnaps={[0, 45, 90, 135, 180, 225, 270, 315]}
+        rotationSnapTolerance={5}
+        // 여럿을 함께 늘리면 Konva가 노드마다 transformend를 부른다 — 제스처 하나를
+        // 트랜잭션 하나로 묶는다. 트랜스포머 자신의 transformend가 노드들보다 **먼저**
+        // 오므로, 닫는 일은 노드들이 다 끝난 뒤(마이크로태스크)로 미룬다.
+        onTransformStart={() => store.history.startTransaction()}
+        onTransformEnd={() =>
+          queueMicrotask(() => store.history.endTransaction())
+        }
       />
     </Layer>
   );
 }
 
-function PageView({
+const PageView = memo(function PageView({
   store,
   page,
   scale,
   fontsVersion,
   interactive,
+  forced,
   scopeId,
   editingId,
   raised,
-  chrome,
+  renderChrome,
   guideBus,
   marqueeBus,
   onPick,
@@ -249,12 +332,17 @@ function PageView({
   scale: number;
   fontsVersion: number;
   interactive: boolean;
+  /**
+   * 내려받기·GIF가 이 판을 띄워 달라고 했는가. 스토어에서 읽지 않고 받는다 — 이 뷰는
+   * memo라 prop이 안 바뀌면 다시 안 그려진다.
+   */
+  forced: boolean;
   scopeId: string | null;
   editingId: string | null;
   /** 끌리는 중인 판. 다른 판 위로 올려 그려서 끌던 것이 안 가리게 한다. */
   raised?: boolean;
   /** 판 위에 얹을 것(손잡이 등). 판 상자 안에 그린다. */
-  chrome?: ReactNode;
+  renderChrome?: (pageId: string) => ReactNode;
   guideBus: ValueBus<GuideState>;
   marqueeBus: ValueBus<MarqueeState>;
   onPick: (id: string | null, shift: boolean) => void;
@@ -266,7 +354,7 @@ function PageView({
   const height = page.height;
   const { ref, near } = useNearViewport(600);
   // 내려받기·GIF가 부탁하면 화면 밖 페이지도 그린다(안 그리면 뽑을 픽셀이 없다).
-  const mount = near || store.isPageForced(page.id);
+  const mount = near || forced;
   // 화면에 붙일 때 한 번만 묻는다. 렌더마다 물으면 콘솔 경고가 쏟아진다.
 
   const bindLayer = useCallback(
@@ -308,44 +396,43 @@ function PageView({
     [store, scopeId],
   );
 
-  /** 마퀴를 시작한 자리(문서 좌표). 빈 곳을 눌렀을 때만 생긴다. */
-  const marqueeFrom = useRef<{ x: number; y: number } | null>(null);
-
-  const docPoint = useCallback(
+  /**
+   * 빈 곳에서 시작한 끌기는 마퀴다.
+   *
+   * 움직임과 손 떼기는 **창에서** 듣는다. Stage에서 들으면 판 밖으로 나가는 순간
+   * 끝나 버려, 판 가장자리 요소를 넉넉히 감싸 고를 수가 없다.
+   */
+  const startMarquee = useCallback(
     (event: Konva.KonvaEventObject<PointerEvent>) => {
       const stage = event.target.getStage();
       const position = stage?.getPointerPosition();
-      if (!position) return null;
-      return { x: position.x / scale, y: position.y / scale };
+      if (!stage || !position) return;
+      const from = { x: position.x / scale, y: position.y / scale };
+      const shift = event.evt.shiftKey;
+      const toDoc = (e: PointerEvent) => {
+        const box = stage.container().getBoundingClientRect();
+        return rectFromPoints(
+          from.x,
+          from.y,
+          (e.clientX - box.left) / scale,
+          (e.clientY - box.top) / scale,
+        );
+      };
+      const onMove = (e: PointerEvent) =>
+        marqueeBus.set({ pageId: page.id, rect: toDoc(e) });
+      const onUp = (e: PointerEvent) => {
+        window.removeEventListener("pointermove", onMove);
+        window.removeEventListener("pointerup", onUp);
+        marqueeBus.set(null);
+        const box = toDoc(e);
+        // 그냥 클릭(거의 안 끈 것)은 pointerdown이 이미 처리했다.
+        if (box.width < 3 && box.height < 3) return;
+        store.selectElements(marqueeSelection(store, page, scopeId, box, shift));
+      };
+      window.addEventListener("pointermove", onMove);
+      window.addEventListener("pointerup", onUp);
     },
-    [scale],
-  );
-
-  const endMarquee = useCallback(
-    (event: Konva.KonvaEventObject<PointerEvent>) => {
-      const from = marqueeFrom.current;
-      marqueeFrom.current = null;
-      marqueeBus.set(null);
-      if (!from) return;
-      const to = docPoint(event);
-      if (!to) return;
-      const box = rectFromPoints(from.x, from.y, to.x, to.y);
-      // 그냥 클릭(거의 안 끈 것)은 선택 해제로 남긴다 — 이미 pointerdown이 했다.
-      if (box.width < 3 && box.height < 3) return;
-      const { list, ox, oy } = scopeOf(store, page, scopeId);
-      const hit = list.filter((el) => {
-        if (el.locked) return false;
-        const rect = elementRect(el);
-        return rectsOverlap(box, {
-          x: rect.x + ox,
-          y: rect.y + oy,
-          width: rect.width,
-          height: rect.height,
-        });
-      });
-      store.selectElements(hit.map((el) => el.id));
-    },
-    [docPoint, marqueeBus, page, scopeId, store],
+    [marqueeBus, page, scale, scopeId, store],
   );
 
   return (
@@ -360,7 +447,7 @@ function PageView({
         background: str(page, "background", "#ffffff"),
       }}
     >
-      {chrome}
+      {renderChrome?.(page.id)}
       {mount ? (
         <Stage
           width={width * scale}
@@ -370,30 +457,17 @@ function PageView({
           onPointerDown={
             interactive
               ? (event: Konva.KonvaEventObject<PointerEvent>) => {
-                  const { id, skip } = hitId(event);
+                  const { id: hit, skip } = hitId(event);
                   if (skip) return;
+                  // 잠긴 요소는 집히지 않는다 — 빈 곳처럼 본다. 잠근 배경 위에서도
+                  // 마퀴를 그을 수 있어야 한다.
+                  const id = hit && store.getElementById(hit)?.locked ? null : hit;
                   onPick(id, event.evt.shiftKey);
                   // 빈 곳에서 시작한 끌기는 마퀴다(요소 위에서 시작하면 그 요소가 끌린다).
-                  if (!id) marqueeFrom.current = docPoint(event);
+                  if (!id) startMarquee(event);
                 }
               : undefined
           }
-          onPointerMove={
-            interactive
-              ? (event: Konva.KonvaEventObject<PointerEvent>) => {
-                  const from = marqueeFrom.current;
-                  if (!from) return;
-                  const to = docPoint(event);
-                  if (!to) return;
-                  marqueeBus.set({
-                    pageId: page.id,
-                    rect: rectFromPoints(from.x, from.y, to.x, to.y),
-                  });
-                }
-              : undefined
-          }
-          onPointerUp={interactive ? endMarquee : undefined}
-          onPointerLeave={interactive ? endMarquee : undefined}
           onDblClick={
             interactive
               ? (event: Konva.KonvaEventObject<MouseEvent>) => {
@@ -404,7 +478,9 @@ function PageView({
               : undefined
           }
         >
-          <Layer key={fontsVersion} ref={bindLayer}>
+          {/* 폰트가 오면 Layer를 새로 만들지 않고 글자만 다시 잰다(element-view). */}
+          <Layer ref={bindLayer}>
+            <FontsVersionContext.Provider value={fontsVersion}>
             <Rect
               x={0}
               y={0}
@@ -416,6 +492,7 @@ function PageView({
             {page.children.map((el) => (
               <ElementView key={el.id} el={el} />
             ))}
+            </FontsVersionContext.Provider>
           </Layer>
           {interactive ? <SelectionLayer store={store} page={page} /> : null}
           {interactive ? (
@@ -438,7 +515,7 @@ function PageView({
       ) : null}
     </div>
   );
-}
+});
 
 /**
  * 다른 판 위에서 손을 뗐는가. 맞으면 그 판으로 옮겨 놓고 `true` 를 준다.
@@ -646,7 +723,11 @@ export function CanvasView({
     /** 끌리는 요소를 그 자리에서 뜬 그림. 못 뜨면 없다(테두리만 그린다). */
     image?: string;
   } | null>(null);
-  const [ghost, setGhost] = useState<{ x: number; y: number } | null>(null);
+  /**
+   * 커서를 따라다니는 자국. React 상태로 들고 있으면 pointermove마다 작업 영역 전체가
+   * 다시 그려진다 — 자리는 DOM에 바로 쓴다.
+   */
+  const ghostRef = useRef<HTMLDivElement>(null);
   const rootRef = useRef<HTMLDivElement>(null);
   /**
    * 요소의 어디를 잡았는가(판 좌표).
@@ -678,14 +759,15 @@ export function CanvasView({
         .querySelector<HTMLElement>(`[data-lc-page="${CSS.escape(dragging.pageId)}"]`)
         ?.getBoundingClientRect();
       const pos = dragPosRef.current;
-      setGhost(
-        over === dragging.pageId || !homeBox || !pos
-          ? null
-          : {
-              x: homeBox.left - box.left + (pos.x + dragging.skewX) * scale,
-              y: homeBox.top - box.top + (pos.y + dragging.skewY) * scale,
-            },
-      );
+      const ghost = ghostRef.current;
+      if (!ghost) return;
+      if (over === dragging.pageId || !homeBox || !pos) {
+        ghost.style.display = "none";
+        return;
+      }
+      ghost.style.display = "block";
+      ghost.style.left = `${homeBox.left - box.left + (pos.x + dragging.skewX) * scale}px`;
+      ghost.style.top = `${homeBox.top - box.top + (pos.y + dragging.skewY) * scale}px`;
     };
     window.addEventListener("pointermove", onMove);
     return () => window.removeEventListener("pointermove", onMove);
@@ -696,13 +778,13 @@ export function CanvasView({
       // 캔버스를 누르면 편집을 끝낸다 — 고치던 글자는 그대로 남는다.
       setEditingId(null);
       if (!id) {
+        // 시프트를 누른 채 빈 곳을 누르면 마퀴로 선택에 더하려는 것이다 — 비우지 않는다.
+        if (shift) return;
         store.selectElements([]);
         setScopeId(null);
         return;
       }
-      store.selectElements(
-        shift ? toggleSelection(store.selectedElementsIds, id) : [id],
-      );
+      store.selectElements(nextSelection(store.selectedElementsIds, id, shift));
     },
     [store],
   );
@@ -738,20 +820,36 @@ export function CanvasView({
     if (!interactive) return;
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
-        // 편집 중이면 편집기 자신이 Esc를 처리한다(여기까지 오지 않는다).
+        // 편집 중이면 편집기 자신이 Esc를 처리한다(여기까지 오지 않는다). 다른 입력칸의
+        // Esc도 그 칸의 것이다 — 선택을 날리지 않는다.
+        if (isTyping()) return;
         setScopeId(null);
         store.selectElements([]);
         return;
       }
-      handleCanvasHotkey(event, store);
+      handleCanvasHotkey(event, store, {
+        // 줌 버튼과 같은 범위로 가둔다(shell/zoom-buttons.tsx).
+        setScale: (next) => store.setScale(Math.max(0.05, Math.min(5, next))),
+        // ⌘A·⌘V 가 들어가 있는 그룹을 따르게 한다.
+        scopeId,
+      });
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [interactive, store]);
+  }, [interactive, store, scopeId]);
 
-  /** 끌기 한 번 동안만 사는 것들 — 스냅 상대와 내 상자. */
+  /**
+   * 끌기 한 번 동안만 사는 것들 — 스냅 상대와 내 상자.
+   *
+   * 여럿을 끌면 Konva가 노드마다 dragstart/dragend를 부른다(트랜스포머가 나머지를
+   * 따라 끈다). 맨 처음 것이 «잡은 것»이고, 스냅은 그 하나로 선택 전체의 합집합을 재서
+   * 나머지에게 같은 만큼 먹인다. `active`가 0이 되면 끌기가 끝난 것이다.
+   */
   const dragRef = useRef<{
+    primaryId: string;
+    active: number;
     pageId: string;
+    page: { width: number; height: number };
     ox: number;
     oy: number;
     offX: number;
@@ -759,6 +857,9 @@ export function CanvasView({
     width: number;
     height: number;
     targets: DocRect[];
+    /** 잡은 것에 마지막으로 먹인 스냅 — 함께 끌리는 것들도 같은 만큼 민다. */
+    dx: number;
+    dy: number;
   } | null>(null);
 
   const handlers = useMemo<EditHandlers>(
@@ -766,39 +867,51 @@ export function CanvasView({
       interactive,
       scopeId,
       editingId,
-      onDragStart: (id, node, client) => {
-        const dragged = store.getElementById(id);
-        const home = store.getPageOfElement(id);
-        if (dragged && home) {
-          const size = elementRect(dragged);
-          dragPosRef.current = { x: num(dragged, "x", 0), y: num(dragged, "y", 0) };
-          // 무대 밖에서 보여 줄 것은 «테두리»가 아니라 그 요소 자체다. 끌기가
-          // 시작되는 이 한 번만 그림으로 뜬다 — 남의 그림이 섞여 캔버스가 오염된
-          // 경우에는 못 뜨므로, 그때는 테두리로 물러난다.
-          let image: string | undefined;
-          try {
-            // 배율은 **그림이 들고 온 크기 그대로** 쓴다. 상자 크기를 따로
-            // 셈해서 씌우면 한 군데만 어긋나도 통째로 커지거나 작아진다.
-            image = node?.toDataURL();
-          } catch {
-            image = undefined;
-          }
-          setDragging({
-            pageId: home.id,
-            width: size.width,
-            height: size.height,
-            skewX: size.x - num(dragged, "x", 0),
-            skewY: size.y - num(dragged, "y", 0),
-            image,
-          });
+      onDragStart: (id, node) => {
+        if (dragRef.current) {
+          dragRef.current.active += 1;
+          return;
         }
         const el = store.getElementById(id);
         const page = store.getPageOfElement(id);
         if (!el || !page) return;
-        const { list, ox, oy } = scopeOf(store, page, scopeId);
-        const rect = elementRect(el);
-        dragRef.current = {
+        // 끌기 하나(함께 끌리는 노드 전부)가 ⌘Z 한 번이다 — 마지막 dragend에서 닫는다.
+        store.history.startTransaction();
+        const size = elementRect(el);
+        dragPosRef.current = { x: num(el, "x", 0), y: num(el, "y", 0) };
+        // 무대 밖에서 보여 줄 것은 «테두리»가 아니라 그 요소 자체다. 끌기가
+        // 시작되는 이 한 번만 그림으로 뜬다 — 남의 그림이 섞여 캔버스가 오염된
+        // 경우에는 못 뜨므로, 그때는 테두리로 물러난다.
+        let image: string | undefined;
+        try {
+          // 배율은 **그림이 들고 온 크기 그대로** 쓴다. 상자 크기를 따로
+          // 셈해서 씌우면 한 군데만 어긋나도 통째로 커지거나 작아진다.
+          image = node?.toDataURL();
+        } catch {
+          image = undefined;
+        }
+        setDragging({
           pageId: page.id,
+          width: size.width,
+          height: size.height,
+          skewX: size.x - num(el, "x", 0),
+          skewY: size.y - num(el, "y", 0),
+          image,
+        });
+        const { list, ox, oy } = scopeOf(store, page, scopeId);
+        const moving = store.selectedElementsIds.includes(id)
+          ? store.selectedElementsIds
+          : [id];
+        // 스냅은 선택 전체의 합집합으로 잰다 — 잡은 하나만 재면 나머지가 엉뚱하게 붙는다.
+        const rect =
+          unionRect(
+            list.filter((one) => moving.includes(one.id)).map((one) => elementRect(one)),
+          ) ?? size;
+        dragRef.current = {
+          primaryId: id,
+          active: 1,
+          pageId: page.id,
+          page: { width: page.width ?? store.width, height: page.height ?? store.height },
           ox,
           oy,
           // 그룹은 자기 x/y와 그려지는 자리가 다르다 — 그 차이를 들고 있어야 끄는 중에도
@@ -807,15 +920,18 @@ export function CanvasView({
           offY: rect.y - num(el, "y", 0),
           width: rect.width,
           height: rect.height,
-          targets: list
-            .filter((other) => other.id !== id)
-            .map((other) => elementRect(other)),
+          targets: snapTargets(list, moving),
+          dx: 0,
+          dy: 0,
         };
       },
       onDragMove: (id, position) => {
-        dragPosRef.current = position;
         const drag = dragRef.current;
         if (!drag) return position;
+        if (id !== drag.primaryId) {
+          return { x: position.x + drag.dx, y: position.y + drag.dy };
+        }
+        dragPosRef.current = position;
         const moving: DocRect = {
           x: position.x + drag.offX,
           y: position.y + drag.offY,
@@ -826,9 +942,11 @@ export function CanvasView({
         const { dx, dy, guides } = snapRect(
           moving,
           drag.targets,
-          { width: store.width, height: store.height },
+          drag.page,
           SNAP_TOLERANCE_PX / Math.max(store.scale, 0.01),
         );
+        drag.dx = dx;
+        drag.dy = dy;
         guideBus.set(
           guides.length
             ? { pageId: drag.pageId, guides, ox: drag.ox, oy: drag.oy }
@@ -837,32 +955,35 @@ export function CanvasView({
         return { x: position.x + dx, y: position.y + dy };
       },
       onDragEnd: (id, position, altClone, client) => {
-        dragRef.current = null;
-        guideBus.set(null);
-        setDragging(null);
-        setGhost(null);
-        const el = store.getElementById(id);
-        if (!el) return;
-        // 남의 판 위에서 손을 뗐으면 그 판으로 옮긴다. 문서가 바뀌면 원래 판도 다시
-        // 그려지므로, 끌던 노드는 저절로 제자리로 돌아간다.
-        if (client && dropOnOtherPage(store, id, client, position, !!altClone)) {
-          return;
+        const drag = dragRef.current;
+        const last = !drag || --drag.active <= 0;
+        if (last) {
+          dragRef.current = null;
+          guideBus.set(null);
+          setDragging(null);
         }
-        // **판 밖에서 손을 뗐으면 아무것도 안 한다.** 벌 사이의 빈 자리나 화면 여백에
-        // 놓았다는 뜻인데, 거기에 요소를 둘 자리는 없다. 그래도 좌표를 찍어 버리면
-        // 판 밖으로 나가 **보이지 않게 되고**, 목록에는 남아 있어 «옮겨지지도 않고
-        // 숨었다»가 된다. 손을 놓은 자리가 판이 아니면 제자리로 돌려보낸다.
-        if (client && !pageUnder(client)) {
-          store.refreshElement(id);
-          return;
-        }
-        // 여럿을 함께 끌면 Konva가 노드마다 dragEnd를 부른다 — 한 트랜잭션으로 묶어
-        // ⌘Z 한 번에 전부 돌아오게 한다.
-        applyInTransaction(store, () => {
+        try {
+          const el = store.getElementById(id);
+          if (!el) return;
+          // 남의 판 위에서 손을 뗐으면 그 판으로 옮긴다. 문서가 바뀌면 원래 판도 다시
+          // 그려지므로, 끌던 노드는 저절로 제자리로 돌아간다.
+          if (client && dropOnOtherPage(store, id, client, position, !!altClone)) {
+            return;
+          }
+          // **판 밖에서 손을 뗐으면 아무것도 안 한다.** 벌 사이의 빈 자리나 화면 여백에
+          // 놓았다는 뜻인데, 거기에 요소를 둘 자리는 없다. 그래도 좌표를 찍어 버리면
+          // 판 밖으로 나가 **보이지 않게 되고**, 목록에는 남아 있어 «옮겨지지도 않고
+          // 숨었다»가 된다. 손을 놓은 자리가 판이 아니면 제자리로 돌려보낸다.
+          if (client && !pageUnder(client)) {
+            store.refreshElement(id);
+            return;
+          }
           // ⌥ 끌기 — 원래 자리에 복제본을 남기고, 끌던 쪽이 새 자리로 간다.
           if (altClone) el.clone(undefined, { skipSelect: true });
           el.set({ x: position.x, y: position.y });
-        });
+        } finally {
+          if (last && drag) store.history.endTransaction();
+        }
       },
       onTransformEnd: (id, result: TransformResult) => {
         const el = store.getElementById(id);
@@ -881,6 +1002,8 @@ export function CanvasView({
     }),
     [interactive, scopeId, editingId, store, guideBus],
   );
+
+  const onEditDone = useCallback(() => setEditingId(null), []);
 
   // Konva는 브라우저 캔버스가 있어야 산다. 서버 렌더에서는 자리만 잡아 둔다.
   if (!mounted) {
@@ -915,15 +1038,16 @@ export function CanvasView({
       scale={scale}
       fontsVersion={fontsVersion}
       interactive={interactive}
+      forced={store.isPageForced(page.id)}
       scopeId={scopeId}
       editingId={editingId}
       raised={dragging?.pageId === page.id}
-      chrome={renderPageChrome?.(page.id)}
+      renderChrome={renderPageChrome}
       guideBus={guideBus}
       marqueeBus={marqueeBus}
       onPick={onPick}
       onDrill={onDrill}
-      onEditDone={() => setEditingId(null)}
+      onEditDone={onEditDone}
     />
   );
 
@@ -974,12 +1098,13 @@ export function CanvasView({
           : store.pages.map(renderPage)}
 
         {/* 끌리는 요소의 자국. 무대 밖에서도 보여야 하므로 판이 아니라 여기서 그린다. */}
-        {dragging && ghost ? (
+        {dragging ? (
           <div
+            ref={ghostRef}
             style={{
               position: "absolute",
-              left: ghost.x,
-              top: ghost.y,
+              // 자리는 pointermove가 바로 쓴다. 제 판 위에 있는 동안은 안 보인다.
+              display: "none",
               // 크기를 안 정한다 — 그림이 들고 온 크기가 곧 화면에 있던 크기다.
               // 자리는 노드가 있는 곳에서 바로 왔으므로 손끝으로 되짚지 않는다.
               zIndex: 20,

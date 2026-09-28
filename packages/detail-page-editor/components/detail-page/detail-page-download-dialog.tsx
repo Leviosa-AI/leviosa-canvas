@@ -39,6 +39,7 @@ import {
   detailPageEditorProfile,
   type DetailPageEditorFormat,
 } from "../../lib/detail-page/editor-profile";
+import { MAX_CANVAS_PIXELS } from "../../lib/detail-page/reference-image";
 
 /**
  * hookable-style 다운로드 팝오버 — 다운로드 버튼 바로 아래에 떠서 **등록 플랫폼을
@@ -105,6 +106,9 @@ const ANIMATION_FORMATS = [
 /** 픽셀 형식만 병합 캔버스/해상도 슬라이더가 의미를 갖는다. */
 const isRasterFormat = (f: Format) => f === "png" || f === "jpeg";
 
+/** AI 와 PDF 는 같은 PDF 작성기로 굽는다(.ai 는 속이 PDF 다). */
+const isPdfFormat = (f: Format) => f === "ai" || f === "pdf";
+
 /** 일러스트레이터 아트보드 한계. 넘기면 파일을 열지 못한다. */
 const AI_MAX_ARTBOARD = 16383;
 
@@ -134,6 +138,16 @@ function triggerBlobDownload(blob: Blob, fileName: string) {
 
 const delay = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
+/** 여러 파일을 ZIP 한 개로. 브라우저가 연속 다운로드를 막거나 몇 개를 흘리는 일이 없다. */
+async function zipDataUrls(files: Array<{ url: string; name: string }>): Promise<Blob> {
+  const JSZip = (await import("jszip")).default;
+  const zip = new JSZip();
+  for (const file of files) {
+    zip.file(file.name, file.url.slice(file.url.indexOf(",") + 1), { base64: true });
+  }
+  return zip.generateAsync({ type: "blob" });
+}
+
 /** 용량 상한을 사람이 읽는 MB 로. 정수면 소수점을 안 붙인다. */
 function bytesToMb(bytes: number): string {
   const mb = bytes / (1024 * 1024);
@@ -160,6 +174,17 @@ async function stackDataUrls(urls: string[], mime: string, quality: number): Pro
     y += img.height;
   }
   return canvas.toDataURL(mime, quality);
+}
+
+function isPsdTooLarge(error: unknown): error is { code: "PSD_TOO_LARGE"; limit: number } {
+  return (
+    typeof error === "object" &&
+    error !== null &&
+    "code" in error &&
+    error.code === "PSD_TOO_LARGE" &&
+    "limit" in error &&
+    typeof error.limit === "number"
+  );
 }
 
 function isFontEmbeddingFailure(
@@ -197,6 +222,8 @@ export const DetailPageDownloadDialog = observer(function DetailPageDownloadDial
   const [scope, setScope] = useState<Scope>("all");
   const [single, setSingle] = useState(true);
   const [resolution, setResolution] = useState(1);
+  // JPG 화질의 **상한**. 플랫폼 용량 사다리는 이 값 아래로만 내려간다.
+  const [jpegQuality, setJpegQuality] = useState(95);
   const [animationFormat, setAnimationFormat] = useState<AnimationFormat>("webp");
   // 움직이는 섹션이 하나라도 있을 때만 형식 선택이 의미가 있다. toJSON 은 문서
   // 전체를 훑으므로 렌더마다 부르지 않고 팝오버를 열 때 한 번만 본다.
@@ -209,6 +236,8 @@ export const DetailPageDownloadDialog = observer(function DetailPageDownloadDial
     total: number;
   } | null>(null);
   const [error, setError] = useState<string | null>(null);
+  // PSD 가 한계를 넘었을 때 "현재 페이지만" 으로 바로 다시 내보낼 수 있게 버튼을 띄운다.
+  const [offerCurrentPage, setOfferCurrentPage] = useState(false);
   // 내려받긴 했지만 알려야 할 것 — 사다리 끝까지 줄여도 용량 상한을 넘은 파일.
   const [notice, setNotice] = useState<string | null>(null);
   const rootRef = useRef<HTMLDivElement>(null);
@@ -302,7 +331,14 @@ export const DetailPageDownloadDialog = observer(function DetailPageDownloadDial
   const outHeight = Math.round(totalHeight * ratio);
   const maxBytes = chosen?.maxBytes ?? null;
   // 상세페이지는 세로로 길어서, 병합하면 아트보드 한계를 넘길 수 있다.
-  const aiOverflow = format === "ai" && single && totalHeight > AI_MAX_ARTBOARD;
+  const aiOverflow = isPdfFormat(format) && single && totalHeight > AI_MAX_ARTBOARD;
+  // 병합 PNG/JPG 는 한 캔버스에 쌓는다. 넓이가 브라우저 한계를 넘으면 Safari 는 **빈 그림**을
+  // 내놓으므로 병합을 끄고 페이지별 ZIP 으로 내린다.
+  const mergeTooLarge =
+    isRasterFormat(format) &&
+    selectedPages.length > 1 &&
+    outWidth * outHeight > MAX_CANVAS_PIXELS;
+  const merge = single && !mergeTooLarge;
 
   // 내려받기가 끝난 뒤. 말할 것이 없으면 창을 닫고, 있으면 열어 둔 채 알린다 —
   // 닫아 버리면 알릴 자리가 없다. 말할 것은 둘이다: PNG 로는 상한을 넘어 JPG 로
@@ -327,32 +363,39 @@ export const DetailPageDownloadDialog = observer(function DetailPageDownloadDial
     if (exporting || selectedPages.length === 0 || !ready) return;
     setExporting(true);
     setError(null);
+    setOfferCurrentPage(false);
     setNotice(null);
     const mime = format === "png" ? "image/png" : "image/jpeg";
     const ext = format === "png" ? "png" : "jpg";
     const base = chosen ? `${fileName}-${chosen.value}` : fileName;
     try {
-      if (format === "psd" || format === "svg" || format === "ai") {
+      if (format === "psd" || format === "svg" || isPdfFormat(format)) {
         // 문서 JSON 기반 내보내기. ag-psd 포함 모듈은 이 시점에만 로드한다.
         const exportLib = await import("../../lib/detail-page-canvas/export/export-files");
         const doc = s.toJSON() as ExportDocument;
         const pageIds = selectedPages.map((p) => p.id);
+        // 못 불러온 그림은 자리표시로 채워 내보내되, 몇 개인지 알린다.
+        const missing = new Set<string>();
+        const onMissingImage = (src: string) => missing.add(src);
         if (format === "psd") {
           const blob = await exportLib.exportPsdBlob(doc, {
             slotBindings,
             pageIds,
+            onMissingImage,
           });
           exportLib.downloadBlob(blob, `${base}.psd`);
-        } else if (format === "ai") {
+        } else if (isPdfFormat(format)) {
           // 아트보드 한계를 넘으면 일러스트레이터가 파일을 아예 열지 못하므로,
           // 병합 대신 페이지별 아트보드로 내린다(무엇을 했는지는 아래에 표시된다).
+          // PDF 는 같은 작성기의 같은 바이트다 — 확장자만 다르다.
           const merged = single && !aiOverflow;
-          const blob = await exportLib.exportAiBlob(doc, { pageIds, merged });
-          exportLib.downloadBlob(blob, `${base}.ai`);
+          const blob = await exportLib.exportAiBlob(doc, { pageIds, merged, onMissingImage });
+          exportLib.downloadBlob(blob, `${base}.${format}`);
         } else {
           const blobs = await exportLib.exportSvgBlobs(doc, {
             pageIds,
             merged: single,
+            onMissingImage,
           });
           for (let i = 0; i < blobs.length; i++) {
             const suffix = blobs.length > 1 ? `-${String(i + 1).padStart(2, "0")}` : "";
@@ -360,7 +403,11 @@ export const DetailPageDownloadDialog = observer(function DetailPageDownloadDial
             if (blobs.length > 1) await delay(180);
           }
         }
-        setOpen(false);
+        if (missing.size > 0) {
+          setNotice(t("editor.missingImagesNote", { count: missing.size }));
+        } else {
+          setOpen(false);
+        }
         return;
       }
 
@@ -392,7 +439,11 @@ export const DetailPageDownloadDialog = observer(function DetailPageDownloadDial
 
       // PNG 는 넘치면 JPG 로 떨어지는 사다리, JPG 는 화질 사다리. 한 단계의 형식은
       // 그 단계가 정한다.
-      const steps = format === "jpeg" ? fitSteps(true) : pngFallbackSteps();
+      // 사람이 고른 JPG 화질은 상한이다 — 사다리는 그 아래로만 내려간다.
+      const cap = jpegQuality / 100;
+      const steps = (format === "jpeg" ? fitSteps(true) : pngFallbackSteps()).map((step) =>
+        step.lossy && format === "jpeg" ? { ...step, quality: Math.min(step.quality, cap) } : step,
+      );
       const mimeOf = (step: FitStep) => (step.lossy ? "image/jpeg" : "image/png");
       const extOf = (step: FitStep) => (step.lossy ? "jpg" : "png");
       // 한 페이지를 주어진 단계로 그린다. 용량 사다리는 이 함수를 단계를 낮춰 다시
@@ -411,7 +462,7 @@ export const DetailPageDownloadDialog = observer(function DetailPageDownloadDial
         if (!fit.fitted) unfitted.push(name);
         if (extOf(fit.step) !== ext) converted.push(name);
       };
-      if (single && selectedPages.length > 1) {
+      if (merge && selectedPages.length > 1) {
         // 병합본은 쌓은 한 장이 파일이므로 쌓은 뒤의 크기로 잰다.
         setProgress({ done: 0, total: selectedPages.length });
         const fit = await fitToBudget(maxBytes, steps, async (step) => {
@@ -445,18 +496,22 @@ export const DetailPageDownloadDialog = observer(function DetailPageDownloadDial
           files.push({ url: fit.value, name });
           setProgress({ done: i + 1, total: selectedPages.length });
         }
-        // 페이지별 개별 파일. 브라우저가 연속 다운로드를 막지 않도록 짧게 끊어준다.
-        for (let i = 0; i < files.length; i++) {
-          triggerDownload(files[i].url, files[i].name);
-          if (i < files.length - 1) await delay(180);
+        // 여러 장이면 ZIP 한 개로 — 연속 다운로드는 브라우저가 막거나 몇 개를 흘린다.
+        if (files.length > 1) {
+          triggerBlobDownload(await zipDataUrls(files), `${base}.zip`);
+        } else if (files[0]) {
+          triggerDownload(files[0].url, files[0].name);
         }
       }
       finish(unfitted, converted);
     } catch (err) {
+      if (isPsdTooLarge(err)) setOfferCurrentPage(scope !== "current");
       setError(
         isFontEmbeddingFailure(err)
           ? t("editor.fontEmbeddingFailed", { font: err.family })
-          : err instanceof Error
+          : isPsdTooLarge(err)
+            ? t("editor.psdTooLarge", { limit: err.limit.toLocaleString() })
+            : err instanceof Error
             ? err.message
             : String(err),
       );
@@ -510,7 +565,7 @@ export const DetailPageDownloadDialog = observer(function DetailPageDownloadDial
                   <SelectContent>
                     {EXPORT_PLATFORMS.map((p) => (
                       <SelectItem key={p.value} value={p.value}>
-                        {p.label}
+                        {t(p.labelKey, { defaultValue: p.label })}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -566,15 +621,44 @@ export const DetailPageDownloadDialog = observer(function DetailPageDownloadDial
                 (AI는 항상 한 파일이고, 스위치는 아트보드를 합칠지를 고른다). */}
                 {format !== "psd" ? (
                   <label className="flex cursor-pointer items-center gap-2.5 py-0.5">
-                    <Switch checked={single} onCheckedChange={setSingle} />
+                    <Switch
+                      checked={merge}
+                      onCheckedChange={setSingle}
+                      disabled={mergeTooLarge}
+                    />
                     <span className="text-sm text-le-ink-700">
-                      {format === "ai"
+                      {isPdfFormat(format)
                         ? t("editor.mergeArtboard")
                         : format === "svg"
                           ? t("editor.mergeSingleFile")
                           : t("editor.mergeSingle")}
                     </span>
                   </label>
+                ) : null}
+                {mergeTooLarge ? (
+                  <p className="text-[10px] leading-relaxed text-le-warn-700">
+                    {t("editor.mergeTooLargeHint", {
+                      limit: MAX_CANVAS_PIXELS.toLocaleString(),
+                    })}
+                  </p>
+                ) : null}
+
+                {format === "jpeg" ? (
+                  <div className="space-y-1.5">
+                    <div className="flex items-center justify-between">
+                      <Label className="text-xs text-le-ink-500">{t("editor.jpegQuality")}</Label>
+                      <span className="text-xs font-le-semibold text-le-ink-700">
+                        {jpegQuality}%
+                      </span>
+                    </div>
+                    <Slider
+                      min={60}
+                      max={100}
+                      step={5}
+                      value={[jpegQuality]}
+                      onValueChange={(v) => setJpegQuality(v[0] ?? 95)}
+                    />
+                  </div>
                 ) : null}
 
                 {/* 플랫폼에 폭이 있으면 배율은 그 폭에서 나온다 — 슬라이더를 두면 두 값이
@@ -641,7 +725,7 @@ export const DetailPageDownloadDialog = observer(function DetailPageDownloadDial
                     </li>
                     <li>
                       •{" "}
-                      {format === "svg" || format === "ai"
+                      {format === "svg" || isPdfFormat(format)
                         ? t("editor.vectorOutput")
                         : `${(isRasterFormat(format) ? outWidth : docWidth).toLocaleString()} × ${(isRasterFormat(format) ? outHeight : totalHeight).toLocaleString()} px`}
                     </li>
@@ -649,7 +733,7 @@ export const DetailPageDownloadDialog = observer(function DetailPageDownloadDial
                       <li>
                         •{" "}
                         {t("editor.platformWidthNote", {
-                          platform: chosen.label,
+                          platform: t(chosen.labelKey, { defaultValue: chosen.label }),
                           width: chosen.width.toLocaleString(),
                         })}
                       </li>
@@ -668,6 +752,7 @@ export const DetailPageDownloadDialog = observer(function DetailPageDownloadDial
                     {format === "psd" ? <li>• {t("editor.psdNote")}</li> : null}
                     {format === "svg" ? <li>• {t("editor.svgNote")}</li> : null}
                     {format === "ai" ? <li>• {t("editor.aiNote")}</li> : null}
+                    {format === "pdf" ? <li>• {t("editor.pdfNote")}</li> : null}
                     {aiOverflow ? (
                       <li className="text-le-warn-700">
                         •{" "}
@@ -684,6 +769,20 @@ export const DetailPageDownloadDialog = observer(function DetailPageDownloadDial
                 ) : null}
                 {error ? (
                   <p className="text-xs font-le-medium text-le-danger-600">{error}</p>
+                ) : null}
+                {offerCurrentPage ? (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => {
+                      setScope("current");
+                      setOfferCurrentPage(false);
+                      setError(null);
+                    }}
+                    className="h-9 w-full text-xs"
+                  >
+                    {t("editor.psdExportCurrentPage")}
+                  </Button>
                 ) : null}
 
                 <Button

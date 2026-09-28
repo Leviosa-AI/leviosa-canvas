@@ -5,9 +5,9 @@
  * producers (decomposer bridge, live editor, older templates); exporters read
  * defensively and fall back element-by-element instead of failing the file.
  *
- * Group children use ABSOLUTE page coordinates (both the decomposer bridge and
- * Canvas itself serialize them that way), so exporters never accumulate a
- * group offset.
+ * 그룹 자식은 페이지 좌표를 든 채 태어나고(그룹 x/y = 0), 그룹의 `x/y/rotation`은
+ * **그 뒤로 옮기고 돌린 양**이다. 화면(Konva)은 그 양을 자식 전부에 먹이므로 내보내기도
+ * 그룹 변환을 자식에 합성한다(`frame.ts`의 `elementMatrix`).
  */
 
 export type ExportElement = {
@@ -37,6 +37,12 @@ export type ExportElement = {
   verticalAlign?: string;
   textDecoration?: string;
   src?: string;
+  /** 사진 자르기 — 원본 크기에 대한 비율(`lib/detail-page/image-crop.ts`). */
+  cropX?: number;
+  cropY?: number;
+  cropWidth?: number;
+  cropHeight?: number;
+  stretchEnabled?: boolean;
   children?: ExportElement[];
   custom?: Record<string, unknown> | null;
 };

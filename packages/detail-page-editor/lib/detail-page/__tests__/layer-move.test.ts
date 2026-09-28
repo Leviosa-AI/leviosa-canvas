@@ -1,33 +1,36 @@
 // Copyright © 2026 주식회사레비오사에이아이. All rights reserved. See LICENSE.
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
-import { dropSpot, locate, moveLayer } from "../layer-move";
+import { dropSpot, locate, moveLayer, whyNotMove } from "../layer-move";
 
 type Node = {
   id: string;
   type?: string;
+  x?: number;
+  y?: number;
   children?: Node[];
   toJSON?: () => Record<string, unknown>;
 };
 
 function group(id: string, children: Node[], extra: Record<string, unknown> = {}): Node {
   const node: Node = { id, type: "group", children, ...extra };
-  node.toJSON = () => ({ id, type: "group", children: [], ...extra });
+  // 엔진처럼 자식까지 담아 준다 — 그룹을 옮겨도 속이 따라간다.
+  node.toJSON = () => ({ ...node });
   return node;
 }
 
-function leaf(id: string, type = "text"): Node {
-  return { id, type };
+function leaf(id: string, type = "text", extra: Partial<Node> = {}): Node {
+  return { id, type, ...extra };
 }
 
 /**
- * 스톡 편집기의 계약을 그대로 흉내내는 store.
+ * 엔진 스토어의 계약을 그대로 흉내내는 store.
  *
- * - ungroupElements: 그룹의 자식을 **페이지 끝**으로 올리고 그룹을 지운다.
- * - groupElements(ids, attrs): 그 요소들을 빼내 새 그룹(attrs가 기본값을 덮는다)으로
- *   묶어 **페이지 끝**에 붙인다. 자식 순서는 넘긴 ids 순서.
+ * - deleteElements: 트리 어디에 있든 지운다(빈 그룹은 남긴다).
+ * - addElement(json, { index }): 페이지·그룹 둘 다 갖는다. json 의 id 를 그대로 쓴다.
  * - setElementZIndex: 빼서 그 자리에 끼운다.
  */
+type Container = { children?: Node[] };
 function makeStore(children: Node[]) {
   const selected: string[] = [];
   const setZ = (list: Node[]) => (id: string, index: number) => {
@@ -36,12 +39,18 @@ function makeStore(children: Node[]) {
     const [node] = list.splice(at, 1);
     list.splice(index, 0, node);
   };
-  const attach = (node: Node) => {
+  const attach = (node: Node & Container) => {
     if (node.type === "group" && Array.isArray(node.children)) {
-      (node as Node & { setElementZIndex?: unknown }).setElementZIndex = setZ(
-        node.children,
-      );
-      node.children.forEach(attach);
+      const list = node.children;
+      Object.assign(node, {
+        setElementZIndex: setZ(list),
+        addElement: (json: Node, options?: { index?: number }) => {
+          attach(json);
+          list.splice(options?.index ?? list.length, 0, json);
+          return json;
+        },
+      });
+      list.forEach(attach);
     }
   };
   children.forEach(attach);
@@ -50,33 +59,29 @@ function makeStore(children: Node[]) {
     id: "p1",
     children,
     setElementZIndex: setZ(children),
+    addElement: (json: Node, options?: { index?: number }) => {
+      attach(json);
+      children.splice(options?.index ?? children.length, 0, json);
+      return json;
+    },
   };
+  const history = { startTransaction: vi.fn(), endTransaction: vi.fn() };
 
   return {
     activePage: page,
     selectedIds: selected,
+    history,
     selectElements: (ids: string[]) => {
       selected.splice(0, selected.length, ...ids);
     },
-    ungroupElements: (ids: string[]) => {
-      for (const id of ids) {
-        const at = children.findIndex((c) => c.id === id);
-        if (at < 0) continue;
-        const [g] = children.splice(at, 1);
-        (g.children ?? []).forEach((child) => children.push(child));
-      }
-    },
-    groupElements: (ids: string[], attrs: Record<string, unknown> = {}) => {
-      const picked: Node[] = [];
-      for (const id of ids) {
-        const at = children.findIndex((c) => c.id === id);
-        if (at >= 0) picked.push(children.splice(at, 1)[0]);
-      }
-      const made = group(String(attrs.id ?? "new-group"), picked, {});
-      Object.assign(made, attrs, { children: picked, type: "group" });
-      attach(made);
-      children.push(made);
-      return made;
+    deleteElements: (ids: string[]) => {
+      const prune = (list: Node[]) => {
+        for (let i = list.length - 1; i >= 0; i -= 1) {
+          if (ids.includes(list[i].id)) list.splice(i, 1);
+          else if (list[i].children) prune(list[i].children!);
+        }
+      };
+      prune(children);
     },
   };
 }
@@ -224,22 +229,88 @@ describe("moveLayer — 거절", () => {
     const store = makeStore([outer]);
 
     expect(moveLayer(store, "g1", { parentId: "g2", index: 0 })).toBe(false);
+    expect(whyNotMove(store, "g1", { parentId: "g2", index: 0 })).toBe("intoSelf");
     expect(ids(store.activePage.children)).toEqual(["g1"]);
   });
 
-  it("중첩 그룹이 얽히면 손대지 않는다", () => {
-    // ungroupElements는 자식을 페이지로 올려버려서 중첩 그룹에 쓰면 계층이 깨진다.
-    const inner = group("g2", [leaf("c1"), leaf("c2")]);
-    const outer = group("g1", [inner, leaf("c3")]);
-    const store = makeStore([outer, leaf("z")]);
-
-    expect(moveLayer(store, "c1", { parentId: null, index: 0 })).toBe(false);
-    expect(ids(store.activePage.children)).toEqual(["g1", "z"]);
-    expect(ids(find(store.activePage.children, "g2")?.children)).toEqual(["c1", "c2"]);
+  it("그룹이 아닌 곳에는 못 넣고, 이유를 댄다", () => {
+    const store = makeStore([leaf("a"), leaf("b")]);
+    expect(whyNotMove(store, "a", { parentId: "b", index: 0 })).toBe("notGroup");
+    expect(moveLayer(store, "a", { parentId: "b", index: 0 })).toBe(false);
+    expect(whyNotMove(store, "nope", { parentId: null, index: 0 })).toBe("missing");
   });
 
   it("없는 요소는 false", () => {
     const store = makeStore([leaf("a")]);
     expect(moveLayer(store, "nope", { parentId: null, index: 0 })).toBe(false);
+  });
+});
+
+describe("moveLayer — 중첩 그룹", () => {
+  it("안쪽 그룹에서 페이지로 빼내도 계층이 안 무너진다", () => {
+    const inner = group("g2", [leaf("c1"), leaf("c2")]);
+    const outer = group("g1", [inner, leaf("c3")]);
+    const store = makeStore([outer, leaf("z")]);
+
+    expect(moveLayer(store, "c1", { parentId: null, index: 0 })).toBe(true);
+
+    expect(ids(store.activePage.children)).toEqual(["c1", "g1", "z"]);
+    expect(ids(find(store.activePage.children, "g1")?.children)).toEqual(["g2", "c3"]);
+    expect(ids(find(store.activePage.children, "g2")?.children)).toEqual(["c2"]);
+    // 떼기·붙이기가 undo 한 번으로 묶인다.
+    expect(store.history.startTransaction).toHaveBeenCalledTimes(1);
+    expect(store.history.endTransaction).toHaveBeenCalledTimes(1);
+  });
+
+  it("그룹 안 그룹으로 넣고, 화면 자리를 지키도록 원점 차이만큼 옮긴다", () => {
+    // outer(100,50) 안의 inner(10,5) — inner 안 좌표계의 원점은 페이지 (110,55).
+    const inner = group("g2", [leaf("c1")], { x: 10, y: 5 });
+    const outer = group("g1", [inner, leaf("c3", "text", { x: 7, y: 7 })], {
+      x: 100,
+      y: 50,
+    });
+    const store = makeStore([outer]);
+
+    expect(moveLayer(store, "c3", { parentId: "g2", index: 1 })).toBe(true);
+
+    const moved = find(store.activePage.children, "c3");
+    expect(ids(find(store.activePage.children, "g2")?.children)).toEqual(["c1", "c3"]);
+    // 페이지 기준 (107,57) 그대로 — inner 기준으로는 (-3,2).
+    expect({ x: moved?.x, y: moved?.y }).toEqual({ x: -3, y: 2 });
+    expect(store.selectedIds).toEqual(["c3"]);
+  });
+});
+
+describe("moveLayer — 실제 엔진", () => {
+  it("중첩 그룹 밖으로 옮기고, undo 한 번에 돌아간다", async () => {
+    const { createCanvasStore } = await import("@leviosa-ai/canvas/store");
+    const store = createCanvasStore({
+      width: 800,
+      height: 600,
+      pages: [
+        {
+          id: "p1",
+          children: [
+            {
+              id: "g1",
+              type: "group",
+              x: 100,
+              y: 0,
+              children: [
+                { id: "g2", type: "group", children: [{ id: "c1", type: "text", x: 5 }, { id: "c2", type: "text" }] },
+              ],
+            },
+          ],
+        },
+      ],
+    } as never);
+
+    expect(moveLayer(store, "c1", { parentId: null, index: 1 })).toBe(true);
+    expect(store.activePage?.children.map((el) => el.id)).toEqual(["g1", "c1"]);
+    expect(store.getElementById("c1")?.x).toBe(105);
+    expect(store.getElementById("g2")?.children.map((el) => el.id)).toEqual(["c2"]);
+
+    store.history.undo();
+    expect(store.getElementById("g2")?.children.map((el) => el.id)).toEqual(["c1", "c2"]);
   });
 });

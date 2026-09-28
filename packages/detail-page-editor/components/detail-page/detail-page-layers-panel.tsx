@@ -23,7 +23,23 @@ import {
   Unlock,
 } from "lucide-react";
 import { isGifSrc } from "../../lib/detail-page-canvas/export/gif-plan";
-import { dropSpot, moveLayer, type DropZone } from "../../lib/detail-page/layer-move";
+import {
+  dropSpot,
+  moveLayer,
+  whyNotMove,
+  type DropZone,
+  type MoveRefusal,
+} from "../../lib/detail-page/layer-move";
+import { useOptionalDetailPageHost } from "./detail-page-host-context";
+import { PanelSearchInput } from "./panel-search-input";
+
+/** 드롭을 거절한 이유 → 알림 문구. */
+const MOVE_REFUSAL_KEY: Record<MoveRefusal, string> = {
+  missing: "detailPage.layers.moveMissing",
+  intoSelf: "detailPage.layers.moveIntoSelf",
+  notGroup: "detailPage.layers.moveNotGroup",
+  unsupported: "detailPage.layers.moveUnsupported",
+};
 
 /**
  * Figma-style layers tree for the detail-page Canvas editor.
@@ -120,7 +136,11 @@ function layerMeta(type: string, t: TFn): { Icon: IconType; label: string } {
 }
 
 // 텍스트 레이어는 내용을, 나머지는 이름을 라벨로. 편집기에서 요소를 짚어내기 쉽게.
+// 사람이 이름을 붙였으면(더블클릭) 텍스트도 그 이름이다 — 분해기가 박은 슬롯 이름
+// (`#…`)은 사람이 붙인 것이 아니라서 내용을 그대로 보인다.
 function displayName(el: ElementLike, t: TFn): string {
+  const given = (el.name ?? "").trim();
+  if (el.type === "text" && given && !given.startsWith("#")) return given;
   if (el.type === "text") {
     const raw = (el.text ?? "").replace(/<[^>]*>/g, "").replace(/\s+/g, " ").trim();
     if (raw) return raw;
@@ -131,10 +151,12 @@ function displayName(el: ElementLike, t: TFn): string {
   return layerMeta(el.type, t).label;
 }
 
-// 잠금 토글: 스톡 편집기에는 단일 locked 세터가 없다. 스톡 레이어 패널과 동일하게
-// 네 편집 플래그를 현재 locked 값으로 되돌린다(locked=true면 모두 true→해제).
-function toggleLock(el: ElementLike) {
+// 잠금 토글. 엔진이 보는 것은 `locked` 하나다(element-view·hotkeys 가 `el.locked` 만
+// 검사한다) — 예전엔 편집 플래그만 뒤집고 `locked` 는 안 건드려서 잠금이 안 걸렸다.
+// 스톡 편집기 시절의 플래그들도 같이 맞춰 둔다(해가 없고, 옛 문서가 그걸 읽는다).
+export function toggleLock(el: ElementLike) {
   el.set({
+    locked: !el.locked,
     draggable: el.locked,
     contentEditable: el.locked,
     styleEditable: el.locked,
@@ -161,6 +183,8 @@ function IconButton({
       type="button"
       title={title}
       aria-label={title}
+      // 토글(눈·자물쇠)만 `active` 를 준다. 삭제처럼 안 주는 버튼엔 속성이 안 붙는다.
+      aria-pressed={active}
       disabled={disabled}
       onClick={(e) => {
         e.stopPropagation();
@@ -300,6 +324,24 @@ export function rangeIds(
   return rows.slice(lo, hi + 1).map((row) => row.el.id);
 }
 
+/**
+ * 검색어에 맞는 줄. 접힌 그룹 안까지 훑는다 — 찾는 것이 접힌 그룹 속에 있다고 안
+ * 나오면 검색이 아니다. 라벨(텍스트 내용·이름)과 종류 이름을 본다.
+ */
+export function matchLayers<
+  T extends { id: string; type: string; selectable?: boolean; children?: T[] },
+>(
+  children: readonly T[],
+  query: string,
+  labelOf: (el: T) => string,
+): Array<{ el: T; depth: number }> {
+  const q = query.trim().toLowerCase();
+  const everyGroup = { has: () => true } as unknown as ReadonlySet<string>;
+  return flattenLayers(children, everyGroup).filter(({ el }) =>
+    `${labelOf(el)} ${el.type}`.toLowerCase().includes(q),
+  );
+}
+
 /** 누른 줄 하나를 선택에서 넣거나 뺀다(⌘/Ctrl 클릭). */
 export function toggleId(selected: readonly string[], id: string): string[] {
   return selected.includes(id)
@@ -343,13 +385,24 @@ const LayerRow = observer(function LayerRow({
   const hidden = el.visible === false;
   const dragging = drag.id === el.id;
   const over = drag.over?.id === el.id && drag.id && drag.id !== el.id ? drag.over.zone : null;
+  // 더블클릭으로 이름 바꾸기. null 이면 안 바꾸는 중.
+  const [draft, setDraft] = useState<string | null>(null);
+  const commitName = () => {
+    if (draft === null) return;
+    const next = draft.trim();
+    setDraft(null);
+    if (next && next !== label) el.set({ name: next });
+  };
 
   return (
     <>
       <div
-        role="button"
+        role="treeitem"
+        aria-level={depth + 1}
+        aria-selected={selected}
+        aria-expanded={isGroup ? !isCollapsed : undefined}
         tabIndex={0}
-        draggable={!el.locked}
+        draggable={!el.locked && draft === null}
         onDragStart={(e) => {
           drag.start(el.id);
           if (!e.dataTransfer) return;
@@ -381,6 +434,13 @@ const LayerRow = observer(function LayerRow({
         onMouseEnter={() => setHoveredLayerId(el.id)}
         onMouseLeave={() => setHoveredLayerId(null)}
         onKeyDown={(e) => {
+          // 이름 입력칸의 키는 줄의 단축키가 아니다(Backspace 가 요소를 지운다).
+          if (e.target !== e.currentTarget) return;
+          if (e.key === "F2") {
+            e.preventDefault();
+            setDraft(label);
+            return;
+          }
           if (e.key === "Enter" || e.key === " ") {
             e.preventDefault();
             onSelect(el.id, { shift: e.shiftKey, meta: e.metaKey || e.ctrlKey });
@@ -440,15 +500,35 @@ const LayerRow = observer(function LayerRow({
           className={["shrink-0", selected ? "text-le-select-500" : "text-le-ink-400"].join(" ")}
         />
 
-        <span
-          className={[
-            "flex-1 truncate text-[13px]",
-            hidden ? "text-le-ink-300 line-through" : "",
-          ].join(" ")}
-          title={label}
-        >
-          {label}
-        </span>
+        {draft !== null ? (
+          <input
+            autoFocus
+            value={draft}
+            aria-label={t("detailPage.layers.rename")}
+            onChange={(e) => setDraft(e.target.value)}
+            onClick={(e) => e.stopPropagation()}
+            onBlur={commitName}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") commitName();
+              if (e.key === "Escape") setDraft(null);
+            }}
+            className="min-w-0 flex-1 rounded-le-sm border border-le-select-400 bg-le-surface px-1 text-[13px] text-le-ink-900 outline-none"
+          />
+        ) : (
+          <span
+            className={[
+              "flex-1 truncate text-[13px]",
+              hidden ? "text-le-ink-300 line-through" : "",
+            ].join(" ")}
+            title={label}
+            onDoubleClick={(e) => {
+              e.stopPropagation();
+              setDraft(label);
+            }}
+          >
+            {label}
+          </span>
+        )}
 
         <div
           className={[
@@ -467,7 +547,7 @@ const LayerRow = observer(function LayerRow({
           </IconButton>
           <IconButton
             title={el.locked ? t("detailPage.layers.unlock") : t("detailPage.layers.lock")}
-            active={el.locked}
+            active={el.locked === true}
             onClick={() => toggleLock(el)}
           >
             {el.locked ? <Lock size={14} /> : <Unlock size={14} />}
@@ -505,9 +585,14 @@ export const DetailPageLayersPanel = observer(function DetailPageLayersPanel({
   const [dragId, setDragId] = useState<string | null>(null);
   const [over, setOver] = useState<{ id: string; zone: DropZone } | null>(null);
 
+  const toast = useOptionalDetailPageHost()?.toast;
+  const [query, setQuery] = useState("");
   const children = s.activePage?.children ?? [];
-  // 화면 최상단(앞) 요소가 목록 맨 위로. 접힌 그룹의 자식은 안 들어온다.
-  const rows = flattenLayers(children, expanded);
+  // 화면 최상단(앞) 요소가 목록 맨 위로. 접힌 그룹의 자식은 안 들어온다 — 찾는 중이면
+  // 접힌 속까지 훑어 맞는 줄만.
+  const rows = query.trim()
+    ? matchLayers(children, query, (el) => `${displayName(el, t)} ${layerMeta(el.type, t).label}`)
+    : flattenLayers(children, expanded);
   /** ⇧클릭이 "여기서부터"로 삼을 줄. 평범한 클릭이 여기를 옮긴다. */
   const [anchorId, setAnchorId] = useState<string | null>(null);
 
@@ -523,7 +608,12 @@ export const DetailPageLayersPanel = observer(function DetailPageLayersPanel({
     drop: (id, zone) => {
       const page = s.activePage;
       const spot = dragId && page ? dropSpot(page, id, zone, dragId) : null;
-      if (spot && dragId) moveLayer(s, dragId, spot);
+      if (spot && dragId) {
+        // 못 옮기면 왜 못 옮기는지 말한다 — 조용히 넘어가면 드래그를 몇 번이고 다시 한다.
+        const why = whyNotMove(s, dragId, spot);
+        if (why) toast?.info(t(MOVE_REFUSAL_KEY[why]));
+        else moveLayer(s, dragId, spot);
+      }
       setDragId(null);
       setOver(null);
     },
@@ -592,10 +682,24 @@ export const DetailPageLayersPanel = observer(function DetailPageLayersPanel({
           {rows.filter((row) => row.depth === 0).length}
         </span>
       </div>
-      <div className="min-h-0 flex-1 overflow-y-auto px-1.5 pb-4">
+      {children.length > 0 ? (
+        <PanelSearchInput
+          value={query}
+          onChange={setQuery}
+          placeholder={t("detailPage.layers.searchPlaceholder")}
+          label={t("detailPage.layers.search")}
+          className="mx-3 mb-2"
+        />
+      ) : null}
+      <div
+        role="tree"
+        aria-label={t("detailPage.layers.title")}
+        aria-multiselectable="true"
+        className="min-h-0 flex-1 overflow-y-auto px-1.5 pb-4"
+      >
         {rows.length === 0 ? (
           <p className="px-2 py-6 text-center text-xs text-le-ink-400">
-            {t("detailPage.layers.empty")}
+            {query.trim() ? t("detailPage.layers.noMatch") : t("detailPage.layers.empty")}
           </p>
         ) : (
           rows.map(({ el, depth }) => (

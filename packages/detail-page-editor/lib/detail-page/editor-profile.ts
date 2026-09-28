@@ -1,7 +1,7 @@
 // Copyright © 2026 주식회사레비오사에이아이. All rights reserved. See LICENSE.
 import type { LeviosaCanvasDocument } from "../../types/detail-page-canvas";
 
-export type DetailPageEditorFormat = "png" | "jpeg" | "psd" | "svg" | "ai";
+export type DetailPageEditorFormat = "png" | "jpeg" | "psd" | "svg" | "ai" | "pdf";
 
 export type DetailPageEditorProfile = {
   page: {
@@ -24,7 +24,7 @@ export type DetailPageEditorProfile = {
 const DETAIL_PAGE_PROFILE: DetailPageEditorProfile = {
   page: { width: "document", height: "auto", fixed: false },
   maxPages: Number.POSITIVE_INFINITY,
-  exports: ["png", "jpeg", "psd", "ai", "svg"],
+  exports: ["png", "jpeg", "psd", "ai", "pdf", "svg"],
   registerPlatform: true,
   wording: "section",
 };
@@ -36,7 +36,7 @@ const CAROUSEL_PROFILE: DetailPageEditorProfile = {
   // JPG 로 받는다는 이유였는데, 내보낸 파일이 곧장 업로드로만 가는 것이 아니다 —
   // 투명 배경을 살리려면 PNG 가, 다른 도구로 넘겨 손보려면 PSD·AI·SVG 가 필요하다.
   // 첫 항목이 기본값이므로 JPG 를 앞에 둬서 지금까지의 기본 동작은 그대로 둔다.
-  exports: ["jpeg", "png", "psd", "ai", "svg"],
+  exports: ["jpeg", "png", "psd", "ai", "pdf", "svg"],
   registerPlatform: false,
   wording: "plate",
 };

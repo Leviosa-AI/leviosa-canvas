@@ -1,7 +1,7 @@
 // Copyright © 2026 주식회사레비오사에이아이. All rights reserved. See LICENSE.
 "use client";
 
-import { useCallback, useMemo, useState, type ChangeEvent } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent } from "react";
 import { ImagePlus, Info, Loader2, Pencil, Sparkles, X } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
@@ -70,6 +70,8 @@ export type GenerateImageInput = {
    * 막혀도 이미지는 만들어졌는데 브랜드 버킷엔 아무것도 안 남았다.
    */
   brandId?: string;
+  /** 사용자가 취소하면 끊긴다. 호스트는 요청에 그대로 넘기면 된다. */
+  signal?: AbortSignal;
 };
 
 export type GenerateImageFn = (input: GenerateImageInput) => Promise<string[]>;
@@ -81,6 +83,8 @@ export type GenerateGifInput = {
   transparent: boolean;
   /** 이미지와 같다. 저장 위치는 start 시점에 확정된다. */
   brandId?: string;
+  /** 사용자가 취소하면 끊긴다. */
+  signal?: AbortSignal;
 };
 
 export type GenerateGifFn = (input: GenerateGifInput) => Promise<string[]>;
@@ -299,7 +303,10 @@ export function AiGeneratePanel({
   onBuyCredits,
 }: AiGeneratePanelProps) {
   const { t } = useTranslation("branding");
-  const { brand } = useDetailPageHost();
+  const { brand, api } = useDetailPageHost();
+  // 진행 중 생성의 취소 손잡이. 패널이 닫혀도 끊는다.
+  const abortRef = useRef<AbortController | null>(null);
+  useEffect(() => () => abortRef.current?.abort(), []);
   const [mode, setMode] = useState<"image" | "gif">(
     // GIF 생성이 배선된 경우에만 gif 초기값을 존중(미배선이면 토글이 없어 갇힘).
     initialMode === "gif" && onGenerateGif ? "gif" : "image",
@@ -357,7 +364,9 @@ export function AiGeneratePanel({
       try {
         setRefUrl(await uploadFile(file));
       } catch (err) {
-        setError(err instanceof Error ? err.message : t("detailPage.aiGenerate.uploadFailed"));
+        // 원문은 콘솔로만. 서버·네트워크 문구를 그대로 띄우면 번역도 안 되고 읽히지도 않는다.
+        console.error("Reference upload failed", err);
+        setError(t("detailPage.aiGenerate.uploadFailed"));
       } finally {
         setRefUploading(false);
       }
@@ -384,6 +393,9 @@ export function AiGeneratePanel({
     setLoading(true);
     setError(null);
     setInsufficient(false);
+    const controller = new AbortController();
+    abortRef.current = controller;
+    const { signal } = controller;
     try {
       const referenceImages = refUrl ? [refUrl] : [];
       const brandId = brand.getStoredActiveBrandId() ?? undefined;
@@ -393,6 +405,7 @@ export function AiGeneratePanel({
             referenceImages,
             transparent,
             brandId,
+            signal,
           })
         : await onGenerate!({
             prompt: finalPrompt,
@@ -401,7 +414,10 @@ export function AiGeneratePanel({
             tier: activeTier,
             brandId,
             annotatedImage,
+            signal,
           });
+      // 취소했으면 늦게 온 결과를 넣지 않는다(호스트가 신호를 무시했어도).
+      if (signal.aborted) return;
       const url = urls[0];
       if (url) {
         // GIF는 항상 페이지에 삽입(우측 이미지 교체 대상 아님) + 애니 태깅.
@@ -415,18 +431,28 @@ export function AiGeneratePanel({
             : t("detailPage.aiGenerate.noImage"),
         );
     } catch (err) {
-      // 생성기가 크레딧 부족을 알리면(422/402 등) 별도로 표기해 CTA를 띄운다.
-      const maybe = err as { insufficientCredits?: boolean };
-      if (maybe && maybe.insufficientCredits) {
+      if (signal.aborted) return; // 사용자가 끊었다 — 오류가 아니다.
+      // 크레딧 부족은 호스트 판별기(402 본문)로 먼저 가리고, 생성기가 직접 붙인
+      // `insufficientCredits` 표시도 계속 받는다(우측 편집 경로가 그렇게 던진다).
+      const marked = (err as { insufficientCredits?: boolean } | null)?.insufficientCredits;
+      if (api.asInsufficientCreditsError(err) || marked) {
         setInsufficient(true);
         setError(t("detailPage.aiGenerate.insufficientCredits"));
       } else {
-        setError(err instanceof Error ? err.message : t("detailPage.aiGenerate.generateFailed"));
+        console.error("AI generation failed", err);
+        setError(t("detailPage.aiGenerate.generateFailed"));
       }
     } finally {
-      setLoading(false);
+      if (abortRef.current === controller) abortRef.current = null;
+      if (!signal.aborted) setLoading(false);
     }
-  }, [prompt, loading, blocked, isGif, gifMissingRef, transparent, onGenerate, onGenerateGif, refUrl, store, onResult, activeTier, t]);
+  }, [prompt, loading, blocked, isGif, gifMissingRef, transparent, onGenerate, onGenerateGif, refUrl, store, onResult, activeTier, t, api, brand]);
+
+  const cancelGenerate = useCallback(() => {
+    abortRef.current?.abort();
+    abortRef.current = null;
+    setLoading(false);
+  }, []);
 
   const handleGenerate = useCallback(() => {
     void runGenerate();
@@ -760,6 +786,15 @@ export function AiGeneratePanel({
           ) : null}
         </span>
       </button>
+      {loading ? (
+        <button
+          type="button"
+          onClick={cancelGenerate}
+          className="h-8 rounded-le-md border border-le-ink-200 text-xs font-le-medium text-le-ink-600 hover:bg-le-ink-50"
+        >
+          {t("detailPage.aiGenerate.cancel")}
+        </button>
+      ) : null}
 
       <AnnotationDialog
         open={annotateOpen}

@@ -22,7 +22,16 @@ import "konva/lib/shapes/Rect";
 import "konva/lib/shapes/Text";
 
 import type Konva from "konva";
-import { useEffect, useRef, type ReactNode } from "react";
+import {
+  createContext,
+  Fragment,
+  memo,
+  useContext,
+  useEffect,
+  useRef,
+  useSyncExternalStore,
+  type ReactNode,
+} from "react";
 import {
   Ellipse,
   Group,
@@ -45,6 +54,7 @@ import {
 } from "../paint/inset-shadow";
 import { computeHighlightBands } from "../paint/text-highlight-bands";
 
+import { elementRect, unionRect } from "../edit/rect";
 import { CanvasElement } from "../store";
 import { asRecord, num, str, type Attrs } from "../types";
 import { useElementVersion } from "../use-canvas";
@@ -70,6 +80,22 @@ import { imageFrame, imageHasAlpha } from "./image-frame";
 import { measureTextLayout } from "./text-layout";
 import { svgFilterInsets, svgSourceFor } from "./svg-source";
 import { useImage } from "./use-image";
+
+/**
+ * 폰트가 새로 들어올 때마다 오르는 숫자.
+ *
+ * Konva 글자는 폰트가 늦게 와도 저절로 다시 재지 않는다. 예전에는 Layer를 통째로
+ * 새로 만들어(`key`) 해결했는데, 그러면 이미지·캐시까지 전부 다시 짓는다. 이 값을
+ * 보는 것은 글자와 구운 그림뿐이다 — 그것들만 다시 잰다.
+ */
+export const FontsVersionContext = createContext(0);
+
+/** 자기와 자손 전부의 version 합. 버전은 늘기만 하므로 무엇이 바뀌든 합이 오른다. */
+function subtreeVersion(el: CanvasElement): number {
+  let sum = el.version;
+  for (const child of el.children ?? []) sum += subtreeVersion(child);
+  return sum;
+}
 
 /**
  * 지금 이 요소를 직접 끌 수 있는가.
@@ -125,6 +151,7 @@ function ElementFrame({
       ? ""
       : str((el.custom ?? {}) as Attrs, "filter");
   const version = useElementVersion(el);
+  const fontsVersion = useContext(FontsVersionContext);
 
   /*
    * 반투명한 그룹은 «한 장으로 구워서» 투명도를 먹인다 — 디자인 툴이 다 그렇게 한다.
@@ -140,9 +167,17 @@ function ElementFrame({
     num(el, "opacity", 1) < 1 &&
     (el.children?.length ?? 0) > 1;
 
+  const wants = Boolean((filter && filter !== "none") || flatten);
+  // 구운 그룹은 **자손**이 바뀌어도 낡는다. 자손의 알림은 이 요소의 version을 안
+  // 올리므로 따로 구독한다 — 구울 때만(안 구우면 0으로 두어 재지도 않는다).
+  const subtree = useSyncExternalStore(
+    el.store.subscribe,
+    () => (wants && el.isContainer ? subtreeVersion(el) : 0),
+    () => 0,
+  );
+
   useEffect(() => {
     const node = frameRef.current;
-    const wants = (filter && filter !== "none") || flatten;
     if (!node || !wants) return;
     node.cache({ pixelRatio: window.devicePixelRatio, offset: 64 });
     node.getLayer()?.batchDraw();
@@ -150,7 +185,7 @@ function ElementFrame({
       node.clearCache();
     };
     // 자식이 바뀌면 구운 그림도 낡는다 — version 이 바뀔 때 다시 굽는다.
-  }, [filter, flatten, version]);
+  }, [wants, version, subtree, fontsVersion]);
   // ⌥를 누른 채 끌면 복제 — Figma·Canva·미리캔버스가 전부 같은 손버릇이다. 누른 사실은
   // **시작할 때** 잡아 둔다. 놓는 순간에는 이미 손을 뗐을 수 있고, 끄는 도중에 트리를
   // 건드리면 리렌더가 끌고 있는 노드의 좌표를 문서 값으로 되돌려 그림이 튄다.
@@ -238,6 +273,32 @@ function ElementFrame({
             }
           : undefined
       }
+    >
+      {flipped(el, box, children)}
+    </Group>
+  );
+}
+
+/**
+ * `flipX`/`flipY` — 상자 가운데를 축으로 뒤집어 그린다.
+ *
+ * 바깥 Group(자리·회전·트랜스포머가 보는 것)은 그대로 두고 안쪽만 뒤집는다. 그래야
+ * 손잡이·히트 테스트·스냅이 뒤집기와 상관없이 같은 상자를 본다. 그룹은 자기 폭·높이를
+ * 안 믿으므로(rect.ts) 자식 합집합의 가운데를 축으로 쓴다.
+ */
+function flipped(el: CanvasElement, box: Box, children: ReactNode): ReactNode {
+  const flipX = el.flipX === true;
+  const flipY = el.flipY === true;
+  if (!flipX && !flipY) return children;
+  const area =
+    (el.isContainer ? unionRect(el.children.map((child) => elementRect(child))) : null) ??
+    { x: 0, y: 0, width: box.width, height: box.height };
+  return (
+    <Group
+      x={flipX ? area.x * 2 + area.width : 0}
+      y={flipY ? area.y * 2 + area.height : 0}
+      scaleX={flipX ? -1 : 1}
+      scaleY={flipY ? -1 : 1}
     >
       {children}
     </Group>
@@ -431,7 +492,8 @@ function ImageBody({
     return () => {
       if (filter && filter !== "none") node.clearCache();
     };
-  }, [filter, image]);
+    // 크기가 바뀌면 구운 그림도 낡는다 — 필터 이미지를 늘리면 옛 크기로 남았다.
+  }, [filter, image, box.width, box.height]);
 
   if (!image) {
     // 빈 슬롯 자리표시. 투명하게 두면 "깨진 것"으로 읽힌다.
@@ -480,6 +542,8 @@ function TextBody({ el, editing }: { el: CanvasElement; editing: boolean }) {
   const fontFamily = str(el, "fontFamily", "sans-serif");
   const custom = (el.custom ?? {}) as Attrs;
   const highlight = str(custom, "highlightColor");
+  // 폰트가 새로 오면 다시 잰다(아래 줄 나눔·형광펜 띠가 전부 폰트 폭에 달렸다).
+  const fontsVersion = useContext(FontsVersionContext);
   const backgroundGradient = parseCssGradient(custom.backgroundGradient);
 
   // 사람이 칠한 형광펜: 줄마다 그 줄 글자 폭에 딱 맞는 띠 하나. 통짜 박스로 그리면
@@ -562,7 +626,8 @@ function TextBody({ el, editing }: { el: CanvasElement; editing: boolean }) {
       ) : null}
       {/* 편집 중에는 글자를 두 번 그리지 않는다 — textarea가 같은 자리에 있다. */}
       {editing ? null : (
-      <>
+      // key가 바뀌면 Konva.Text를 새로 만든다 — 같은 속성이면 Konva는 다시 재지 않는다.
+      <Fragment key={fontsVersion}>
       <ShadowUnderlays
         el={el}
         render={(shadow, key) => (
@@ -606,7 +671,7 @@ function TextBody({ el, editing }: { el: CanvasElement; editing: boolean }) {
         {...shadowProps(el)}
         {...textStroke(el)}
       />
-      </>
+      </Fragment>
       )}
     </ClipTo>
   );
@@ -689,7 +754,11 @@ function bodyFor(el: CanvasElement, editing: boolean): ReactNode {
   }
 }
 
-export function ElementView({ el }: { el: CanvasElement }) {
+/**
+ * memo — 부모가 다시 그려져도 `el`이 같으면 건너뛴다. 제 변경은 `useElementVersion`이,
+ * 편집 상태는 context가, 폰트는 `FontsVersionContext`가 따로 깨운다.
+ */
+export const ElementView = memo(function ElementView({ el }: { el: CanvasElement }) {
   // 이 숫자가 그대로면 React가 리렌더를 건너뛴다(그룹은 자식 목록 변경도 여기 온다).
   useElementVersion(el);
   const edit = useEditHandlers();
@@ -703,4 +772,4 @@ export function ElementView({ el }: { el: CanvasElement }) {
       {body}
     </ElementFrame>
   );
-}
+});

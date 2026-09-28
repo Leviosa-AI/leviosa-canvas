@@ -7,6 +7,7 @@ import { Loader2, Shapes, Trash2, Upload } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 import { BrandPanelHeader } from "./detail-page-brand-panel-header";
+import { ConfirmDeleteButton } from "./confirm-delete-button";
 import { useDetailPageHost } from "./detail-page-host-context";
 import type { BrandAsset } from "./detail-page-host-context";
 import { insertShape } from "../../lib/detail-page/insert-shape";
@@ -97,7 +98,7 @@ export function DetailPageMyShapesPanel({ store }: { store: unknown }) {
         <input
           type="file"
           accept=".svg,image/svg+xml"
-          className="hidden"
+          className="sr-only"
           onChange={(event) => {
             const file = event.target.files?.[0];
             event.target.value = "";
@@ -158,14 +159,14 @@ export function DetailPageMyShapesPanel({ store }: { store: unknown }) {
                   />
                 )}
               </button>
-              <button
-                type="button"
-                onClick={() => deleteMutation.mutate(asset)}
+              <ConfirmDeleteButton
+                label={t("detailPage.brandAssets.delete")}
+                onConfirm={() => deleteMutation.mutate(asset)}
                 className="absolute right-1 top-1 hidden h-6 w-6 items-center justify-center rounded-le-md bg-le-surface/95 text-le-ink-400 shadow-sm hover:text-le-danger-600 group-hover:flex"
-                aria-label={t("detailPage.brandAssets.delete")}
+                confirmClassName="absolute right-1 top-1 z-10"
               >
                 <Trash2 aria-hidden="true" size={13} />
-              </button>
+              </ConfirmDeleteButton>
             </div>
           ))}
         </div>

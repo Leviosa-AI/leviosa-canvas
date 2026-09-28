@@ -7,6 +7,23 @@ interface TextEditorProps {
   "aria-label"?: string;
 }
 
+// contentEditable 이 Enter 로 만드는 <div>·<p>·<br> 을 "\n" 으로 읽는다. textContent 는 줄바꿈을 버린다.
+export function editableText(root: Node): string {
+  let text = "";
+  for (const child of root.childNodes) {
+    if (child.nodeType === Node.TEXT_NODE) {
+      text += child.textContent ?? "";
+    } else if (child.nodeName === "BR") {
+      // 블록 끝의 <br> 은 빈 줄 자리표시자다.
+      if (child.nextSibling) text += "\n";
+    } else {
+      if ((child.nodeName === "DIV" || child.nodeName === "P") && child.previousSibling) text += "\n";
+      text += editableText(child);
+    }
+  }
+  return text;
+}
+
 export function TextEditor({ value, onCommit, "aria-label": ariaLabel }: TextEditorProps) {
   const composing = useRef(false);
   const draft = useRef(value);
@@ -19,11 +36,11 @@ export function TextEditor({ value, onCommit, "aria-label": ariaLabel }: TextEdi
       onCompositionStart={() => { composing.current = true; }}
       onCompositionEnd={(event) => {
         composing.current = false;
-        draft.current = event.currentTarget.textContent ?? "";
+        draft.current = editableText(event.currentTarget);
         onCommit(draft.current);
       }}
       onInput={(event) => {
-        draft.current = event.currentTarget.textContent ?? "";
+        draft.current = editableText(event.currentTarget);
         if (!composing.current) onCommit(draft.current);
       }}
       onBlur={() => {

@@ -6,9 +6,10 @@
  * 구워지고, 사용자에게는 "미리보기에 사진이 안 나온다"로 보인다.
  */
 
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
-import { pageImageSources } from "../render/page-images";
+import { clearImageCache } from "../render/image-cache";
+import { pageImageSources, waitForPageImages } from "../render/page-images";
 
 const SVG = `data:image/svg+xml;base64,${btoa('<svg xmlns="http://www.w3.org/2000/svg"><rect fill="#000"/></svg>')}`;
 
@@ -75,5 +76,36 @@ describe("pageImageSources", () => {
     });
     expect(only).not.toBe(SVG);
     expect(atob(only.split(",")[1])).toContain("#ff0000");
+  });
+});
+
+describe("waitForPageImages", () => {
+  it("못 받은 주소를 돌려준다 — 조용히 빠진 채 굽지 않게", async () => {
+    clearImageCache();
+    vi.stubGlobal(
+      "Image",
+      class {
+        crossOrigin = "";
+        onload: (() => void) | null = null;
+        onerror: (() => void) | null = null;
+        set src(value: string) {
+          queueMicrotask(() =>
+            value.includes("bad") ? this.onerror?.() : this.onload?.(),
+          );
+        }
+      },
+    );
+    try {
+      const failed = await waitForPageImages({
+        children: [
+          { type: "image", src: "/ok.jpg" },
+          { type: "image", src: "/bad.jpg" },
+        ],
+      });
+      expect(failed).toEqual(["/bad.jpg"]);
+    } finally {
+      vi.unstubAllGlobals();
+      clearImageCache();
+    }
   });
 });

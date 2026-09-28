@@ -8,6 +8,8 @@
 
 export {
   DetailPageHostProvider,
+  DetailPageSaveConflictError,
+  isDetailPageSaveConflict,
   useDetailPageHost,
 } from "./components/detail-page/detail-page-host-context";
 export type {

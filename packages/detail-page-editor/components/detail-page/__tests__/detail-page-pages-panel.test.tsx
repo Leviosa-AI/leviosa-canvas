@@ -73,6 +73,9 @@ describe("DetailPagePagesPanel — 판 복제/삭제", () => {
     render(<DetailPagePagesPanel store={store} />);
 
     await user.click(delButtons()[1]);
+    // 한 번 누르면 묻기만 한다.
+    expect(store.deletePages).not.toHaveBeenCalled();
+    await user.click(screen.getByRole("button", { name: "detailPage.confirmDelete.confirm" }));
 
     expect(store.deletePages).toHaveBeenCalledWith(["p2"]);
   });
@@ -154,5 +157,20 @@ describe("DetailPagePagesPanel — 화면 끼우기", () => {
         name: "detailPage.pageToolbar.addBelow",
       }),
     ).toHaveLength(0);
+  });
+});
+
+describe("DetailPagePagesPanel — 키보드 재정렬", () => {
+  it("손잡이가 포커스를 받고 키보드 센서가 스페이스로 집는다", async () => {
+    const user = userEvent.setup();
+    render(<DetailPagePagesPanel store={makeStore([makePage("p1"), makePage("p2")])} />);
+
+    const handles = screen.getAllByRole("button", { name: "detailPage.pages.reorderHandle" });
+    expect(handles[0]).toHaveAttribute("tabindex", "0");
+    handles[0].focus();
+    await user.keyboard(" ");
+    // dnd-kit 이 집은 상태를 행의 aria-pressed 로 알린다 — 키보드 센서가 붙었다는 뜻이다.
+    expect(handles[0].closest("[aria-roledescription]")).toHaveAttribute("aria-pressed", "true");
+    await user.keyboard("{Escape}");
   });
 });

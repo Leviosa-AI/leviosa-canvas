@@ -46,8 +46,18 @@
       "svgNote": "Drag into a Figma canvas to keep layers editable",
       "aiNote": "Font subsets preserve appearance; typing new characters requires the same font installed",
       "aiOverflowNote": "Taller than the {{limit}}px artboard limit — saved as one artboard per page",
+      "formatPdf": "PDF",
+      "pdfNote": "Saved as vector pages; text stays selectable and searchable",
+      "jpegQuality": "JPG quality",
+      "mergeTooLargeHint": "The merged image would exceed the browser limit ({{limit}}px), so pages are saved as separate images in a ZIP",
+      "missingImagesNote": "{{count}} image(s) could not be loaded and were left blank. Re-upload them and export again.",
+      "psdTooLarge": "PSD files are limited to {{limit}}px per side. Export the current page only, or choose another format.",
+      "psdExportCurrentPage": "Export the current page as PSD",
       "exporting": "Exporting...",
-      "downloadAction": "Download"
+      "downloadAction": "Download",
+      "unsaved": "Unsaved",
+      "saveRetrying": "Couldn't save. Retrying shortly.",
+      "saveConflict": "This document was saved elsewhere first. Your changes are kept — check before reloading."
     },
     "detailPage": {
       "properties": {
@@ -172,7 +182,22 @@
         "imageGif": "Image to GIF",
         "imageGifCancel": "Cancel (the GIF in progress is saved to My images)",
         "imageGifMake": "Make GIF",
-        "imageGifMaskFallback": "Couldn't isolate the object, so the effect covers the whole image."
+        "imageGifMaskFallback": "Couldn't isolate the object, so the effect covers the whole image.",
+        "scrubHint": "{{label}} — drag left/right to adjust (Shift ×10)",
+        "fontSize": "Font size",
+        "textAlignLeft": "Align left",
+        "textAlignCenter": "Align center",
+        "textAlignRight": "Align right",
+        "textAlignJustify": "Justify",
+        "effects": "Effects",
+        "shadow": "Shadow",
+        "shadowBlur": "Blur",
+        "strokeWidth": "Stroke",
+        "rotation": "Rotate",
+        "pageBackground": "Background",
+        "shapeSaveFailed": "Couldn't save to brand shapes.",
+        "typeGif": "GIF",
+        "typeElement": "Element"
       },
       "gifEffects": {
         "text": {
@@ -369,7 +394,7 @@
           "center": "Center",
           "right": "Right"
         },
-        "alignHint": "Sets the last column's alignment. Numbers read best right-aligned.",
+        "alignHint": "Changes the alignment of the chosen column. Numbers read best right-aligned.",
         "lines": "Lines",
         "topRule": "Top rule",
         "rowRule": "Row divider",
@@ -411,7 +436,9 @@
           "specHairline": "Hairline spec table",
           "specRight": "Right-aligned values",
           "typeCentered": "By type"
-        }
+        },
+        "alignColumn": "Column to align",
+        "alignColumnOption": "Col {{column}}"
       },
       "brandAssets": {
         "uploadFailed": "Failed to upload brand asset.",
@@ -438,7 +465,8 @@
         "filterProduct": "Product",
         "filterModel": "Model",
         "filterGenerated": "Generated",
-        "filterOther": "Other"
+        "filterOther": "Other",
+        "uploadSomeTooLarge": "Skipped {{count}} file(s) over 20MB."
       },
       "brandGifs": {
         "notAGif": "Only GIF files can be uploaded.",
@@ -614,7 +642,9 @@
         "header": "Edit with a prompt",
         "editing": "Editing…",
         "textPlaceholder": "How should it change? (e.g. \"make it punchier\", \"short and concise\")",
-        "send": "Apply edit"
+        "send": "Apply edit",
+        "groupSuccess": "Group updated.",
+        "groupPlaceholder": "How should it change? (e.g. \"punchier\", \"unify the tone\")"
       },
       "specPromptEdit": {
         "section": "Edit with AI",
@@ -686,7 +716,8 @@
         "generating": "Generating…",
         "generateGif": "Generate GIF",
         "replaceImage": "Replace image",
-        "generate": "Generate"
+        "generate": "Generate",
+        "cancel": "Cancel"
       },
       "annotate": {
         "baseUnavailable": "This image can't be drawn on. Please describe the change instead.",
@@ -740,7 +771,15 @@
         "lock": "Lock",
         "delete": "Delete",
         "title": "Layers",
-        "empty": "This page has no elements yet."
+        "empty": "This page has no elements yet.",
+        "rename": "Layer name",
+        "search": "Find layers",
+        "searchPlaceholder": "Find by name or type",
+        "noMatch": "No matching layers.",
+        "moveMissing": "Couldn't find the layer to move.",
+        "moveIntoSelf": "A group can't go inside itself.",
+        "moveNotGroup": "You can only drop inside a group.",
+        "moveUnsupported": "This editor can't move it there."
       },
       "pages": {
         "roles": {
@@ -911,6 +950,86 @@
         "loadFailed": "Could not load your references.",
         "empty": "No saved references yet. Save a detail page you like and it is ready to reference on your next product.",
         "screenCount": "{{count}} screens"
+      },
+      "confirmDelete": {
+        "ask": "Delete?",
+        "confirm": "Confirm",
+        "cancel": "Cancel"
+      },
+      "designReference": {
+        "title": "Design references",
+        "description": "Pictures to point at a “design like this”. Unlike product photos they don't go on the page — they only guide structure and colour. Up to {{max}}.",
+        "ordinal": "#{{n}}",
+        "remove": "Remove reference {{ordinal}}",
+        "add": "Add reference",
+        "instruction": "Reference instruction",
+        "instructionPlaceholder": "Use the colours and fonts of #1 and the layout of #2",
+        "reading": "Reading…",
+        "reread": "Read again",
+        "read": "Read references",
+        "creditNote": "Each read costs {{credits}} credits ({{count}} references · larger and taller pictures cost more).",
+        "attachFailed": "Couldn't attach the reference picture.",
+        "insufficient": "Not enough credits. Reading {{count}} references needs {{credits}} credits ({{remaining}} left).",
+        "readFailed": "Couldn't read the references.",
+        "nothingRead": "Nothing could be read from the references. Try pictures where the layout is clearly visible.",
+        "suggestionNote": "This reading is a suggestion. If you change the design tone above, your choice wins.",
+        "aspects": {
+          "palette": {
+            "label": "Palette",
+            "hint": "How background, text and accent colours relate"
+          },
+          "typography": {
+            "label": "Typography",
+            "hint": "Weight contrast and type-size rhythm"
+          },
+          "layout": {
+            "label": "Layout",
+            "hint": "Columns, alignment, spacing rhythm"
+          },
+          "content": {
+            "label": "Content",
+            "hint": "Which information is covered and in what order"
+          },
+          "mood": {
+            "label": "Mood",
+            "hint": "Amount of whitespace and element density"
+          },
+          "decoration": {
+            "label": "Decoration",
+            "hint": "Character of dividers and shapes"
+          },
+          "imagery": {
+            "label": "Imagery",
+            "hint": "Photo direction — composition, props, lighting, tone"
+          }
+        },
+        "tone": {
+          "casual": "Casual",
+          "minimal": "Minimal",
+          "info": "Informative",
+          "ad-like": "Ad-like",
+          "premium": "Premium",
+          "cute": "Cute",
+          "tech": "Tech",
+          "natural": "Natural",
+          "editorial": "Editorial"
+        },
+        "density": {
+          "airy": "Airy",
+          "editorial": "Editorial",
+          "compact": "Compact",
+          "cozy": "Cozy"
+        }
+      },
+      "exportPlatforms": {
+        "naver": "Naver Smart Store",
+        "coupang": "Coupang",
+        "cafe24": "Cafe24",
+        "gmarket": "Gmarket · Auction",
+        "11st": "11st",
+        "kakao": "KakaoTalk Store",
+        "ohouse": "Ohouse",
+        "general": "General"
       }
     }
   },

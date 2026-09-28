@@ -61,15 +61,21 @@ describe("wrapText", () => {
 });
 
 describe("layoutText", () => {
-  it("caps lines at the element height and condenses horizontally", () => {
-    // 10 chars * 10px = 100px text in a 60px-wide, 1-line-tall box: wrapping
-    // would need 2 lines, so the text condenses instead of overflowing.
-    const layout = layoutText(
+  it("keeps a one-line box unwrapped and never condenses, like the screen", () => {
+    // 한 줄 높이 상자는 화면(Konva)처럼 접지 않고 넘친다 — 옆으로 눌러 담지도 않는다.
+    const single = layoutText(
       { text: "abcde fghi", width: 60, height: 20, fontSize: 16, lineHeight: 1.25 },
       measure,
     );
-    expect(layout.lines.length).toBe(1);
-    expect(layout.scaleX).toBeLessThan(1);
+    expect(single.lines).toEqual(["abcde fghi"]);
+    expect(single).not.toHaveProperty("scaleX");
+
+    // 여러 줄 상자는 폭에서 접고, 상자 높이로 줄 수를 자르지 않는다.
+    const multi = layoutText(
+      { text: "abcde fghi jklmn", width: 60, height: 50, fontSize: 16, lineHeight: 1.25 },
+      measure,
+    );
+    expect(multi.lines).toEqual(["abcde", "fghi", "jklmn"]);
   });
 
   it("applies verticalAlign as a first-line offset", () => {

@@ -384,6 +384,31 @@ export interface DetailPageHostToast {
   info: (message: string) => void;
 }
 
+// ── 저장 충돌 ──────────────────────────────────────────────────
+
+/**
+ * 저장이 더 새 리비전에 막혔다 — 다른 탭·다른 사람이 먼저 저장했다.
+ *
+ * 앱의 `onSave` 가 이걸(또는 `conflict: true` 를 단 아무 오류나) 던지면 편집기는
+ * 알리고, 변경을 붙잡아 두고, 다시 보내지 않는다. 덮어쓸지 새로 불러올지는 사람이
+ * 고른다 — 편집기가 대신 고르면 누군가의 작업이 조용히 사라진다.
+ */
+export class DetailPageSaveConflictError extends Error {
+  readonly conflict = true;
+  constructor(message = "detail-page save conflict") {
+    super(message);
+    this.name = "DetailPageSaveConflictError";
+  }
+}
+
+export function isDetailPageSaveConflict(error: unknown): boolean {
+  return (
+    typeof error === "object" &&
+    error !== null &&
+    (error as { conflict?: unknown }).conflict === true
+  );
+}
+
 // ── 캐시 키 ────────────────────────────────────────────────────
 
 /**
@@ -463,10 +488,10 @@ export interface EditorHeaderSlotProps {
   save: {
     run: () => void;
     saving: boolean;
-    /** 방금 저장됐다. 다음 저장이 시작되면 꺼진다. */
+    /** 방금 저장됐다. 다음 변경이나 다음 저장이 시작되면 꺼진다. */
     ok: boolean;
     error: string | null;
-    /** 아직 저장 안 된 변경이 남아 있다. 자동저장을 안 켠 화면에서는 언제나 false. */
+    /** 아직 저장 안 된 변경이 남아 있다. 자동저장을 안 켠 화면에서도 센다. */
     unsaved: boolean;
   };
   /** 편집기가 만들어 주는 조각들. 자리만 정하면 된다. */
@@ -520,6 +545,15 @@ export function DetailPageHostProvider({
       {children}
     </DetailPageHostContext.Provider>
   );
+}
+
+/**
+ * 호스트가 없어도 그려지는 자리(레이어 패널 같은 — 하네스와 단위 시험이 호스트 없이
+ * 띄운다)에서 알림 정도만 빌릴 때. 없으면 null 이고, 부르는 쪽이 조용히 넘어간다.
+ * 호스트가 **필요한** 일에는 `useDetailPageHost` 를 쓴다.
+ */
+export function useOptionalDetailPageHost(): DetailPageHost | null {
+  return useContext(DetailPageHostContext);
 }
 
 /**
