@@ -16,13 +16,28 @@
  * LRU로 `MAX_ENTRIES`장까지만 남긴다 — 35섹션 문서 한 벌은 충분히 덮는다.
  *
  * 실패도 기록한다(`null`). 안 그러면 못 받는 주소를 스크롤할 때마다 다시 두드린다.
+ * 다만 **`FAIL_TTL_MS` 동안만**이다 — 잠깐 끊긴 망 때문에 그 사진이 탭 수명 내내
+ * 빈 채로 남고, 빠진 채로 내보내지면 안 된다.
  */
 
 /** 들고 있을 최대 장수. 넘으면 가장 오래 안 쓴 것부터 버린다. */
 const MAX_ENTRIES = 160;
 
+/** 실패를 기억하는 시간. 지나면 다시 받아 본다. */
+const FAIL_TTL_MS = 5000;
+
 /** 주소 → 다 받은 그림(못 받았으면 null). Map은 삽입 순서를 지켜 LRU로 쓴다. */
 const done = new Map<string, HTMLImageElement | null>();
+/** 주소 → 실패한 시각. */
+const failedAt = new Map<string, number>();
+
+/** 실패 기억이 만료됐으면 지운다 — 다음 `loadImage`가 다시 두드린다. */
+function expire(src: string): void {
+  const at = failedAt.get(src);
+  if (at === undefined || Date.now() - at < FAIL_TTL_MS) return;
+  failedAt.delete(src);
+  done.delete(src);
+}
 /** 받는 중인 주소. 같은 그림을 두 요소가 함께 쓰면 요청은 한 번이다. */
 const inflight = new Map<string, Promise<HTMLImageElement | null>>();
 
@@ -39,6 +54,7 @@ function touch(src: string, image: HTMLImageElement | null): void {
 /** 이미 받아 둔 그림. 아직 모르거나 못 받았으면 null. */
 export function cachedImage(src: string): HTMLImageElement | null {
   if (!src) return null;
+  expire(src);
   const hit = done.get(src);
   if (hit === undefined) return null;
   // 꺼내 쓴 것은 최근으로 올린다.
@@ -48,6 +64,7 @@ export function cachedImage(src: string): HTMLImageElement | null {
 
 /** 이 주소를 이미 판정했는가(성공이든 실패든). 다시 두드릴지 정하는 데 쓴다. */
 export function isImageSettled(src: string): boolean {
+  expire(src);
   return done.has(src);
 }
 
@@ -59,6 +76,7 @@ export function isImageSettled(src: string): boolean {
  */
 export function loadImage(src: string): Promise<HTMLImageElement | null> {
   if (!src) return Promise.resolve(null);
+  expire(src);
   if (done.has(src)) return Promise.resolve(cachedImage(src));
   const pending = inflight.get(src);
   if (pending) return pending;
@@ -69,11 +87,13 @@ export function loadImage(src: string): Promise<HTMLImageElement | null> {
     image.crossOrigin = "anonymous";
     image.onload = () => {
       inflight.delete(src);
+      failedAt.delete(src);
       touch(src, image);
       resolve(image);
     };
     image.onerror = () => {
       inflight.delete(src);
+      failedAt.set(src, Date.now());
       touch(src, null);
       resolve(null);
     };
@@ -83,13 +103,20 @@ export function loadImage(src: string): Promise<HTMLImageElement | null> {
   return promise;
 }
 
-/** 여러 장을 한꺼번에. 하나가 실패해도 나머지를 기다린다. */
-export async function loadImages(sources: readonly string[]): Promise<void> {
-  await Promise.all(sources.map((src) => loadImage(src)));
+/**
+ * 여러 장을 한꺼번에. 하나가 실패해도 나머지를 기다린다.
+ * **못 받은 주소들**을 돌려준다 — 내려받기가 빠진 사진을 알고 멈추거나 알릴 수 있게.
+ */
+export async function loadImages(
+  sources: readonly string[],
+): Promise<string[]> {
+  const images = await Promise.all(sources.map((src) => loadImage(src)));
+  return sources.filter((_, i) => images[i] === null);
 }
 
 /** 테스트 전용 — 캐시는 모듈 수명이라 테스트 사이에 비워야 한다. */
 export function clearImageCache(): void {
   done.clear();
+  failedAt.clear();
   inflight.clear();
 }

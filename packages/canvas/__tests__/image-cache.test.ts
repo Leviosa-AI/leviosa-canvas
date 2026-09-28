@@ -13,6 +13,7 @@ import {
   clearImageCache,
   isImageSettled,
   loadImage,
+  loadImages,
 } from "../render/image-cache";
 
 /** 만들어진 가짜 그림들 — 몇 번 만들었는지 세려고 들고 있는다. */
@@ -83,6 +84,30 @@ describe("이미지 캐시", () => {
 
     expect(await loadImage("/bad.png")).toBeNull();
     expect(made).toHaveLength(1);
+  });
+
+  it("실패 기억은 잠깐뿐이다 — 지나면 다시 받아 본다", async () => {
+    const now = vi.spyOn(Date, "now").mockReturnValue(1000);
+    const first = loadImage("/flaky.png");
+    made[0].settle(false);
+    expect(await first).toBeNull();
+
+    now.mockReturnValue(1000 + 4999);
+    expect(isImageSettled("/flaky.png")).toBe(true);
+
+    now.mockReturnValue(1000 + 5000);
+    expect(isImageSettled("/flaky.png")).toBe(false);
+    const second = loadImage("/flaky.png");
+    expect(made).toHaveLength(2);
+    made[1].settle(true);
+    expect(await second).toBe(made[1]);
+  });
+
+  it("여러 장을 받으면 못 받은 주소를 돌려준다", async () => {
+    const pending = loadImages(["/ok.png", "/no.png"]);
+    made[0].settle(true);
+    made[1].settle(false);
+    expect(await pending).toEqual(["/no.png"]);
   });
 
   it("아직 모르는 주소는 null이고 판정도 안 났다", () => {
