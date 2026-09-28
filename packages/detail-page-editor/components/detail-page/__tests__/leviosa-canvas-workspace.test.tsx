@@ -339,6 +339,26 @@ describe("LeviosaCanvasWorkspace — 붙여넣기·드롭", () => {
     expect(uploadFile).toHaveBeenCalledWith(png);
   });
 
+  function copy() {
+    const event = new Event("copy", { bubbles: true, cancelable: true });
+    const setData = vi.fn();
+    Object.defineProperty(event, "clipboardData", { value: { setData } });
+    act(() => {
+      window.dispatchEvent(event);
+    });
+    return { event, setData };
+  }
+
+  it("요소를 고른 채 복사하면 브라우저 copy 이벤트에 표식을 적는다", () => {
+    const s = store();
+    render(<LeviosaCanvasWorkspace store={s} />);
+    expect(copy().setData).not.toHaveBeenCalled();
+    s.selectElements(["a"]);
+    const { event, setData } = copy();
+    expect(setData).toHaveBeenCalledWith("text/plain", CANVAS_CLIPBOARD_MARK);
+    expect(event.defaultPrevented).toBe(true);
+  });
+
   it("편집기 안에서 복사한 것(표식)은 엔진 클립보드에서 붙인다", () => {
     const s = store();
     s.selectElements(["a"]);

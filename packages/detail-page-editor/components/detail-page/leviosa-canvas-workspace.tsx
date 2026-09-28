@@ -50,6 +50,7 @@ import { HoverHighlightOverlay } from "./hover-highlight-overlay";
 import { CanvasSectionHeightHandle } from "./section-height-handle";
 import { loadEditorFont } from "../../lib/detail-page-canvas/editor-fonts";
 import {
+  CANVAS_CLIPBOARD_MARK,
   imageFiles,
   insertImageFiles,
   planPaste,
@@ -175,12 +176,23 @@ export function LeviosaCanvasWorkspace({
       else if (plan.kind === "files") insertFiles(plan.files);
       else insertText(store, plan.text, TEXT_SIZE_PRESETS[2]);
     };
+    // 요소를 복사하면 브라우저 `copy` 이벤트에도 표식을 적는다. `markCanvasCopy` 의
+    // writeText 는 권한·제스처 문제로 조용히 실패할 수 있고, 그러면 ⌘V 가 옛 OS 글자를
+    // 붙인다 — 이 경로는 권한이 필요 없다. 글자를 고르고 있을 때는 그 글자가 복사돼야 한다.
+    const onCopy = (event: ClipboardEvent) => {
+      if (typing() || !event.clipboardData) return;
+      if (!store.selectedElementsIds.length) return;
+      event.clipboardData.setData("text/plain", CANVAS_CLIPBOARD_MARK);
+      event.preventDefault();
+    };
     document.addEventListener("keydown", onKeyDown, { capture: true });
     window.addEventListener("paste", onPaste);
+    window.addEventListener("copy", onCopy);
     return () => {
       if (fallback) clearTimeout(fallback);
       document.removeEventListener("keydown", onKeyDown, { capture: true });
       window.removeEventListener("paste", onPaste);
+      window.removeEventListener("copy", onCopy);
     };
   }, [store, insertFiles]);
   const outerRef = useRef<HTMLDivElement>(null);
