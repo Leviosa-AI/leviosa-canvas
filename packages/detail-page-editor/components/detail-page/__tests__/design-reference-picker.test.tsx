@@ -13,7 +13,7 @@ import userEvent from "@testing-library/user-event";
  * 2. **값은 장수가 아니라 그림 크기에 붙는다.** 세로로 긴 캡쳐가 정사각 썸네일보다
  *    비싸야, 큰 그림을 붙인 사람을 작은 그림을 붙인 사람이 보조하지 않는다.
  * 3. **조각내기까지 세서 말한다.** 상세페이지 전체 캡쳐는 서버가 나눠 싣는다 — 그
- *    사실을 모르는 화면은 1이라 써 놓고 8을 받는다.
+ *    사실을 모르는 화면은 1이라 써 놓고 4를 받는다.
  * 4. **잔액 부족은 실패와 다른 말이다.** "읽지 못했어요"로 접으면 셀러는 다시 누른다 —
  *    다시 눌러도 결과는 같다. 할 일(충전)이 정해져 있으니 그 말을 해 준다.
  */
@@ -103,15 +103,15 @@ describe("DesignReferencePicker 크레딧", () => {
     await waitFor(() => expect(document.querySelector('[data-credits="1"]')).toBeInTheDocument());
   });
 
-  it("같은 한 장이어도 세로로 긴 캡쳐가 더 비싸다", async () => {
+  it("안 나누는 큰 그림 한 장도 최소 1크레딧이다", async () => {
     const user = userEvent.setup();
     pictureSize(TALL);
     renderPicker();
 
     await attach(user, [refFile("a.png")]);
 
-    // 정사각 썸네일 한 장은 1크레딧이다(위 테스트) — 같은 장수인데 값이 다르다.
-    await waitFor(() => expect(document.querySelector('[data-credits="2"]')).toBeInTheDocument());
+    // GPT-6 Luna 단가에서는 안 나누는 큰 그림도 최소 1크레딧 안에 든다.
+    await waitFor(() => expect(document.querySelector('[data-credits="1"]')).toBeInTheDocument());
   });
 
   it("그림을 빼면 값도 줄어든다", async () => {
@@ -120,14 +120,14 @@ describe("DesignReferencePicker 크레딧", () => {
     renderPicker();
 
     await attach(user, ["a", "b", "c", "d", "e"].map((n) => refFile(`${n}.png`)));
-    await waitFor(() => expect(document.querySelector('[data-credits="3"]')).toBeInTheDocument());
+    await waitFor(() => expect(document.querySelector('[data-credits="2"]')).toBeInTheDocument());
 
     // 빼기 단추는 장마다 하나, 문서 순서대로다(i18n 목은 키를 그대로 돌려준다).
     await user.click(
       screen.getAllByRole("button", { name: "detailPage.designReference.remove" })[4],
     );
 
-    await waitFor(() => expect(document.querySelector('[data-credits="2"]')).toBeInTheDocument());
+    await waitFor(() => expect(document.querySelector('[data-credits="1"]')).toBeInTheDocument());
   });
 
   it("상세페이지 전체 캡쳐는 조각내기까지 세서 말한다", async () => {
@@ -139,7 +139,7 @@ describe("DesignReferencePicker 크레딧", () => {
 
     await attach(user, [refFile("page.png")]);
 
-    await waitFor(() => expect(document.querySelector('[data-credits="8"]')).toBeInTheDocument());
+    await waitFor(() => expect(document.querySelector('[data-credits="4"]')).toBeInTheDocument());
   });
 
   it("잔액이 모자라면 필요한 크레딧과 남은 크레딧을 말한다", async () => {
