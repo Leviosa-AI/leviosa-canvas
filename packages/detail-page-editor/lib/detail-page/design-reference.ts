@@ -217,8 +217,8 @@ const BRIEF_PROMPT_OVERHEAD_TOKENS = 1100;
 /** 판독 출력의 대략치. 몇 장을 붙이든 돌려주는 것은 같은 크기의 JSON 한 덩이다. */
 const BRIEF_OUTPUT_ALLOWANCE_TOKENS = 500;
 
-/** 판독 모델(gpt-5.6-luna) USD per 1M = [입력, 출력]. 서버 단가표와 같아야 한다. */
-const BRIEF_MODEL_PRICE_USD_PER_MILLION = [0.2, 1.2] as const;
+/** 판독 모델(gpt-6-luna) USD per 1M = [입력, 출력]. 서버 단가표와 같아야 한다. */
+const BRIEF_MODEL_PRICE_USD_PER_MILLION = [0.1, 0.5] as const;
 
 /** 원가 → 크레딧 환산. 카피·재저작과 **같은 환율**이다(원가 1.5원 = 1크레딧). */
 const USD_TO_KRW_RATE = 1500;

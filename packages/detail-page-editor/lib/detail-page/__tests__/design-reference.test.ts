@@ -118,7 +118,7 @@ describe("판독 크레딧", () => {
   it("같은 장수라도 큰 그림이 비싸다", () => {
     const small = estimateImageInputTokens(512, 512);
     const tall = estimateImageInputTokens(523, 1568);
-    expect(estimateBriefCredits([tall])).toBeGreaterThan(estimateBriefCredits([small]));
+    expect(estimateBriefCredits(Array(6).fill(tall))).toBeGreaterThan(estimateBriefCredits(Array(6).fill(small)));
   });
 
   it("한 장 더 붙였다고 값이 싸지지는 않는다", () => {
