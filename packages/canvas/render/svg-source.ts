@@ -142,8 +142,13 @@ type DropShadow = SvgFilterInsets & {
   stdDeviation: number;
 };
 
-const DROP_SHADOW_RE =
-  /^drop-shadow\(\s*((?:rgba?|hsla?)\([^)]*\)|#[\da-f]+|[a-z]+)\s+(-?(?:\d+\.?\d*|\.\d+))px\s+(-?(?:\d+\.?\d*|\.\d+))px\s+((?:\d+\.?\d*|\.\d+))px\s*\)$/i;
+// 숫자를 `\d+(?:\.\d*)?` 로 적는다 — `\d+\.?\d*` 는 "999" 를 여러 갈래로 맞출 수 있어
+// 안 맞는 문자열에서 다항 백트래킹이 난다(CodeQL js/polynomial-redos).
+const NUM = String.raw`(?:\d+(?:\.\d*)?|\.\d+)`;
+const DROP_SHADOW_RE = new RegExp(
+  String.raw`^drop-shadow\(\s*((?:rgba?|hsla?)\([^)]*\)|#[\da-f]+|[a-z]+)\s+(-?${NUM})px\s+(-?${NUM})px\s+(${NUM})px\s*\)$`,
+  "i",
+);
 
 /** CSS drop-shadow 한 개를 SVG 필터와 바깥 여백에 쓸 값으로 바꾼다. */
 function readDropShadow(value: unknown): DropShadow | null {
