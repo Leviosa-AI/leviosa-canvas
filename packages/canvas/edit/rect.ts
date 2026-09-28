@@ -86,12 +86,16 @@ export function elementRect(el: CanvasElement): Rect {
   }
   const inner = unionRect(el.children.map((child) => elementRect(child)));
   if (!inner) return boundsOf(num(el, "x", 0), num(el, "y", 0), 0, 0, rotation);
-  return {
-    x: inner.x + num(el, "x", 0),
-    y: inner.y + num(el, "y", 0),
-    width: inner.width,
-    height: inner.height,
-  };
+  // 그룹도 자기 원점(x/y)을 축으로 돈다 — 자식 합집합의 왼쪽 위를 그 축으로 돌려
+  // 놓고, 거기서 같은 각도로 감싼다. 안 돌리면 정렬·스냅·마퀴가 돌기 전 자리를 본다.
+  const rad = (rotation * Math.PI) / 180;
+  return boundsOf(
+    num(el, "x", 0) + inner.x * Math.cos(rad) - inner.y * Math.sin(rad),
+    num(el, "y", 0) + inner.x * Math.sin(rad) + inner.y * Math.cos(rad),
+    inner.width,
+    inner.height,
+    rotation,
+  );
 }
 
 /**
