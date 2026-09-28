@@ -235,3 +235,22 @@ describe("데이터 헬퍼", () => {
     expect(data.rows[0]).toEqual(["1", "3"]);
   });
 });
+
+describe("TableInspector · 열 정렬", () => {
+  it("고른 열의 정렬만 바꾼다(마지막 열만이 아니다)", async () => {
+    const user = userEvent.setup();
+    const { group, rerender } = setup({ kind: "grid" });
+    const before = [...current(group).options.align];
+
+    await user.selectOptions(screen.getByLabelText("detailPage.table.alignColumn"), "0");
+    await user.click(screen.getByRole("button", { name: "detailPage.table.aligns.right" }));
+    rerender();
+
+    const align = current(group).options.align;
+    expect(align[0]).toBe("right");
+    expect(align[1] ?? "left").toBe(before[1] ?? "left");
+    expect(
+      screen.getByRole("button", { name: "detailPage.table.aligns.right" }).getAttribute("aria-pressed"),
+    ).toBe("true");
+  });
+});

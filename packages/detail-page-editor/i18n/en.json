@@ -384,7 +384,7 @@
           "center": "Center",
           "right": "Right"
         },
-        "alignHint": "Sets the last column's alignment. Numbers read best right-aligned.",
+        "alignHint": "Changes the alignment of the chosen column. Numbers read best right-aligned.",
         "lines": "Lines",
         "topRule": "Top rule",
         "rowRule": "Row divider",
@@ -426,7 +426,9 @@
           "specHairline": "Hairline spec table",
           "specRight": "Right-aligned values",
           "typeCentered": "By type"
-        }
+        },
+        "alignColumn": "Column to align",
+        "alignColumnOption": "Col {{column}}"
       },
       "brandAssets": {
         "uploadFailed": "Failed to upload brand asset.",

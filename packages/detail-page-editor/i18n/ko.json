@@ -384,7 +384,7 @@
           "center": "가운데",
           "right": "오른쪽"
         },
-        "alignHint": "마지막 열의 정렬을 바꿉니다. 수치는 오른쪽 정렬이 읽기 좋습니다.",
+        "alignHint": "고른 열의 정렬을 바꿉니다. 수치는 오른쪽 정렬이 읽기 좋습니다.",
         "lines": "선",
         "topRule": "위 선",
         "rowRule": "행 구분선",
@@ -426,7 +426,9 @@
           "specHairline": "헤어라인 스펙표",
           "specRight": "값 우측정렬",
           "typeCentered": "타입별 안내"
-        }
+        },
+        "alignColumn": "정렬할 열",
+        "alignColumnOption": "{{column}}열"
       },
       "brandAssets": {
         "uploadFailed": "브랜드 에셋 업로드에 실패했어요.",
