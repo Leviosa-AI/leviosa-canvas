@@ -455,3 +455,29 @@ describe("ElementView — svg", () => {
     expect(view.container.querySelector('[data-konva="rect"]')).toBeTruthy();
   });
 });
+
+describe("ElementView — 뒤집기", () => {
+  it("flipX는 상자 가운데를 축으로 안쪽만 뒤집는다(바깥 Group은 그대로)", () => {
+    const { view } = mount({
+      id: "f",
+      type: "figure",
+      x: 10,
+      y: 20,
+      width: 80,
+      height: 40,
+      fill: "#000000",
+      flipX: true,
+    });
+    const outer = view.container.querySelector('[data-konva="group"]')!;
+    expect(outer.getAttribute("data-scalex")).toBeNull();
+    const inner = outer.querySelector('[data-konva="group"]')!;
+    expect(inner.getAttribute("data-scalex")).toBe("-1");
+    expect(inner.getAttribute("data-scaley")).toBe("1");
+    expect(inner.getAttribute("data-x")).toBe("80");
+  });
+
+  it("안 뒤집은 요소에는 Group을 더 끼우지 않는다", () => {
+    const { view } = mount({ id: "f", type: "figure", x: 0, y: 0, width: 10, height: 10 });
+    expect(view.container.querySelectorAll('[data-konva="group"]').length).toBe(1);
+  });
+});

@@ -79,6 +79,18 @@ describe("elementRect", () => {
     expect(Math.round(rect.height)).toBe(100);
   });
 
+  it("돌린 그룹은 자기 원점을 축으로 돈 자리를 감싼다", () => {
+    const store = createCanvasStore(doc());
+    const group = store.getElementById("grp")!;
+    group.set({ rotation: 90 });
+    // 자식 합집합 200..350 × 100..150 을 (0,0) 축으로 90도 → x -150..-100, y 200..350.
+    const rect = elementRect(group);
+    expect(Math.round(rect.x)).toBe(-150);
+    expect(Math.round(rect.y)).toBe(200);
+    expect(Math.round(rect.width)).toBe(50);
+    expect(Math.round(rect.height)).toBe(150);
+  });
+
   it("unionRect는 빈 목록에 null을 준다", () => {
     expect(unionRect([])).toBeNull();
   });
