@@ -135,6 +135,7 @@ const document0: LeviosaCanvasDocument = {
         width: W,
         height: 1000,
         background: "#f7f4ee",
+        custom: { frame: "A" },
         children: [
           { id: "bg", type: "figure", subType: "rect", x: 0, y: 0, width: W, height: 1000, fill: "#f7f4ee", locked: true, name: "배경" },
           { id: "title", type: "text", x: 80, y: 80, width: 700, height: 70, text: "오늘만 30% 할인", fontFamily: "Arial", fontSize: 56, fontWeight: "700", fill: "#111111", align: "left", name: "제목" },
@@ -160,9 +161,21 @@ const document0: LeviosaCanvasDocument = {
         width: W,
         height: 600,
         background: "#ffffff",
+        custom: { frame: "A" },
         children: [
           { id: "p2-title", type: "text", x: 80, y: 60, width: 700, height: 60, text: "두 번째 섹션", fontFamily: "Arial", fontSize: 44, fontWeight: "700", fill: "#111111" },
           { id: "p2-img", type: "image", x: 80, y: 160, width: 700, height: 380, src: swatch("#5c4b8a", 700, 380), name: "큰 사진" },
+        ],
+      },
+      {
+        id: "b1",
+        width: W,
+        height: 800,
+        background: "#111111",
+        custom: { frame: "B" },
+        children: [
+          { id: "b1-title", type: "text", x: 80, y: 80, width: 700, height: 70, text: "다크 시안", fontFamily: "Arial", fontSize: 56, fontWeight: "700", fill: "#ffffff" },
+          { id: "b1-img", type: "image", x: 80, y: 200, width: 700, height: 500, src: swatch("#2a9d8f", 700, 500), name: "시안 B 사진" },
         ],
       },
     ],
