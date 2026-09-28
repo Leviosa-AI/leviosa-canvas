@@ -10,6 +10,7 @@ import { ColorInput } from "../cardnews/color-input";
 import { SpecPromptEditPanel } from "./spec-prompt-edit-panel";
 import {
   NumberField,
+  historyOf,
   Section,
   ToggleButton,
 } from "./inspector-controls";
@@ -383,6 +384,7 @@ export const TableInspector = observer(function TableInspector({
               </ToggleButton>
               {spec.style.firstWidth !== null ? (
                 <NumberField
+                  history={historyOf(store)}
                   value={spec.style.firstWidth}
                   min={40}
                   max={480}
@@ -551,6 +553,7 @@ export const TableInspector = observer(function TableInspector({
               {t("detailPage.table.fontSize")}
             </span>
             <NumberField
+              history={historyOf(store)}
               value={spec.style.fontSize}
               min={9}
               max={40}
@@ -563,6 +566,7 @@ export const TableInspector = observer(function TableInspector({
               {t("detailPage.table.padX")}
             </span>
             <NumberField
+              history={historyOf(store)}
               value={spec.style.padX}
               min={0}
               max={60}
@@ -575,6 +579,7 @@ export const TableInspector = observer(function TableInspector({
               {t("detailPage.table.padY")}
             </span>
             <NumberField
+              history={historyOf(store)}
               value={spec.style.padY}
               min={0}
               max={64}

@@ -11,6 +11,7 @@ import { SpecPromptEditPanel } from "./spec-prompt-edit-panel";
 import type { SpecEditPrompting } from "./table-inspector";
 import {
   NumberField,
+  historyOf,
   Section,
   ToggleButton,
 } from "./inspector-controls";
@@ -336,6 +337,7 @@ export const ChartInspector = observer(function ChartInspector({
               {t("detailPage.chart.decimals")}
             </span>
             <NumberField
+              history={historyOf(store)}
               value={spec.options.decimals}
               min={0}
               max={3}
@@ -389,6 +391,7 @@ export const ChartInspector = observer(function ChartInspector({
               </button>
             ) : (
               <NumberField
+                history={historyOf(store)}
                 value={spec.options.max}
                 min={1}
                 onChange={(max) => setOptions({ max })}
@@ -496,6 +499,7 @@ export const ChartInspector = observer(function ChartInspector({
               {t("detailPage.chart.barSize")}
             </span>
             <NumberField
+              history={historyOf(store)}
               value={spec.style.barSize}
               min={1}
               onChange={(barSize) => setStyle({ barSize })}
@@ -506,6 +510,7 @@ export const ChartInspector = observer(function ChartInspector({
               {t("detailPage.chart.gap")}
             </span>
             <NumberField
+              history={historyOf(store)}
               value={spec.style.gap}
               min={0}
               onChange={(gap) => setStyle({ gap })}
