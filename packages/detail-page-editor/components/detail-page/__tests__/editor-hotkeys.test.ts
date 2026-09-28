@@ -32,9 +32,37 @@ function store(selected: string[]) {
 }
 
 describe("groupableIds", () => {
-  it("keeps only top-level siblings — a drilled-into group CHILD is not groupable", () => {
+  it("keeps the shallowest sibling set — a drilled-into CHILD mixed with top-level loses", () => {
     expect(groupableIds(store(["g1", "g1-c0", "t1"]))).toEqual(["g1", "t1"]);
     expect(groupableIds(store([]))).toEqual([]);
+  });
+
+  it("groups siblings that share a parent group, not just page top-level", () => {
+    const nested = {
+      selectedElementsIds: ["a", "b"],
+      pages: [
+        {
+          id: "p1",
+          children: [
+            {
+              id: "outer",
+              type: "group",
+              children: [
+                { id: "a", type: "text" },
+                { id: "b", type: "group", children: [{ id: "b1" }] },
+              ],
+            },
+          ],
+        },
+      ],
+    };
+    expect(groupableIds(nested)).toEqual(["a", "b"]);
+    expect(groupAction(nested, false)).toEqual({ kind: "group", ids: ["a", "b"] });
+    // 그룹 안의 그룹 하나도 ⌘⇧G 로 풀린다.
+    expect(groupAction({ ...nested, selectedElementsIds: ["b"] }, true)).toEqual({
+      kind: "ungroup",
+      ids: ["b"],
+    });
   });
 });
 

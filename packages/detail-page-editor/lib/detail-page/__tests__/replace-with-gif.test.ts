@@ -39,15 +39,27 @@ function makeLiveStore(children: Array<Record<string, unknown>>) {
     const [node] = list.splice(at, 1);
     list.splice(index, 0, node);
   };
+  // 엔진처럼 그룹도 자식을 받는다 — 요소를 그룹 안으로 옮기는 길(layer-move)이 쓴다.
+  const attach = (node: Record<string, unknown>) => {
+    if (node.type !== "group" || !Array.isArray(node.children)) return;
+    const list = node.children as Array<Record<string, unknown>>;
+    node.setElementZIndex = setZ(list);
+    node.addElement = (json: Record<string, unknown>, options?: { index?: number }) => {
+      list.splice(options?.index ?? list.length, 0, json);
+      return json;
+    };
+    list.forEach(attach);
+  };
+  children.forEach(attach);
   const activePage = {
     id: "p1",
     children,
     computedWidth: 1000,
     computedHeight: 1400,
-    addElement: (opts: Record<string, unknown>) => {
+    addElement: (opts: Record<string, unknown>, options?: { index?: number }) => {
       seq += 1;
       const added = { id: `gif${seq}`, ...opts };
-      children.push(added);
+      children.splice(options?.index ?? children.length, 0, added);
       return added;
     },
     setElementZIndex: setZ(children),
