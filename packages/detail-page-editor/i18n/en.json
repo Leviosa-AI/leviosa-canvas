@@ -172,7 +172,22 @@
         "imageGif": "Image to GIF",
         "imageGifCancel": "Cancel (the GIF in progress is saved to My images)",
         "imageGifMake": "Make GIF",
-        "imageGifMaskFallback": "Couldn't isolate the object, so the effect covers the whole image."
+        "imageGifMaskFallback": "Couldn't isolate the object, so the effect covers the whole image.",
+        "scrubHint": "{{label}} — drag left/right to adjust (Shift ×10)",
+        "fontSize": "Font size",
+        "textAlignLeft": "Align left",
+        "textAlignCenter": "Align center",
+        "textAlignRight": "Align right",
+        "textAlignJustify": "Justify",
+        "effects": "Effects",
+        "shadow": "Shadow",
+        "shadowBlur": "Blur",
+        "strokeWidth": "Stroke",
+        "rotation": "Rotate",
+        "pageBackground": "Background",
+        "shapeSaveFailed": "Couldn't save to brand shapes.",
+        "typeGif": "GIF",
+        "typeElement": "Element"
       },
       "gifEffects": {
         "text": {

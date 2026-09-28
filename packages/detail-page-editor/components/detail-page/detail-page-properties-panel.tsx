@@ -59,6 +59,9 @@ import {
   NumberField,
   Section,
   ToggleButton,
+  historyOf,
+  transact,
+  useGestureTransaction,
 } from "./inspector-controls";
 import {
   MAX_SECTION_HEIGHT,
@@ -204,8 +207,11 @@ type StoreLike = {
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
 
+// 여러 요소에 같은 값을 넣는다. 요소마다 set 이 undo 단계를 만들지 않게 한 번에 묶는다.
 function setAll(els: ElementLike[], props: Record<string, unknown>) {
-  for (const el of els) el.set(props);
+  transact(historyOf(els[0]), () => {
+    for (const el of els) el.set(props);
+  });
 }
 
 /**
@@ -215,12 +221,14 @@ function setAll(els: ElementLike[], props: Record<string, unknown>) {
  * up (legacy solid-background highlights migrate to the band on first edit).
  */
 function setHighlight(els: ElementLike[], color: string | null) {
-  for (const el of els) {
-    const custom = { ...((el.custom ?? {}) as Record<string, unknown>) };
-    if (color) custom.highlightColor = color;
-    else delete custom.highlightColor;
-    el.set({ custom, backgroundEnabled: false });
-  }
+  transact(historyOf(els[0]), () => {
+    for (const el of els) {
+      const custom = { ...((el.custom ?? {}) as Record<string, unknown>) };
+      if (color) custom.highlightColor = color;
+      else delete custom.highlightColor;
+      el.set({ custom, backgroundEnabled: false });
+    }
+  });
 }
 
 function documentFonts(store: StoreLike, current?: string): string[] {
@@ -363,13 +371,15 @@ function alignInFrame(
   axis: AlignAxis,
   where: AlignWhere,
 ) {
-  for (const el of els) {
-    const frame = frameOf(store, el, axis);
-    if (!frame) continue;
-    const size = num(axis === "x" ? el.width : el.height);
-    const coord = Math.round(alignedCoord(frame, size, where));
-    el.set(axis === "x" ? { x: coord } : { y: coord });
-  }
+  transact(historyOf(els[0]), () => {
+    for (const el of els) {
+      const frame = frameOf(store, el, axis);
+      if (!frame) continue;
+      const size = num(axis === "x" ? el.width : el.height);
+      const coord = Math.round(alignedCoord(frame, size, where));
+      el.set(axis === "x" ? { x: coord } : { y: coord });
+    }
+  });
 }
 
 // 선택 요소가 이미 어느 정렬 상태인지 — 툴바가 현재 상태(눌린/회색 버튼)를 보여줄 수
@@ -407,11 +417,13 @@ function spreadEvenly(els: ElementLike[], axis: "x" | "y") {
   const items = toItems(els as DistributeElement[], axis);
   const coords = items && distributeCoords(items);
   if (!coords) return;
-  for (const el of els) {
-    const coord = coords.get(el.id);
-    if (coord == null) continue;
-    el.set(axis === "x" ? { x: coord } : { y: coord });
-  }
+  transact(historyOf(els[0]), () => {
+    for (const el of els) {
+      const coord = coords.get(el.id);
+      if (coord == null) continue;
+      el.set(axis === "x" ? { x: coord } : { y: coord });
+    }
+  });
 }
 
 function AlignButton({
@@ -600,21 +612,211 @@ const OrderSection = observer(function OrderSection({ els }: { els: ElementLike[
 // 옛 값에 고정된다 → 슬라이더가 아예 안 움직이는(= 클릭이 안 먹는) 것처럼 보인다.
 const OpacityRow = observer(function OpacityRow({ els }: { els: ElementLike[] }) {
   const { t } = useTranslation("branding");
+  const gesture = useGestureTransaction(historyOf(els[0]));
   const opacity = num(els[0]?.opacity, 1);
   return (
     <Section title={t("detailPage.properties.opacity")}>
       <div className="flex items-center gap-3">
         <input
           type="range"
+          aria-label={t("detailPage.properties.opacity")}
           min={0}
           max={100}
           value={Math.round(opacity * 100)}
-          onChange={(e) => setAll(els, { opacity: Number(e.target.value) / 100 })}
+          onChange={(e) => {
+            const opacity = Number(e.target.value) / 100;
+            gesture.change(() => setAll(els, { opacity }));
+          }}
           className="min-w-0 flex-1 accent-le-ink-900"
         />
         <span className="w-10 text-right text-sm tabular-nums text-le-ink-700">
           {Math.round(opacity * 100)}%
         </span>
+      </div>
+    </Section>
+  );
+});
+
+// 모서리 둥글기(사진·도형 공용). 드래그 한 번이 undo 한 단계다.
+const CornerRadiusRow = observer(function CornerRadiusRow({ els }: { els: ElementLike[] }) {
+  const { t } = useTranslation("branding");
+  const gesture = useGestureTransaction(historyOf(els[0]));
+  const radius = num(els[0]?.cornerRadius, 0);
+  return (
+    <Section title={t("detailPage.properties.cornerRadius")}>
+      <div className="flex items-center gap-3">
+        <input
+          type="range"
+          aria-label={t("detailPage.properties.cornerRadius")}
+          min={0}
+          max={200}
+          value={radius}
+          onChange={(e) => {
+            const cornerRadius = Number(e.target.value);
+            gesture.change(() => setAll(els, { cornerRadius }));
+          }}
+          className="min-w-0 flex-1 accent-le-ink-900"
+        />
+        <span className="w-12 text-right text-sm tabular-nums text-le-ink-700">
+          {radius}px
+        </span>
+      </div>
+    </Section>
+  );
+});
+
+/**
+ * 가운데를 축으로 돌렸을 때의 x/y. 엔진은 요소를 왼쪽 위(x,y)를 축으로 돌리므로
+ * 회전만 바꾸면 요소가 옆으로 날아간다 — 캔버스 회전 손잡이처럼 가운데를 제자리에 둔다.
+ */
+export function rotateAboutCenter(
+  box: { x: number; y: number; width: number; height: number; rotation: number },
+  next: number,
+): { x: number; y: number; rotation: number } {
+  const hw = box.width / 2;
+  const hh = box.height / 2;
+  const at = (deg: number) => {
+    const r = (deg * Math.PI) / 180;
+    return { x: hw * Math.cos(r) - hh * Math.sin(r), y: hw * Math.sin(r) + hh * Math.cos(r) };
+  };
+  const from = at(box.rotation);
+  const to = at(next);
+  return {
+    x: box.x + from.x - to.x,
+    y: box.y + from.y - to.y,
+    rotation: next,
+  };
+}
+
+const SHADOW_DEFAULTS = {
+  shadowEnabled: true,
+  shadowColor: "#000000",
+  shadowBlur: 12,
+  shadowOffsetX: 0,
+  shadowOffsetY: 4,
+  shadowOpacity: 0.3,
+};
+
+/**
+ * 효과: 그림자·외곽선·회전. 렌더러(`canvas/render/attrs.ts` shadowProps·textStroke,
+ * FigureBody)가 이미 읽는 속성만 쓴다. 외곽선은 텍스트·도형(figure)만 그려서 그때만 보인다.
+ */
+const EffectsSection = observer(function EffectsSection({
+  els,
+  shadow = true,
+  stroke = false,
+}: {
+  els: ElementLike[];
+  /** 렌더러가 그림자를 그리는 타입(텍스트·사진·도형)일 때만. */
+  shadow?: boolean;
+  stroke?: boolean;
+}) {
+  const { t } = useTranslation("branding");
+  const ref = els[0];
+  const history = historyOf(ref);
+  const gesture = useGestureTransaction(history);
+  if (!ref) return null;
+  const shadowOn = ref.shadowEnabled === true;
+  const strokeWidth = num(ref.strokeWidth, 0);
+  const strokeColor = str(ref.stroke) || "#000000";
+  const single = els.length === 1 ? ref : null;
+  const setRotation = (deg: number) =>
+    transact(history, () => {
+      for (const el of els) {
+        el.set(
+          rotateAboutCenter(
+            {
+              x: num(el.x),
+              y: num(el.y),
+              width: num(el.width),
+              height: num(el.height),
+              rotation: num(el.rotation),
+            },
+            deg,
+          ),
+        );
+      }
+    });
+
+  return (
+    <Section title={t("detailPage.properties.effects")}>
+      <div className="flex flex-col gap-2">
+        {shadow ? (
+          <div className="flex items-center gap-2">
+            <div className="w-20 shrink-0">
+              <ToggleButton
+                active={shadowOn}
+                title={t("detailPage.properties.shadow")}
+                onClick={() =>
+                  setAll(els, shadowOn ? { shadowEnabled: false } : SHADOW_DEFAULTS)
+                }
+              >
+                <span className="text-xs">{t("detailPage.properties.shadow")}</span>
+              </ToggleButton>
+            </div>
+            {shadowOn ? (
+              <ColorInput
+                value={str(ref.shadowColor) || "#000000"}
+                onChange={(c) => gesture.change(() => setAll(els, { shadowColor: c }))}
+              />
+            ) : null}
+          </div>
+        ) : null}
+        {shadow && shadowOn ? (
+          <div className="grid grid-cols-3 gap-1.5">
+            <NumberField
+              label={t("detailPage.properties.shadowBlur")}
+              value={num(ref.shadowBlur)}
+              min={0}
+              history={history}
+              onChange={(v) => setAll(els, { shadowBlur: v })}
+            />
+            <NumberField
+              label="X"
+              value={num(ref.shadowOffsetX)}
+              history={history}
+              onChange={(v) => setAll(els, { shadowOffsetX: v })}
+            />
+            <NumberField
+              label="Y"
+              value={num(ref.shadowOffsetY)}
+              history={history}
+              onChange={(v) => setAll(els, { shadowOffsetY: v })}
+            />
+          </div>
+        ) : null}
+        {stroke ? (
+          <div className="flex items-center gap-2">
+            <div className="w-24 shrink-0">
+              <NumberField
+                label={t("detailPage.properties.strokeWidth")}
+                value={strokeWidth}
+                min={0}
+                history={history}
+                onChange={(v) =>
+                  setAll(els, { strokeWidth: v, ...(v > 0 ? { stroke: strokeColor } : {}) })
+                }
+              />
+            </div>
+            {strokeWidth > 0 ? (
+              <ColorInput
+                value={strokeColor}
+                onChange={(c) => gesture.change(() => setAll(els, { stroke: c }))}
+              />
+            ) : null}
+          </div>
+        ) : null}
+        {single ? (
+          <div className="w-28">
+            <NumberField
+              label={t("detailPage.properties.rotation")}
+              value={num(single.rotation)}
+              suffix="°"
+              history={history}
+              onChange={(v) => setRotation(((v % 360) + 360) % 360)}
+            />
+          </div>
+        ) : null}
       </div>
     </Section>
   );
@@ -632,6 +834,7 @@ const SizeSection = observer(function SizeSection({ els }: { els: ElementLike[] 
       label={label}
       value={num(el[key])}
       min={key === "width" || key === "height" ? 1 : undefined}
+      history={historyOf(el)}
       onChange={(v) => el.set({ [key]: Math.round(v) })}
     />
   );
@@ -699,6 +902,9 @@ const TextInspector = observer(function TextInspector({
   const { toast } = useDetailPageHost();
   const single = els.length === 1 ? els[0] : null;
   const ref = els[0];
+  const history = historyOf(ref);
+  // 연달아 들어오는 입력(타이핑·색 끌기)은 undo 한 단계로 묶는다.
+  const gesture = useGestureTransaction(history);
   const fontFamily = str(ref.fontFamily, "Roboto");
   const currentFontWeight = normalizeFontWeight(ref.fontWeight);
   const fontSize = num(ref.fontSize, 24);
@@ -781,7 +987,11 @@ const TextInspector = observer(function TextInspector({
         <Section title={t("detailPage.properties.content")}>
           <textarea
             value={str(single.text)}
-            onChange={(e) => single.set({ text: e.target.value })}
+            aria-label={t("detailPage.properties.content")}
+            onChange={(e) => {
+              const text = e.target.value;
+              gesture.change(() => single.set({ text }));
+            }}
             rows={3}
             className="w-full resize-y rounded-le-md border border-le-ink-200 bg-le-surface px-2 py-2 text-sm text-le-ink-900 outline-none focus:border-le-ink-400"
           />
@@ -802,6 +1012,8 @@ const TextInspector = observer(function TextInspector({
             value={fontSize}
             min={1}
             step={1}
+            ariaLabel={t("detailPage.properties.fontSize")}
+            history={history}
             onChange={(v) => setAll(els, { fontSize: v })}
           />
         </div>
@@ -852,16 +1064,16 @@ const TextInspector = observer(function TextInspector({
         <div className="mt-2 flex items-center gap-1.5">
           {(
             [
-              { value: "left", icon: <AlignLeft size={15} /> },
-              { value: "center", icon: <AlignCenter size={15} /> },
-              { value: "right", icon: <AlignRight size={15} /> },
-              { value: "justify", icon: <AlignJustify size={15} /> },
+              { value: "left", key: "textAlignLeft", icon: <AlignLeft size={15} /> },
+              { value: "center", key: "textAlignCenter", icon: <AlignCenter size={15} /> },
+              { value: "right", key: "textAlignRight", icon: <AlignRight size={15} /> },
+              { value: "justify", key: "textAlignJustify", icon: <AlignJustify size={15} /> },
             ] as const
           ).map((opt) => (
             <ToggleButton
               key={opt.value}
               active={align === opt.value}
-              title={opt.value}
+              title={t(`detailPage.properties.${opt.key}`)}
               onClick={() => setAll(els, { align: opt.value })}
             >
               {opt.icon}
@@ -871,7 +1083,10 @@ const TextInspector = observer(function TextInspector({
       </Section>
 
       <Section title={t("detailPage.properties.color")}>
-        <FillControl value={fill} onChange={(c) => setAll(els, { fill: c })} />
+        <FillControl
+          value={fill}
+          onChange={(c) => gesture.change(() => setAll(els, { fill: c }))}
+        />
       </Section>
 
       <Section title={t("detailPage.properties.highlight")}>
@@ -888,7 +1103,7 @@ const TextInspector = observer(function TextInspector({
           {highlightOn ? (
             <ColorInput
               value={highlightColor}
-              onChange={(c) => setHighlight(els, c)}
+              onChange={(c) => gesture.change(() => setHighlight(els, c))}
             />
           ) : (
             <span className="text-[11px] text-le-ink-400">
@@ -906,6 +1121,7 @@ const TextInspector = observer(function TextInspector({
               value={lineHeight}
               step={0.1}
               min={0.1}
+              history={history}
               onChange={(v) => setAll(els, { lineHeight: v })}
             />
           </label>
@@ -914,6 +1130,7 @@ const TextInspector = observer(function TextInspector({
             <NumberField
               value={letterSpacing}
               step={0.5}
+              history={history}
               onChange={(v) => setAll(els, { letterSpacing: v })}
             />
           </label>
@@ -938,6 +1155,7 @@ const TextInspector = observer(function TextInspector({
         />
       ) : null}
 
+      <EffectsSection els={els} stroke />
       <OpacityRow els={els} />
       <DeleteRow store={store} els={els} />
     </>
@@ -1817,26 +2035,11 @@ const ImageInspector = observer(function ImageInspector({
 }) {
   const { t } = useTranslation("branding");
   const single = els.length === 1 ? els[0] : null;
-  const ref = els[0];
-  const radius = num(ref.cornerRadius, 0);
 
   return (
     <>
-      <Section title={t("detailPage.properties.cornerRadius")}>
-        <div className="flex items-center gap-3">
-          <input
-            type="range"
-            min={0}
-            max={200}
-            value={radius}
-            onChange={(e) => setAll(els, { cornerRadius: Number(e.target.value) })}
-            className="min-w-0 flex-1 accent-le-ink-900"
-          />
-          <span className="w-12 text-right text-sm tabular-nums text-le-ink-700">
-            {radius}px
-          </span>
-        </div>
-      </Section>
+      <CornerRadiusRow els={els} />
+      <EffectsSection els={els} />
       <OpacityRow els={els} />
       {/* 배경 지우기와 프롬프트 편집은 캔버스 위 띠로 옮겼다(`ElementAiEditPanel`). */}
       {/* 이미지를 GIF로 — 선택 이미지에 이펙트를 걸어 새 GIF 요소로 삽입한다.
@@ -1894,8 +2097,10 @@ async function saveShapeToMyShapes(
     } else if (res.message) {
       host.toast.error(res.message);
     }
-  } catch {
-    // 저장 실패는 편집 흐름을 막지 않는다.
+  } catch (error) {
+    // 저장 실패는 편집 흐름을 막지 않지만, 조용히 넘기면 저장된 줄 안다.
+    console.error("Failed to save shape to my shapes", error);
+    if (!silent) host.toast.error(t("detailPage.properties.shapeSaveFailed"));
   }
 }
 
@@ -1995,6 +2200,7 @@ const SvgColorSection = observer(function SvgColorSection({
   const { t } = useTranslation("branding");
   const originals = extractSvgColors(markup);
   const replaced = readColorReplace(el.colorsReplace);
+  const gesture = useGestureTransaction(historyOf(el));
 
   if (!originals.length) return null;
 
@@ -2014,7 +2220,7 @@ const SvgColorSection = observer(function SvgColorSection({
           <ColorInput
             key={original}
             value={effectiveColor(original, replaced)}
-            onChange={(next) => setColor(original, next)}
+            onChange={(next) => gesture.change(() => setColor(original, next))}
           />
         ))}
       </div>
@@ -2051,6 +2257,7 @@ const SvgInspector = observer(function SvgInspector({
       {single && currentSvg ? (
         <SvgColorSection el={single} markup={currentSvg} />
       ) : null}
+      <EffectsSection els={els} shadow={false} />
       <OpacityRow els={els} />
       {single && onGenerateImageGif ? (
         <ShapeGifSection
@@ -2137,27 +2344,17 @@ const FigureInspector = observer(function FigureInspector({
   const { t } = useTranslation("branding");
   const ref = els[0];
   const fill = str(ref.fill, "rgb(0, 161, 255)");
-  const radius = num(ref.cornerRadius, 0);
+  const gesture = useGestureTransaction(historyOf(ref));
   return (
     <>
       <Section title={t("detailPage.properties.color")}>
-        <FillControl value={fill} onChange={(c) => setAll(els, { fill: c })} />
+        <FillControl
+          value={fill}
+          onChange={(c) => gesture.change(() => setAll(els, { fill: c }))}
+        />
       </Section>
-      <Section title={t("detailPage.properties.cornerRadius")}>
-        <div className="flex items-center gap-3">
-          <input
-            type="range"
-            min={0}
-            max={200}
-            value={radius}
-            onChange={(e) => setAll(els, { cornerRadius: Number(e.target.value) })}
-            className="min-w-0 flex-1 accent-le-ink-900"
-          />
-          <span className="w-12 text-right text-sm tabular-nums text-le-ink-700">
-            {radius}px
-          </span>
-        </div>
-      </Section>
+      <CornerRadiusRow els={els} />
+      <EffectsSection els={els} stroke />
       <OpacityRow els={els} />
       {els.length === 1 && onGenerateImageGif ? (
         <ShapeGifSection
@@ -2242,8 +2439,19 @@ const PageInspector = observer(function PageInspector({
   const { t } = useTranslation("branding");
   const profile = detailPageEditorProfile();
   const page = store.activePage ?? store.pages[0];
+  const gesture = useGestureTransaction(historyOf(store));
   return (
     <>
+      {/* 배경. 엔진은 page.background 를 Konva Rect fill 로 그대로 칠해서 단색만 된다
+          (그라데이션 문자열은 안 그려진다) — 그래서 FillControl 이 아니라 단색 입력이다. */}
+      {page?.set ? (
+        <Section title={t("detailPage.properties.pageBackground")}>
+          <ColorInput
+            value={toHexColor(page.background, "#ffffff")}
+            onChange={(c) => gesture.change(() => page.set?.({ background: c }))}
+          />
+        </Section>
+      ) : null}
       {profile.page.fixed ? null : <PageHeightSection page={page} />}
       {/* 화면을 통째로 다루는 두 가지. 예전에는 캔버스 옆 세로 띠에 있었는데, 판을
           가리는 데 비해 여기가 이미 «이 화면» 을 다루는 자리다. */}
@@ -2276,6 +2484,41 @@ const PageInspector = observer(function PageInspector({
           creditCost={dataGifCreditCost}
         />
       ) : null}
+    </>
+  );
+});
+
+const FILLABLE = new Set(["text", "figure"]);
+const SHADOWABLE = new Set(["text", "image", "figure"]);
+
+/**
+ * 타입이 섞인 선택. 모두가 가진 것만 보여 준다 — 채우기(전부 텍스트·도형), 효과(전부
+ * 그림자를 그리는 타입), 불투명도, 삭제.
+ */
+const MixedInspector = observer(function MixedInspector({
+  store,
+  els,
+}: {
+  store: StoreLike;
+  els: ElementLike[];
+}) {
+  const { t } = useTranslation("branding");
+  const gesture = useGestureTransaction(historyOf(els[0]));
+  const fillable = els.every((el) => FILLABLE.has(el.type));
+  const shadowable = els.every((el) => SHADOWABLE.has(el.type));
+  return (
+    <>
+      {fillable ? (
+        <Section title={t("detailPage.properties.color")}>
+          <FillControl
+            value={str(els[0].fill, "#000000")}
+            onChange={(c) => gesture.change(() => setAll(els, { fill: c }))}
+          />
+        </Section>
+      ) : null}
+      {shadowable ? <EffectsSection els={els} stroke={fillable} /> : null}
+      <OpacityRow els={els} />
+      <DeleteRow store={store} els={els} />
     </>
   );
 });
@@ -2534,7 +2777,7 @@ function InspectorHeader({ els }: { els: ElementLike[] }) {
     const type = els[0].type;
     if (isGifElement(els[0])) {
       icon = <Film aria-hidden="true" size={16} />;
-      label = "GIF";
+      label = t("detailPage.properties.typeGif");
     } else if (type === "text") {
       icon = <TypeIcon aria-hidden="true" size={16} />;
       label = t("detailPage.properties.typeText");
@@ -2551,7 +2794,7 @@ function InspectorHeader({ els }: { els: ElementLike[] }) {
       icon = <TableIcon aria-hidden="true" size={16} />;
       label = t("detailPage.table.typeTable");
     } else {
-      label = type;
+      label = t("detailPage.properties.typeElement");
     }
   } else if (els.length > 1) {
     label = t("detailPage.properties.selectionCount", { count: els.length });
@@ -2722,10 +2965,7 @@ export const DetailPageProperties = observer(function DetailPageProperties({
                 textGifCreditCost={textGifCreditCost}
               />
             ) : (
-              <>
-                <OpacityRow els={els} />
-                <DeleteRow store={s} els={els} />
-              </>
+              <MixedInspector store={s} els={els} />
             )}
           </>
         )}

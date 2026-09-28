@@ -172,7 +172,22 @@
         "imageGif": "이미지를 GIF로",
         "imageGifCancel": "취소 (만들던 GIF는 '내 이미지'에 저장돼요)",
         "imageGifMake": "GIF 만들기",
-        "imageGifMaskFallback": "물체를 특정하지 못해 이미지 전체에 적용했어요."
+        "imageGifMaskFallback": "물체를 특정하지 못해 이미지 전체에 적용했어요.",
+        "scrubHint": "{{label}} — 좌우로 드래그해 값 조절 (Shift ×10)",
+        "fontSize": "글자 크기",
+        "textAlignLeft": "왼쪽 정렬",
+        "textAlignCenter": "가운데 정렬",
+        "textAlignRight": "오른쪽 정렬",
+        "textAlignJustify": "양쪽 정렬",
+        "effects": "효과",
+        "shadow": "그림자",
+        "shadowBlur": "흐림",
+        "strokeWidth": "외곽선",
+        "rotation": "회전",
+        "pageBackground": "배경색",
+        "shapeSaveFailed": "브랜드 도형에 저장하지 못했어요.",
+        "typeGif": "GIF",
+        "typeElement": "요소"
       },
       "gifEffects": {
         "text": {
