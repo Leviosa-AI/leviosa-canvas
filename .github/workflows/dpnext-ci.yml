@@ -1,14 +1,9 @@
 name: DPNext CI
 
 on:
+  # PR 마다 돈다. `check-dpnext` 가 main 의 필수 체크라, 경로로 거르면 그 경로를 안 건드린
+  # PR 은 체크가 영영 안 뜨고 머지가 막힌다. 45초짜리라 그냥 돈다.
   pull_request:
-    paths:
-      - ".github/workflows/dpnext-ci.yml"
-      - "apps/detail-page-next-lab/**"
-      - "packages/detail-document-next/**"
-      - "packages/detail-dom-editor-next/**"
-      - "packages/detail-dom-renderer-next/**"
-      - "vitest.dpnext.config.mts"
   push:
     branches: [main]
     paths:
