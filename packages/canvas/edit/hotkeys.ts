@@ -27,13 +27,20 @@ import {
 } from "./commands";
 
 /** 글자를 치는 중이면 손버릇이 끼어들지 않는다. */
+/** 글자를 받지 않는 input 종류. 슬라이더를 끌고 나서 ⌘Z 를 눌러도 되돌아가야 한다. */
+const NOT_TYPING_INPUTS = new Set([
+  "range", "checkbox", "radio", "button", "submit", "reset", "color", "file", "image",
+]);
+
 function isTyping(): boolean {
   const active =
     typeof document === "undefined" ? null : document.activeElement;
   if (!active) return false;
   const tag = active.tagName;
+  if (tag === "INPUT") {
+    return !NOT_TYPING_INPUTS.has((active as HTMLInputElement).type);
+  }
   return (
-    tag === "INPUT" ||
     tag === "TEXTAREA" ||
     (active as HTMLElement).isContentEditable === true
   );

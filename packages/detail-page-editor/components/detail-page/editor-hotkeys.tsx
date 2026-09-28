@@ -105,14 +105,18 @@ export function copySelectedImageToClipboard(store: {
 }
 
 /** Typing in a field is not a canvas shortcut. Same guard the stock editor's handler uses. */
+const NOT_TYPING_INPUTS = new Set([
+  "range", "checkbox", "radio", "button", "submit", "reset", "color", "file", "image",
+]);
+
 function isTyping(): boolean {
   const el = document.activeElement as HTMLElement | null;
   if (!el) return false;
-  return (
-    el.tagName === "INPUT" ||
-    el.tagName === "TEXTAREA" ||
-    el.isContentEditable === true
-  );
+  // 슬라이더·체크박스는 글자를 안 받는다 — 끌고 나서 ⌘Z 가 먹어야 한다.
+  if (el.tagName === "INPUT") {
+    return !NOT_TYPING_INPUTS.has((el as HTMLInputElement).type);
+  }
+  return el.tagName === "TEXTAREA" || el.isContentEditable === true;
 }
 
 export function EditorHotkeys({

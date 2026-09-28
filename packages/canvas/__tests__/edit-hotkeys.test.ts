@@ -68,6 +68,28 @@ describe("handleCanvasHotkey", () => {
     expect(store.getElementById("a")!.x).toBe(999);
   });
 
+  it("슬라이더(range)에 초점이 있어도 ⌘Z 는 되돌린다", () => {
+    const store = createCanvasStore(doc());
+    store.getElementById("a")!.set({ x: 999 });
+    const range = document.createElement("input");
+    range.type = "range";
+    document.body.appendChild(range);
+    range.focus();
+    try {
+      press(store, { key: "z", metaKey: true });
+      expect(store.getElementById("a")!.x).toBe(100);
+      const text = document.createElement("input");
+      document.body.appendChild(text);
+      text.focus();
+      store.getElementById("a")!.set({ x: 555 });
+      press(store, { key: "z", metaKey: true });
+      expect(store.getElementById("a")!.x).toBe(555);
+      text.remove();
+    } finally {
+      range.remove();
+    }
+  });
+
   it("⌘A는 현재 페이지를 전부 고른다", () => {
     const store = createCanvasStore(doc());
     press(store, { code: "KeyA", metaKey: true });
