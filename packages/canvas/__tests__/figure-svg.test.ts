@@ -9,6 +9,10 @@ import { describe, expect, it } from "vitest";
 import { figureToSvg } from "../paint/figure-svg";
 
 describe("figureToSvg", () => {
+  it("두께 0인 획은 SVG 기본 1px 회색 테두리로 살아나지 않는다", () => {
+    expect(figureToSvg({ width: 518, height: 34, stroke: "rgb(48, 48, 48)", strokeWidth: 0 }))
+      .not.toContain(' stroke=');
+  });
   it("네모는 요소 치수 그대로", () => {
     const svg = figureToSvg({ subType: "rect", width: 400, height: 24, fill: "#26221e" })!;
     expect(svg).toContain('width="400" height="24"');
