@@ -3,6 +3,9 @@ import { act, fireEvent, render } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 
+import { createCanvasStore } from "@leviosa-ai/canvas/store";
+
+import { CanvasStoreContext } from "../canvas-observer";
 import { FindReplacePanel } from "../find-replace-panel";
 
 type El = {
@@ -151,5 +154,29 @@ describe("FindReplacePanel", () => {
     await openPanel(makeStore());
     await userEvent.click(q("[data-dp-find-close]"));
     expect(q("[data-dp-find-replace]")).toBeNull();
+  });
+});
+
+describe("FindReplacePanel — 편집 뒤 갱신", () => {
+  it("문서를 고치면 결과가 다시 세어진다", async () => {
+    const store = createCanvasStore({
+      width: 800,
+      height: 600,
+      pages: [{ id: "p1", children: [{ id: "t1", type: "text", text: "30ml" }] }],
+    } as never);
+    render(
+      <CanvasStoreContext.Provider value={store}>
+        <FindReplacePanel store={store} />
+      </CanvasStoreContext.Provider>,
+    );
+    await act(async () => {
+      fireEvent.keyDown(document, { key: "f", metaKey: true });
+    });
+    await userEvent.type(q("[data-dp-find-query]"), "30ml");
+    expect(counts().total).toBe(1);
+
+    // 패널 밖(캔버스)에서 글자를 고친다.
+    act(() => store.getElementById("t1")?.set({ text: "30ml 또 30ml" }));
+    expect(counts().total).toBe(2);
   });
 });

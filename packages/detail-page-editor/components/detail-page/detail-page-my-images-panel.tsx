@@ -8,6 +8,7 @@ import Link from "next/link";
 import { useTranslation } from "react-i18next";
 
 import { BrandPanelHeader } from "./detail-page-brand-panel-header";
+import { ConfirmDeleteButton } from "./confirm-delete-button";
 import { useDetailPageHost } from "./detail-page-host-context";
 import type {
   BrandAsset,
@@ -238,14 +239,14 @@ function BrandImageCard({
       <span className="pointer-events-none absolute bottom-1.5 left-1.5 max-w-[calc(100%-12px)] truncate rounded-le-sm bg-le-scrim/70 px-1.5 py-0.5 text-[10px] text-le-on-accent">
         {asset.display_name ?? asset.filename}
       </span>
-      <button
-        type="button"
-        onClick={onDelete}
+      <ConfirmDeleteButton
+        label={t("detailPage.brandAssets.delete")}
+        onConfirm={onDelete}
         className="absolute right-1 top-1 hidden h-6 w-6 items-center justify-center rounded-le-md bg-le-surface/95 text-le-ink-400 shadow-sm hover:text-le-danger-600 group-hover:flex"
-        aria-label={t("detailPage.brandAssets.delete")}
+        confirmClassName="absolute right-1 top-1"
       >
         <Trash2 aria-hidden="true" size={13} />
-      </button>
+      </ConfirmDeleteButton>
     </div>
   );
 }
@@ -300,12 +301,15 @@ function BrandAssetGallery({ store }: { store: unknown }) {
   });
   const revealed = takeBrandImages(shown, reveal.visible);
 
+  // 고른 파일을 전부 올린다. 한 번에 하나씩 — 브랜드 저장소가 순서대로 받는다.
   const uploadMutation = useMutation({
-    mutationFn: async (file: File) => {
+    mutationFn: async (files: File[]) => {
       if (!activeBrandId) throw new Error("brand-not-selected");
-      return brand.uploadBrandAsset(activeBrandId, file, uploadKind(file), {
-        metadata: { source: "canvas_upload" },
-      });
+      for (const file of files) {
+        await brand.uploadBrandAsset(activeBrandId, file, uploadKind(file), {
+          metadata: { source: "canvas_upload" },
+        });
+      }
     },
     onSuccess: async () => {
       setError(null);
@@ -328,14 +332,18 @@ function BrandAssetGallery({ store }: { store: unknown }) {
   });
 
   const handleUpload = (event: ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
+    const files = Array.from(event.target.files ?? []);
     event.target.value = "";
-    if (!file) return;
-    if (file.size > MAX_UPLOAD_BYTES) {
+    if (!files.length) return;
+    // 큰 것 하나 때문에 나머지까지 막지 않는다 — 빼고 올리고 몇 개 뺐는지 말한다.
+    const fits = files.filter((file) => file.size <= MAX_UPLOAD_BYTES);
+    const skipped = files.length - fits.length;
+    if (!fits.length) {
       setError(t("detailPage.brandAssets.uploadTooLarge"));
       return;
     }
-    uploadMutation.mutate(file);
+    if (skipped) toast.info(t("detailPage.brandAssets.uploadSomeTooLarge", { count: skipped }));
+    uploadMutation.mutate(fits);
   };
 
   return (
@@ -355,7 +363,9 @@ function BrandAssetGallery({ store }: { store: unknown }) {
           ref={fileRef}
           type="file"
           accept={UPLOAD_ACCEPT}
-          className="hidden"
+          multiple
+          // `hidden` 이면 보조기기·키보드가 못 닿는다. 라벨이 눌러 주므로 화면에서만 뺀다.
+          className="sr-only"
           onChange={handleUpload}
         />
       </label>

@@ -54,7 +54,10 @@
       "psdTooLarge": "PSD files are limited to {{limit}}px per side. Export the current page only, or choose another format.",
       "psdExportCurrentPage": "Export the current page as PSD",
       "exporting": "Exporting...",
-      "downloadAction": "Download"
+      "downloadAction": "Download",
+      "unsaved": "Unsaved",
+      "saveRetrying": "Couldn't save. Retrying shortly.",
+      "saveConflict": "This document was saved elsewhere first. Your changes are kept — check before reloading."
     },
     "detailPage": {
       "properties": {
@@ -445,7 +448,8 @@
         "filterProduct": "Product",
         "filterModel": "Model",
         "filterGenerated": "Generated",
-        "filterOther": "Other"
+        "filterOther": "Other",
+        "uploadSomeTooLarge": "Skipped {{count}} file(s) over 20MB."
       },
       "brandGifs": {
         "notAGif": "Only GIF files can be uploaded.",
@@ -747,7 +751,15 @@
         "lock": "Lock",
         "delete": "Delete",
         "title": "Layers",
-        "empty": "This page has no elements yet."
+        "empty": "This page has no elements yet.",
+        "rename": "Layer name",
+        "search": "Find layers",
+        "searchPlaceholder": "Find by name or type",
+        "noMatch": "No matching layers.",
+        "moveMissing": "Couldn't find the layer to move.",
+        "moveIntoSelf": "A group can't go inside itself.",
+        "moveNotGroup": "You can only drop inside a group.",
+        "moveUnsupported": "This editor can't move it there."
       },
       "pages": {
         "roles": {
@@ -918,6 +930,11 @@
         "loadFailed": "Could not load your references.",
         "empty": "No saved references yet. Save a detail page you like and it is ready to reference on your next product.",
         "screenCount": "{{count}} screens"
+      },
+      "confirmDelete": {
+        "ask": "Delete?",
+        "confirm": "Confirm",
+        "cancel": "Cancel"
       }
     }
   },

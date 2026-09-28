@@ -7,6 +7,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 const mockList = vi.fn();
 const mockInsert = vi.fn();
 const mockDelete = vi.fn();
+const mockUpload = vi.fn();
 
 vi.mock("../../../lib/detail-page/insert-image", () => ({
   insertPersonalImage: (...args: unknown[]) => mockInsert(...args),
@@ -34,6 +35,7 @@ const brandWorkspace = () => ({
 const BRAND = {
   listBrandAssets: (...args: unknown[]) => mockList(...args),
   deleteBrandAsset: (...args: unknown[]) => mockDelete(...args),
+  uploadBrandAsset: (...args: unknown[]) => mockUpload(...args),
   // 실제 구현과 같은 규칙: 만료 없는 경로가 있으면 그걸, 없으면 presigned를 쓴다.
   brandAssetDocumentSrc: (asset: { stable_path?: string; download_url?: string | null }) =>
     asset.stable_path || asset.download_url || "",
@@ -166,6 +168,9 @@ describe("DetailPageMyImagesPanel", () => {
         name: "detailPage.brandAssets.delete",
       }),
     );
+    // 한 번 누르면 묻기만 한다 — 서버 자산은 되돌릴 수 없다.
+    expect(mockDelete).not.toHaveBeenCalled();
+    await user.click(screen.getByRole("button", { name: "detailPage.confirmDelete.confirm" }));
 
     expect(mockDelete).toHaveBeenCalledWith(
       expect.objectContaining({ id: "asset-1", revision: 3 }),
@@ -352,5 +357,57 @@ describe("DetailPageMyImagesPanel 서랍 전환", () => {
     expect(
       screen.queryByRole("button", { name: "detailPage.brandAssets.sourceAuthored" }),
     ).not.toBeInTheDocument();
+  });
+});
+
+describe("DetailPageMyImagesPanel — 업로드", () => {
+  it("고른 파일을 전부 올린다(첫 장만이 아니라)", async () => {
+    mockList.mockResolvedValue([]);
+    mockUpload.mockResolvedValue({});
+    const user = userEvent.setup();
+    const view = renderPanel();
+    await screen.findByText("detailPage.brandAssets.uploadImage");
+
+    const input = view.container.querySelector('input[type="file"]') as HTMLInputElement;
+    expect(input.multiple).toBe(true);
+    // 화면에서만 뺀다 — `hidden` 이면 키보드·보조기기가 못 닿는다.
+    expect(input.className).toContain("sr-only");
+    await user.upload(input, [
+      new File(["a"], "a.png", { type: "image/png" }),
+      new File(["b"], "b.png", { type: "image/png" }),
+    ]);
+
+    expect(mockUpload).toHaveBeenCalledTimes(2);
+    expect(mockUpload.mock.calls.map((call) => (call[1] as File).name)).toEqual([
+      "a.png",
+      "b.png",
+    ]);
+  });
+});
+
+describe("ConfirmDeleteButton", () => {
+  it("취소하면 안 지운다", async () => {
+    mockList.mockResolvedValue([
+      {
+        id: "asset-1",
+        brand_id: "brand-1",
+        asset_type: "image",
+        content_type: "image/jpeg",
+        download_url: "https://s3/x.jpg",
+        display_name: "x",
+        filename: "x.jpg",
+        revision: 1,
+      },
+    ]);
+    const user = userEvent.setup();
+    renderPanel();
+    await user.click(
+      await screen.findByRole("button", { name: "detailPage.brandAssets.delete" }),
+    );
+    await user.click(screen.getByRole("button", { name: "detailPage.confirmDelete.cancel" }));
+    expect(mockDelete).not.toHaveBeenCalled();
+    expect(
+      screen.getByRole("button", { name: "detailPage.brandAssets.delete" }),
+    ).toBeInTheDocument();
   });
 });

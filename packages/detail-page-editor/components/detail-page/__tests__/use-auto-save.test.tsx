@@ -2,7 +2,7 @@
 import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
 import { act, render } from "@testing-library/react";
 
-import { useAutoSave, type SaveReason } from "../use-auto-save";
+import { useAutoSave, type AutoSave, type SaveReason } from "../use-auto-save";
 
 /** 스토어 대신 변경 알림만 흉내 낸다. */
 function changeSource() {
@@ -18,12 +18,27 @@ function changeSource() {
   };
 }
 
-function mount(store: ReturnType<typeof changeSource>, save: (r: SaveReason) => Promise<void>) {
+function mount(
+  store: ReturnType<typeof changeSource>,
+  save: (r: SaveReason) => Promise<void>,
+  extra: {
+    onError?: (error: unknown, reason: SaveReason) => void;
+    retry?: (error: unknown) => boolean;
+    delayMs?: number;
+  } = {},
+) {
+  const handle: { current: AutoSave | null } = { current: null };
   function Probe() {
-    useAutoSave({ store, delayMs: 100, save });
+    handle.current = useAutoSave({ store, delayMs: 100, save, ...extra });
     return null;
   }
-  return render(<Probe />);
+  return { ...render(<Probe />), handle };
+}
+
+function beforeUnload(): Event {
+  const event = new Event("beforeunload", { cancelable: true });
+  window.dispatchEvent(event);
+  return event;
 }
 
 describe("useAutoSave", () => {
@@ -131,6 +146,157 @@ describe("useAutoSave", () => {
       view.unmount();
     });
     expect(save).toHaveBeenCalledWith("leave");
+  });
+
+  it("실패하면 알리고 2·4·8초 뒤 세 번까지 다시 보낸다", async () => {
+    const store = changeSource();
+    const save = vi.fn(async () => {
+      throw new Error("망함");
+    });
+    const onError = vi.fn();
+    mount(store, save, { onError });
+
+    act(() => store.fire());
+    await act(async () => {
+      vi.advanceTimersByTime(100);
+    });
+    expect(save).toHaveBeenCalledTimes(1);
+    // 연속 실패의 첫 번째만 알린다 — 재시도마다 토스트가 쌓이면 소음이다.
+    expect(onError).toHaveBeenCalledTimes(1);
+
+    for (const [wait, calls] of [
+      [2_000, 2],
+      [4_000, 3],
+      [8_000, 4],
+    ] as const) {
+      await act(async () => {
+        vi.advanceTimersByTime(wait - 1);
+      });
+      expect(save).toHaveBeenCalledTimes(calls - 1);
+      await act(async () => {
+        vi.advanceTimersByTime(1);
+      });
+      expect(save).toHaveBeenCalledTimes(calls);
+    }
+    await act(async () => {
+      vi.advanceTimersByTime(60_000);
+    });
+    expect(save).toHaveBeenCalledTimes(4);
+    expect(onError).toHaveBeenCalledTimes(1);
+  });
+
+  it("그 사이 저장이 성공하면 재시도를 접는다", async () => {
+    const store = changeSource();
+    const save = vi
+      .fn<(reason: SaveReason) => Promise<void>>()
+      .mockRejectedValueOnce(new Error("망함"))
+      .mockResolvedValue(undefined);
+    const { handle } = mount(store, save);
+
+    act(() => store.fire());
+    await act(async () => {
+      vi.advanceTimersByTime(100);
+    });
+    await act(async () => {
+      await handle.current?.flush("manual");
+    });
+    expect(save).toHaveBeenCalledTimes(2);
+    expect(handle.current?.dirty).toBe(false);
+
+    await act(async () => {
+      vi.advanceTimersByTime(60_000);
+    });
+    expect(save).toHaveBeenCalledTimes(2);
+  });
+
+  it("다시 보낼 가치가 없는 실패(충돌)는 재시도 없이 dirty 로 남긴다", async () => {
+    const store = changeSource();
+    const save = vi.fn(async () => {
+      throw Object.assign(new Error("충돌"), { conflict: true });
+    });
+    const onError = vi.fn();
+    const { handle } = mount(store, save, { onError, retry: () => false });
+
+    act(() => store.fire());
+    await act(async () => {
+      vi.advanceTimersByTime(100);
+    });
+    await act(async () => {
+      vi.advanceTimersByTime(60_000);
+    });
+    expect(save).toHaveBeenCalledTimes(1);
+    expect(onError).toHaveBeenCalledTimes(1);
+    expect(handle.current?.dirty).toBe(true);
+  });
+
+  it("저장 버튼은 자동저장과 같은 줄에 선다 — 겹치지 않고, 끝나면 dirty 가 풀린다", async () => {
+    const store = changeSource();
+    let release: (() => void) | null = null;
+    const save = vi.fn(
+      () =>
+        new Promise<void>((resolve) => {
+          release = resolve;
+        }),
+    );
+    const { handle } = mount(store, save);
+
+    act(() => store.fire());
+    await act(async () => {
+      vi.advanceTimersByTime(100);
+    });
+    expect(save).toHaveBeenCalledTimes(1);
+
+    let manual: Promise<boolean> | undefined;
+    act(() => {
+      manual = handle.current?.flush("manual");
+    });
+    // 보내는 중에는 두 번째 요청이 안 나간다.
+    expect(save).toHaveBeenCalledTimes(1);
+
+    await act(async () => {
+      release?.();
+    });
+    expect(save).toHaveBeenCalledTimes(2);
+    expect(save).toHaveBeenLastCalledWith("manual");
+    await act(async () => {
+      release?.();
+      expect(await manual).toBe(true);
+    });
+    expect(handle.current?.dirty).toBe(false);
+  });
+
+  it("자동저장을 안 켜도 dirty 를 세고 저장 버튼은 동작한다", async () => {
+    const store = changeSource();
+    const save = vi.fn(async () => {});
+    const { handle } = mount(store, save, { delayMs: undefined });
+
+    act(() => store.fire());
+    expect(handle.current?.dirty).toBe(true);
+    await act(async () => {
+      vi.advanceTimersByTime(60_000);
+    });
+    expect(save).not.toHaveBeenCalled();
+
+    await act(async () => {
+      await handle.current?.flush("manual");
+    });
+    expect(save).toHaveBeenCalledWith("manual");
+    expect(handle.current?.dirty).toBe(false);
+  });
+
+  it("변경이 남아 있으면 창을 닫을 때 붙잡는다", async () => {
+    const store = changeSource();
+    const save = vi.fn(async () => {});
+    mount(store, save);
+
+    expect(beforeUnload().defaultPrevented).toBe(false);
+    act(() => store.fire());
+    expect(beforeUnload().defaultPrevented).toBe(true);
+
+    await act(async () => {
+      vi.advanceTimersByTime(100);
+    });
+    expect(beforeUnload().defaultPrevented).toBe(false);
   });
 
   it("바뀐 게 없으면 떠나도 안 보낸다", async () => {

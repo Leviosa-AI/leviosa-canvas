@@ -1,7 +1,9 @@
 // Copyright © 2026 주식회사레비오사에이아이. All rights reserved. See LICENSE.
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
+import { copyElements } from "@leviosa-ai/canvas/edit/commands";
+import type { CanvasStore } from "@leviosa-ai/canvas/store";
 
 import { safeRedo, safeUndo, type HistoryStore } from "./editor-history";
 import {
@@ -10,6 +12,10 @@ import {
   type MenuElement,
 } from "../../lib/detail-page/canvas-menu";
 import { groupAction, type GroupStore } from "../../lib/detail-page/group-action";
+import {
+  CANVAS_CLIPBOARD_MARK,
+  markCanvasCopy,
+} from "../../lib/detail-page/canvas-paste";
 
 /**
  * Takes over the Canvas hotkeys that are broken for a document made of groups,
@@ -21,6 +27,8 @@ import { groupAction, type GroupStore } from "../../lib/detail-page/group-action
  * the same call); here ⌘G groups whatever is selected and ⌘⇧G ungroups.
  *
  * ⌘⌥C / ⌘⌥V — 서식 복사·붙이기(``format-painter.ts``).
+ *
+ * ⌘S — 브라우저의 "페이지 저장" 대신 문서를 저장한다(자동저장과 같은 줄, ``onSave``).
  *
  * ⌘Z / ⌘⇧Z / ⌘Y — see editor-history.ts: an undo with a live selection over the
  * elements being restored crashes MST. Route both through the safe wrappers.
@@ -82,7 +90,13 @@ export function copySelectedImageToClipboard(store: {
   if (!src || (el.type !== "image" && el.type !== "svg")) return false;
   if (typeof ClipboardItem === "undefined" || !navigator.clipboard?.write) return false;
   navigator.clipboard
-    .write([new ClipboardItem({ "image/png": elementToPngBlob(src) })])
+    .write([
+      new ClipboardItem({
+        "image/png": elementToPngBlob(src),
+        // 편집기 안에서 ⌘V 하면 그림을 다시 올리지 않고 이 요소를 붙인다(canvas-paste).
+        "text/plain": new Blob([CANVAS_CLIPBOARD_MARK], { type: "text/plain" }),
+      }),
+    ])
     .catch((err) => {
       // taint(CORS 미허용)나 권한 거부 시 조용히 로그만 — 크래시 방지.
       console.warn("[detail-page] 이미지 클립보드 복사 실패:", err);
@@ -101,13 +115,31 @@ function isTyping(): boolean {
   );
 }
 
-export function EditorHotkeys({ store }: { store: unknown }) {
+export function EditorHotkeys({
+  store,
+  onSave,
+}: {
+  store: unknown;
+  onSave?: () => void;
+}) {
+  // 저장 함수가 바뀌어도 리스너를 다시 걸지 않는다.
+  const saveRef = useRef(onSave);
+  saveRef.current = onSave;
+
   useEffect(() => {
     const s = store as HotkeyStore;
 
     const onKeyDown = (e: KeyboardEvent) => {
-      if (isTyping()) return;
       const mod = e.metaKey || e.ctrlKey;
+      // ⌘S 는 입력칸 안에서도 저장이다 — 거기서 브라우저 저장 창이 뜨면 더 곤란하다.
+      if (mod && e.code === "KeyS" && !e.altKey && !e.shiftKey) {
+        if (!saveRef.current) return;
+        e.preventDefault();
+        e.stopPropagation();
+        saveRef.current();
+        return;
+      }
+      if (isTyping()) return;
       if (!mod) return;
 
       // ⌘⌥C / ⌘⌥V — 서식 복사·붙이기. Canva의 "서식 붓"인데, 다음 클릭 하나를 가로채는
@@ -128,9 +160,21 @@ export function EditorHotkeys({ store }: { store: unknown }) {
         // 이미지/도형이 선택돼 있으면 OS 클립보드로 복사(가로챔). 그 외(텍스트 선택 등)는
         // 기본/Canvas 동작에 맡긴다.
         if (copySelectedImageToClipboard(s)) {
+          // 가로채면 엔진의 ⌘C 가 안 돌아서 ⌘V 가 그 전에 복사한 것을 붙였다. 엔진
+          // 클립보드에도 같이 넣는다.
+          copyElements(s as unknown as CanvasStore);
           e.preventDefault();
           e.stopPropagation();
+        } else if (s.selectedElementsIds?.length) {
+          // 엔진이 자기 클립보드에 넣는다. OS 클립보드에는 표식을 남겨 ⌘V 가 옛
+          // OS 내용 대신 이것을 붙이게 한다(canvas-paste).
+          markCanvasCopy();
         }
+        return;
+      }
+
+      if (e.code === "KeyX" && !e.shiftKey && !e.altKey && s.selectedElementsIds?.length) {
+        markCanvasCopy();
         return;
       }
 

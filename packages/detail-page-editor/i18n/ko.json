@@ -54,7 +54,10 @@
       "psdTooLarge": "PSD는 가로·세로 {{limit}}px까지만 저장할 수 있습니다. 현재 페이지만 내보내거나 다른 형식을 골라 주세요.",
       "psdExportCurrentPage": "현재 페이지만 PSD로 내보내기",
       "exporting": "내보내는 중...",
-      "downloadAction": "다운로드"
+      "downloadAction": "다운로드",
+      "unsaved": "변경됨",
+      "saveRetrying": "저장하지 못했어요. 잠시 후 다시 시도할게요.",
+      "saveConflict": "다른 곳에서 먼저 저장된 문서예요. 변경은 남겨 두었으니 새로고침 전에 확인해 주세요."
     },
     "detailPage": {
       "properties": {
@@ -445,7 +448,8 @@
         "filterProduct": "제품",
         "filterModel": "모델",
         "filterGenerated": "직접 생성",
-        "filterOther": "기타"
+        "filterOther": "기타",
+        "uploadSomeTooLarge": "20MB가 넘는 파일 {{count}}개는 빼고 올렸어요."
       },
       "brandGifs": {
         "notAGif": "GIF 파일만 올릴 수 있어요.",
@@ -747,7 +751,15 @@
         "lock": "잠금",
         "delete": "삭제",
         "title": "레이어",
-        "empty": "이 페이지에는 아직 요소가 없어요."
+        "empty": "이 페이지에는 아직 요소가 없어요.",
+        "rename": "레이어 이름",
+        "search": "레이어 찾기",
+        "searchPlaceholder": "이름·종류로 찾기",
+        "noMatch": "맞는 레이어가 없어요.",
+        "moveMissing": "옮길 레이어를 찾지 못했어요.",
+        "moveIntoSelf": "그룹을 자기 안으로는 넣을 수 없어요.",
+        "moveNotGroup": "그룹 안으로만 넣을 수 있어요.",
+        "moveUnsupported": "이 편집기에서는 그 자리로 옮길 수 없어요."
       },
       "pages": {
         "roles": {
@@ -918,6 +930,11 @@
         "loadFailed": "레퍼런스를 불러오지 못했어요.",
         "empty": "아직 저장한 레퍼런스가 없어요. 마음에 드는 상세페이지를 저장해 두면 다음 상품에서 바로 참고할 수 있어요.",
         "screenCount": "{{count}}장"
+      },
+      "confirmDelete": {
+        "ask": "삭제?",
+        "confirm": "확인",
+        "cancel": "취소"
       }
     }
   },
