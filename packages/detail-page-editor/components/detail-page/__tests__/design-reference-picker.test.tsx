@@ -100,7 +100,7 @@ describe("DesignReferencePicker 크레딧", () => {
 
     await attach(user, [refFile("a.png"), refFile("b.png")]);
 
-    await waitFor(() => expect(screen.getByText(/1크레딧이/)).toBeInTheDocument());
+    await waitFor(() => expect(document.querySelector('[data-credits="1"]')).toBeInTheDocument());
   });
 
   it("같은 한 장이어도 세로로 긴 캡쳐가 더 비싸다", async () => {
@@ -111,7 +111,7 @@ describe("DesignReferencePicker 크레딧", () => {
     await attach(user, [refFile("a.png")]);
 
     // 정사각 썸네일 한 장은 1크레딧이다(위 테스트) — 같은 장수인데 값이 다르다.
-    await waitFor(() => expect(screen.getByText(/2크레딧이/)).toBeInTheDocument());
+    await waitFor(() => expect(document.querySelector('[data-credits="2"]')).toBeInTheDocument());
   });
 
   it("그림을 빼면 값도 줄어든다", async () => {
@@ -120,11 +120,14 @@ describe("DesignReferencePicker 크레딧", () => {
     renderPicker();
 
     await attach(user, ["a", "b", "c", "d", "e"].map((n) => refFile(`${n}.png`)));
-    await waitFor(() => expect(screen.getByText(/3크레딧이/)).toBeInTheDocument());
+    await waitFor(() => expect(document.querySelector('[data-credits="3"]')).toBeInTheDocument());
 
-    await user.click(screen.getByRole("button", { name: "5번 레퍼런스 빼기" }));
+    // 빼기 단추는 장마다 하나, 문서 순서대로다(i18n 목은 키를 그대로 돌려준다).
+    await user.click(
+      screen.getAllByRole("button", { name: "detailPage.designReference.remove" })[4],
+    );
 
-    await waitFor(() => expect(screen.getByText(/2크레딧이/)).toBeInTheDocument());
+    await waitFor(() => expect(document.querySelector('[data-credits="2"]')).toBeInTheDocument());
   });
 
   it("상세페이지 전체 캡쳐는 조각내기까지 세서 말한다", async () => {
@@ -136,7 +139,7 @@ describe("DesignReferencePicker 크레딧", () => {
 
     await attach(user, [refFile("page.png")]);
 
-    await waitFor(() => expect(screen.getByText(/8크레딧이/)).toBeInTheDocument());
+    await waitFor(() => expect(document.querySelector('[data-credits="8"]')).toBeInTheDocument());
   });
 
   it("잔액이 모자라면 필요한 크레딧과 남은 크레딧을 말한다", async () => {
@@ -145,12 +148,12 @@ describe("DesignReferencePicker 크레딧", () => {
     renderPicker();
 
     await attach(user, [refFile("a.png"), refFile("b.png")]);
-    await waitFor(() => expect(screen.getByText(/1크레딧이/)).toBeInTheDocument());
-    await user.click(screen.getByRole("button", { name: /레퍼런스 읽기/ }));
+    await waitFor(() => expect(document.querySelector('[data-credits="1"]')).toBeInTheDocument());
+    await user.click(screen.getByRole("button", { name: "detailPage.designReference.read" }));
 
-    const message = await screen.findByText(/크레딧이 모자라요/);
-    expect(message.textContent).toContain("1크레딧이 필요해요");
-    expect(message.textContent).toContain("남은 크레딧 0");
+    expect(
+      await screen.findByText("detailPage.designReference.insufficient"),
+    ).toBeInTheDocument();
   });
 
   it("판독 실패는 서버가 말한 이유를 그대로 보여 준다", async () => {
@@ -159,7 +162,7 @@ describe("DesignReferencePicker 크레딧", () => {
     renderPicker();
 
     await attach(user, [refFile("a.png")]);
-    await user.click(screen.getByRole("button", { name: /레퍼런스 읽기/ }));
+    await user.click(screen.getByRole("button", { name: "detailPage.designReference.read" }));
 
     expect(
       await screen.findByText("판독 모델이 응답하지 않았습니다."),

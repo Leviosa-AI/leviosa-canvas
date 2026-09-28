@@ -738,7 +738,7 @@ describe("DetailPageProperties — 그룹 편집", () => {
     expect(screen.getByText("detailPage.groupEdit.title")).toBeTruthy();
     expect(screen.getByText("detailPage.groupEdit.texts")).toBeTruthy();
     // 텍스트가 여러 개여도 프롬프트 편집 컴포넌트는 딱 하나.
-    expect(screen.getAllByText("프롬프트로 편집")).toHaveLength(1);
+    expect(screen.getAllByText("detailPage.promptEdit.header")).toHaveLength(1);
   });
 
   it("그룹 해제·삭제는 우측 패널에 그대로 남는다", () => {
@@ -760,7 +760,7 @@ describe("DetailPageProperties — 그룹 편집", () => {
     const store = makeStore([group]);
     renderAiEdit(store, [group], "gen_1");
     expect(screen.getByText("detailPage.groupEdit.title")).toBeTruthy();
-    expect(screen.getAllByText("프롬프트로 편집")).toHaveLength(1);
+    expect(screen.getAllByText("detailPage.promptEdit.header")).toHaveLength(1);
   });
 
   it("exposes ONE prompt panel for a group of SVG shapes (with markup)", () => {
@@ -772,7 +772,7 @@ describe("DetailPageProperties — 그룹 편집", () => {
     renderAiEdit(store, [group], "gen_1");
     expect(screen.getByText("detailPage.groupEdit.title")).toBeTruthy();
     expect(screen.getByText("detailPage.groupEdit.shapes")).toBeTruthy();
-    expect(screen.getAllByText("프롬프트로 편집")).toHaveLength(1);
+    expect(screen.getAllByText("detailPage.promptEdit.header")).toHaveLength(1);
   });
 
   it("describes a mixed text+shape group and shows one panel", () => {
@@ -783,7 +783,7 @@ describe("DetailPageProperties — 그룹 편집", () => {
     const store = makeStore([group]);
     renderAiEdit(store, [group], "gen_1");
     expect(screen.getByText("detailPage.groupEdit.both")).toBeTruthy();
-    expect(screen.getAllByText("프롬프트로 편집")).toHaveLength(1);
+    expect(screen.getAllByText("detailPage.promptEdit.header")).toHaveLength(1);
   });
 
   it("sends every editable descendant in ONE call and applies results by id", async () => {
@@ -805,10 +805,10 @@ describe("DetailPageProperties — 그룹 편집", () => {
     renderAiEdit(store, [group], "gen_1");
 
     await user.type(
-      screen.getByPlaceholderText(/어떻게 바꿀까요/),
+      screen.getByPlaceholderText("detailPage.promptEdit.groupPlaceholder"),
       "톤을 통일해서",
     );
-    await user.click(screen.getByRole("button", { name: "프롬프트로 수정" }));
+    await user.click(screen.getByRole("button", { name: "detailPage.promptEdit.send" }));
 
     expect(mockGroupPromptEdit).toHaveBeenCalledTimes(1);
     const [genId, payload] = mockGroupPromptEdit.mock.calls[0];

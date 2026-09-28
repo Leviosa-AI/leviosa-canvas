@@ -3,6 +3,7 @@
 
 import { useCallback, useRef, useState } from "react";
 import { ImagePlus, Loader2, X } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 import {
   DESIGN_REFERENCE_ASPECTS,
@@ -12,7 +13,6 @@ import {
   finalizeReferenceDataUri,
   planReferenceTokens,
   readReferenceFile,
-  referenceOrdinal,
   type DesignReferenceAspect,
 } from "../../lib/detail-page/design-reference";
 import { useDetailPageHost } from "./detail-page-host-context";
@@ -81,7 +81,9 @@ export function DesignReferencePicker({
   }[];
   disabled?: boolean;
 }) {
+  const { t } = useTranslation("branding");
   const { api } = useDetailPageHost();
+  const ordinal = (index: number) => t("detailPage.designReference.ordinal", { n: index + 1 });
   const [items, setItems] = useState<Picked[]>(() =>
     (initialReferences ?? [])
       .slice(0, MAX_DESIGN_REFERENCES)
@@ -120,7 +122,12 @@ export function DesignReferencePicker({
             height: 0,
           });
         } catch (err) {
-          setError(err instanceof Error ? err.message : "참고 사진을 붙이지 못했어요.");
+          // 거절 사유(형식·크기)는 lib 가 사람 말로 적어 던진다 — 그건 그대로 보여 준다.
+          setError(
+            err instanceof Error && err.message
+              ? err.message
+              : t("detailPage.designReference.attachFailed"),
+          );
         }
       }
       if (!added.length) return;
@@ -153,7 +160,7 @@ export function DesignReferencePicker({
         });
       }
     },
-    [items.length],
+    [items.length, t],
   );
 
   const toggleAspect = useCallback((id: string, aspect: DesignReferenceAspect) => {
@@ -207,25 +214,28 @@ export function DesignReferencePicker({
       const shortfall = api.asInsufficientCreditsError(err);
       setError(
         shortfall
-          ? `크레딧이 모자라요. 레퍼런스 ${items.length}장을 읽으려면 ${credits}크레딧이 ` +
-            `필요해요 (남은 크레딧 ${shortfall.remaining}).`
-          : err instanceof Error
+          ? t("detailPage.designReference.insufficient", {
+              count: items.length,
+              credits,
+              remaining: shortfall.remaining,
+            })
+          : err instanceof Error && err.message
             ? err.message
-            : "레퍼런스를 읽지 못했어요.",
+            : t("detailPage.designReference.readFailed"),
       );
     } finally {
       setBusy(false);
     }
-  }, [api, busy, credits, instruction, items, onBriefChange]);
+  }, [api, busy, credits, instruction, items, onBriefChange, t]);
 
   return (
     <div className="space-y-3 rounded-le-lg bg-le-ink-50 p-3">
       <div>
-        <p className="text-xs font-le-medium text-le-ink-700">디자인 레퍼런스</p>
+        <p className="text-xs font-le-medium text-le-ink-700">
+          {t("detailPage.designReference.title")}
+        </p>
         <p className="mt-1 text-[11px] text-le-ink-500">
-          &ldquo;이런 디자인으로&rdquo; 참고할 그림이에요. 상품 사진과 달리 페이지에
-          들어가지 않고, 구조와 색을 고르는 근거로만 써요. 최대{" "}
-          {MAX_DESIGN_REFERENCES}장.
+          {t("detailPage.designReference.description", { max: MAX_DESIGN_REFERENCES })}
         </p>
       </div>
 
@@ -238,15 +248,15 @@ export function DesignReferencePicker({
             <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-le-md bg-le-ink-100">
               {/* 붙인 사진은 data URI라 next/image 로 최적화할 것이 없다. */}
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={item.uri} alt="디자인 레퍼런스" className="h-full w-full object-cover" />
+              <img src={item.uri} alt={t("detailPage.designReference.title")} className="h-full w-full object-cover" />
               <span className="absolute left-0.5 top-0.5 rounded bg-le-ink-900/75 px-1 text-[10px] font-le-semibold leading-4 text-le-on-accent">
-                {referenceOrdinal(index)}
+                {ordinal(index)}
               </span>
               <button
                 type="button"
                 disabled={disabled || busy}
                 onClick={() => remove(item.id)}
-                aria-label={`${referenceOrdinal(index)} 레퍼런스 빼기`}
+                aria-label={t("detailPage.designReference.remove", { ordinal: ordinal(index) })}
                 className="absolute right-0.5 top-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-le-ink-900/70 text-le-on-accent disabled:opacity-40"
               >
                 <X size={10} />
@@ -262,7 +272,7 @@ export function DesignReferencePicker({
                     disabled={disabled || busy}
                     aria-pressed={on}
                     // 축 이름만으로는 "내용 구성"이 문구까지인지 알 수 없다.
-                    title={aspect.hint}
+                    title={t(`detailPage.designReference.aspects.${aspect.key}.hint`)}
                     onClick={() => toggleAspect(item.id, aspect.key)}
                     className={`rounded-full border px-2 py-0.5 text-[11px] transition-colors disabled:opacity-40 ${
                       on
@@ -270,7 +280,7 @@ export function DesignReferencePicker({
                         : "border-le-ink-200 text-le-ink-500 hover:border-le-ink-400 hover:text-le-ink-700"
                     }`}
                   >
-                    {aspect.label}
+                    {t(`detailPage.designReference.aspects.${aspect.key}.label`)}
                   </button>
                 );
               })}
@@ -285,7 +295,7 @@ export function DesignReferencePicker({
             className="flex h-[4.75rem] items-center gap-1.5 rounded-le-lg border border-dashed border-le-ink-300 bg-le-surface px-3 text-xs text-le-ink-500 transition-colors hover:border-le-ink-400 hover:text-le-ink-700 disabled:opacity-40"
           >
             <ImagePlus size={14} />
-            레퍼런스 추가
+            {t("detailPage.designReference.add")}
           </button>
         ) : null}
         <input
@@ -305,7 +315,8 @@ export function DesignReferencePicker({
             onChange={(e) => setInstruction(e.target.value)}
             rows={2}
             disabled={disabled || busy}
-            placeholder="1번 이미지의 색감과 폰트, 2번 이미지의 레이아웃을 참고해 주세요"
+            aria-label={t("detailPage.designReference.instruction")}
+            placeholder={t("detailPage.designReference.instructionPlaceholder")}
             className="w-full resize-none rounded-le-lg border border-le-ink-200 bg-le-surface px-3 py-2 text-xs text-le-ink-900 outline-none placeholder:text-le-ink-400 focus:border-le-ink-400 disabled:bg-le-ink-100"
           />
           <button
@@ -315,14 +326,19 @@ export function DesignReferencePicker({
             className="inline-flex items-center gap-1.5 rounded-le-lg border border-le-ink-900 px-3 py-1.5 text-xs font-le-medium text-le-ink-900 transition-colors hover:bg-le-ink-900 hover:text-le-on-accent disabled:opacity-40"
           >
             {busy ? <Loader2 size={13} className="animate-spin" /> : null}
-            {busy ? "읽는 중…" : brief ? "다시 읽기" : "레퍼런스 읽기"}
+            {t(
+              busy
+                ? "detailPage.designReference.reading"
+                : brief
+                  ? "detailPage.designReference.reread"
+                  : "detailPage.designReference.read",
+            )}
           </button>
           {/* 누르기 전에 값을 알려 준다 — 누른 뒤 402 로 알게 되면 이미 축 고르고
               지시까지 다 적은 뒤다. 장수가 아니라 그림 크기에 붙는 값이라, 큰 그림을
               작은 것으로 바꾸면 줄어든다. */}
-          <p className="text-[11px] text-le-ink-500">
-            읽을 때마다 {credits}크레딧이 들어요 (레퍼런스 {items.length}장 · 그림이 크고
-            길수록 올라가요).
+          <p data-credits={credits} className="text-[11px] text-le-ink-500">
+            {t("detailPage.designReference.creditNote", { credits, count: items.length })}
           </p>
         </>
       ) : null}
@@ -333,27 +349,9 @@ export function DesignReferencePicker({
   );
 }
 
-const TONE_LABELS: Record<string, string> = {
-  casual: "캐주얼",
-  minimal: "미니멀",
-  info: "정보형",
-  "ad-like": "광고형",
-  premium: "프리미엄",
-  cute: "귀여운",
-  tech: "테크",
-  natural: "내추럴",
-  editorial: "에디토리얼",
-};
-
-const DENSITY_LABELS: Record<string, string> = {
-  airy: "여백형",
-  editorial: "편집형",
-  compact: "정보 밀집형",
-  cozy: "포근한",
-};
-
 /** 읽은 결과를 그 자리에 적는다 — 톤이 왜 바뀌었는지 보이지 않으면 제안이 아니라 사고다. */
 function BriefSummary({ brief }: { brief: DetailPageDesignBrief }) {
+  const { t } = useTranslation("branding");
   const colors = [brief.bg_color, ...brief.primary_colors].filter(Boolean);
   const nothingRead =
     !brief.tone && !brief.density && !colors.length && !brief.summary && !brief.content;
@@ -361,7 +359,7 @@ function BriefSummary({ brief }: { brief: DetailPageDesignBrief }) {
   if (nothingRead) {
     return (
       <p className="text-[11px] text-le-ink-500">
-        레퍼런스에서 읽어낸 것이 없어요. 판면이 잘 보이는 그림으로 바꿔 보세요.
+        {t("detailPage.designReference.nothingRead")}
       </p>
     );
   }
@@ -371,12 +369,15 @@ function BriefSummary({ brief }: { brief: DetailPageDesignBrief }) {
       <div className="flex flex-wrap items-center gap-1.5">
         {brief.tone ? (
           <span className="rounded-full bg-le-ink-900 px-2 py-0.5 text-[11px] text-le-on-accent">
-            {TONE_LABELS[brief.tone] ?? brief.tone}
+            {/* 모르는 톤은 서버 값 그대로 — 새 톤이 번역보다 먼저 올 수 있다. */}
+            {t(`detailPage.designReference.tone.${brief.tone}`, { defaultValue: brief.tone })}
           </span>
         ) : null}
         {brief.density ? (
           <span className="rounded-full border border-le-ink-300 px-2 py-0.5 text-[11px] text-le-ink-600">
-            {DENSITY_LABELS[brief.density] ?? brief.density}
+            {t(`detailPage.designReference.density.${brief.density}`, {
+              defaultValue: brief.density,
+            })}
           </span>
         ) : null}
         {colors.map((color) => (
@@ -397,7 +398,7 @@ function BriefSummary({ brief }: { brief: DetailPageDesignBrief }) {
         </p>
       ) : null}
       <p className="text-[11px] text-le-ink-400">
-        읽은 결과는 제안이에요. 위 디자인 톤을 직접 바꾸면 그 선택이 우선해요.
+        {t("detailPage.designReference.suggestionNote")}
       </p>
     </div>
   );

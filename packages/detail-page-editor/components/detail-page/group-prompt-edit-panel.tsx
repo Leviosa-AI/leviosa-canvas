@@ -9,6 +9,7 @@
 
 import { useCallback, useState } from "react";
 import { ArrowUp, Loader2, Sparkles } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { useDetailPageHost } from "./detail-page-host-context";
 import type {
   DetailPageGroupEditItem,
@@ -49,6 +50,7 @@ export function GroupPromptEditPanel({
   onUsage,
   onBuyMore,
 }: GroupPromptEditPanelProps) {
+  const { t } = useTranslation("branding");
   const { api, toast } = useDetailPageHost();
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
@@ -83,24 +85,26 @@ export function GroupPromptEditPanel({
         return (r.svg ?? "").trim() !== (src.current_svg ?? "").trim();
       });
       if (changed.length === 0) {
-        toast.info("바뀐 내용이 없어요. 다르게 요청해 보세요.");
+        toast.info(t("detailPage.promptEdit.noChange"));
       } else {
         onApplied(changed);
-        toast.success("그룹을 수정했어요.");
+        toast.success(t("detailPage.promptEdit.groupSuccess"));
         setInput("");
       }
     } catch (err) {
       const quota = api.asEditQuotaError(err);
       if (quota) {
         onUsage?.(quota.kind, quota.limit, quota.limit);
-        toast.error("편집 한도를 모두 사용했어요.");
+        toast.error(t("detailPage.promptEdit.quotaExhausted"));
       } else {
-        toast.error(err instanceof Error ? err.message : "수정 요청이 실패했어요.");
+        // 원문은 콘솔로만 — 서버 문구를 그대로 띄우지 않는다.
+        console.error("Group prompt edit failed", err);
+        toast.error(t("detailPage.promptEdit.requestFailed"));
       }
     } finally {
       setBusy(false);
     }
-  }, [api, toast, input, busy, blocked, items, generatedId, onApplied, onUsage]);
+  }, [api, toast, input, busy, blocked, items, generatedId, onApplied, onUsage, t]);
 
   // 배지는 그룹에 텍스트가 있으면 텍스트, 아니면 SVG 사용량을 대표로 보여준다.
   const badgeUsed = hasText ? textUsed : svgUsed;
@@ -110,7 +114,9 @@ export function GroupPromptEditPanel({
     <div className="flex flex-col overflow-hidden rounded-le-xl border border-le-ink-200 bg-le-surface">
       <div className="flex items-center gap-1.5 border-b border-le-ink-200 px-3 py-2">
         <Sparkles size={13} className="text-le-ai" />
-        <span className="text-xs font-le-medium text-le-ink-900">프롬프트로 편집</span>
+        <span className="text-xs font-le-medium text-le-ink-900">
+          {t("detailPage.promptEdit.header")}
+        </span>
         {unlimited || badgeLimit > 0 ? (
           <EditUsageBadge used={badgeUsed} limit={badgeLimit} unlimited={unlimited} />
         ) : null}
@@ -130,7 +136,9 @@ export function GroupPromptEditPanel({
             }}
             rows={2}
             placeholder={
-              busy ? "수정 중…" : '어떻게 바꿀까요? (예: "더 힘있게", "톤을 통일해서")'
+              busy
+                ? t("detailPage.promptEdit.editing")
+                : t("detailPage.promptEdit.groupPlaceholder")
             }
             disabled={busy}
             className="max-h-32 flex-1 resize-none bg-transparent px-2 py-1.5 text-[13px] leading-5 text-le-ink-900 outline-none placeholder:text-le-ink-400 disabled:opacity-60"
@@ -140,7 +148,7 @@ export function GroupPromptEditPanel({
             onClick={send}
             disabled={busy || !input.trim()}
             className="grid h-8 w-8 shrink-0 place-items-center rounded-le-lg bg-le-ink-900 text-le-on-accent disabled:opacity-40"
-            aria-label="프롬프트로 수정"
+            aria-label={t("detailPage.promptEdit.send")}
           >
             {busy ? (
               <Loader2 size={15} className="animate-spin" />

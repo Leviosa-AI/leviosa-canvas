@@ -2556,7 +2556,7 @@ export const ElementAiEditPanel = observer(function ElementAiEditPanel({
   // 선택 이미지를 base로 프롬프트 방향으로 재생성(크레딧 과금). data URI면 base64로,
   // http(s) URL이면 그대로 넘긴다. 402는 크레딧 부족 마커로 승격.
   const editImage = useCallback<GenerateImageFn>(
-    async ({ prompt, tier, brandId, annotatedImage }) => {
+    async ({ prompt, tier, brandId, annotatedImage, signal }) => {
       // 문서 id 는 없어도 된다 — 그림과 지시만으로 도는 일이다(캐러셀이 그렇다).
       if (!single) return [];
       const src = str(single.src);
@@ -2572,7 +2572,7 @@ export const ElementAiEditPanel = observer(function ElementAiEditPanel({
           annotated_image: annotatedImage,
           tier,
           brand_id: brandId,
-        });
+        }, signal);
         return res.url ? [res.url] : [];
       } catch (err) {
         const short = api.asInsufficientCreditsError(err);
@@ -2590,7 +2590,7 @@ export const ElementAiEditPanel = observer(function ElementAiEditPanel({
   // 선택 이미지를 레퍼런스로 넣어 GIF 생성. 백엔드 load_reference_bytes는 data:/http(s)를
   // 받으므로 편집기 src(상대경로·blob·동일출처 프록시)를 data URI로 바꿔 넘긴다(alpha 보존).
   const editGif = useCallback<GenerateGifFn>(
-    async ({ prompt, referenceImages, transparent, brandId }) => {
+    async ({ prompt, referenceImages, transparent, brandId, signal }) => {
       if (!single || !onGenerateGif) return [];
       const reference = await resolveReferenceSrc(str(single.src));
       return onGenerateGif({
@@ -2598,6 +2598,7 @@ export const ElementAiEditPanel = observer(function ElementAiEditPanel({
         referenceImages: reference ? [reference, ...referenceImages] : referenceImages,
         transparent,
         brandId,
+        signal,
       });
     },
     [single, onGenerateGif],

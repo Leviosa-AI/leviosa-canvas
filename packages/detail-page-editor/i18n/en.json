@@ -631,7 +631,9 @@
         "header": "Edit with a prompt",
         "editing": "Editing…",
         "textPlaceholder": "How should it change? (e.g. \"make it punchier\", \"short and concise\")",
-        "send": "Apply edit"
+        "send": "Apply edit",
+        "groupSuccess": "Group updated.",
+        "groupPlaceholder": "How should it change? (e.g. \"punchier\", \"unify the tone\")"
       },
       "specPromptEdit": {
         "section": "Edit with AI",
@@ -703,7 +705,8 @@
         "generating": "Generating…",
         "generateGif": "Generate GIF",
         "replaceImage": "Replace image",
-        "generate": "Generate"
+        "generate": "Generate",
+        "cancel": "Cancel"
       },
       "annotate": {
         "baseUnavailable": "This image can't be drawn on. Please describe the change instead.",
@@ -928,6 +931,71 @@
         "loadFailed": "Could not load your references.",
         "empty": "No saved references yet. Save a detail page you like and it is ready to reference on your next product.",
         "screenCount": "{{count}} screens"
+      },
+      "designReference": {
+        "title": "Design references",
+        "description": "Pictures to point at a “design like this”. Unlike product photos they don't go on the page — they only guide structure and colour. Up to {{max}}.",
+        "ordinal": "#{{n}}",
+        "remove": "Remove reference {{ordinal}}",
+        "add": "Add reference",
+        "instruction": "Reference instruction",
+        "instructionPlaceholder": "Use the colours and fonts of #1 and the layout of #2",
+        "reading": "Reading…",
+        "reread": "Read again",
+        "read": "Read references",
+        "creditNote": "Each read costs {{credits}} credits ({{count}} references · larger and taller pictures cost more).",
+        "attachFailed": "Couldn't attach the reference picture.",
+        "insufficient": "Not enough credits. Reading {{count}} references needs {{credits}} credits ({{remaining}} left).",
+        "readFailed": "Couldn't read the references.",
+        "nothingRead": "Nothing could be read from the references. Try pictures where the layout is clearly visible.",
+        "suggestionNote": "This reading is a suggestion. If you change the design tone above, your choice wins.",
+        "aspects": {
+          "palette": {
+            "label": "Palette",
+            "hint": "How background, text and accent colours relate"
+          },
+          "typography": {
+            "label": "Typography",
+            "hint": "Weight contrast and type-size rhythm"
+          },
+          "layout": {
+            "label": "Layout",
+            "hint": "Columns, alignment, spacing rhythm"
+          },
+          "content": {
+            "label": "Content",
+            "hint": "Which information is covered and in what order"
+          },
+          "mood": {
+            "label": "Mood",
+            "hint": "Amount of whitespace and element density"
+          },
+          "decoration": {
+            "label": "Decoration",
+            "hint": "Character of dividers and shapes"
+          },
+          "imagery": {
+            "label": "Imagery",
+            "hint": "Photo direction — composition, props, lighting, tone"
+          }
+        },
+        "tone": {
+          "casual": "Casual",
+          "minimal": "Minimal",
+          "info": "Informative",
+          "ad-like": "Ad-like",
+          "premium": "Premium",
+          "cute": "Cute",
+          "tech": "Tech",
+          "natural": "Natural",
+          "editorial": "Editorial"
+        },
+        "density": {
+          "airy": "Airy",
+          "editorial": "Editorial",
+          "compact": "Compact",
+          "cozy": "Cozy"
+        }
       }
     }
   },
