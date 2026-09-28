@@ -138,7 +138,7 @@ describe("DetailPageDownloadDialog", () => {
     const user = userEvent.setup();
     render(<DetailPageDownloadDialog store={makeStore(3)} />);
 
-    const dialog = await openWithPlatform(user, "일반(범용)");
+    const dialog = await openWithPlatform(user, "detailPage.exportPlatforms.general");
     // 3 pages selected (default scope = all)
     expect(within(dialog).getByText(/editor\.pagesCount:3/)).toBeInTheDocument();
     // 750 wide x (3 * 1000) tall at 1x
@@ -158,7 +158,7 @@ describe("DetailPageDownloadDialog", () => {
     expect(within(dialog).queryByText("editor.downloadAction")).toBeNull();
     expect(within(dialog).getByText("editor.platformFirstHint")).toBeInTheDocument();
 
-    await choosePlatform(user, "네이버 스마트 스토어");
+    await choosePlatform(user, "detailPage.exportPlatforms.naver");
     expect(within(dialog).getByText("editor.fileFormat")).toBeInTheDocument();
     expect(within(dialog).getByText("editor.downloadAction")).toBeInTheDocument();
     expect(within(dialog).queryByText("editor.platformFirstHint")).toBeNull();
@@ -172,7 +172,7 @@ describe("DetailPageDownloadDialog", () => {
     vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(() => {});
     render(<DetailPageDownloadDialog store={store} fileName="my-page" />);
 
-    const dialog = await openWithPlatform(user, "네이버 스마트 스토어");
+    const dialog = await openWithPlatform(user, "detailPage.exportPlatforms.naver");
     expect(within(dialog).queryByText("editor.resolution")).toBeNull();
     expect(within(dialog).getByText(/860 × 2,293 px/)).toBeInTheDocument();
     expect(within(dialog).getByText(/editor\.platformWidthNote/)).toBeInTheDocument();
@@ -195,7 +195,7 @@ describe("DetailPageDownloadDialog", () => {
     vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(() => {});
     render(<DetailPageDownloadDialog store={store} fileName="my-page" />);
 
-    const dialog = await openWithPlatform(user, "네이버 스마트 스토어");
+    const dialog = await openWithPlatform(user, "detailPage.exportPlatforms.naver");
     // 페이지 범위를 현재 페이지(p0, 750px)로 좁힌다.
     await user.click(within(dialog).getAllByRole("combobox")[2]);
     await user.click(await screen.findByRole("option", { name: "editor.pageScopeCurrent" }));
@@ -212,7 +212,7 @@ describe("DetailPageDownloadDialog", () => {
     const user = userEvent.setup();
     render(<DetailPageDownloadDialog store={makeStore(1)} />);
 
-    const dialog = await openWithPlatform(user, "일반(범용)");
+    const dialog = await openWithPlatform(user, "detailPage.exportPlatforms.general");
     expect(within(dialog).getByText("editor.resolution")).toBeInTheDocument();
     expect(within(dialog).queryByText(/editor\.platformWidthNote/)).toBeNull();
   });
@@ -223,12 +223,12 @@ describe("DetailPageDownloadDialog", () => {
     const user = userEvent.setup();
     render(<DetailPageDownloadDialog store={makeStore(2, { animated: true })} />);
 
-    const dialog = await openWithPlatform(user, "쿠팡");
+    const dialog = await openWithPlatform(user, "detailPage.exportPlatforms.coupang");
     const animationSelect = () => within(dialog).getAllByRole("combobox").at(-1)!;
     expect(within(dialog).getByText("editor.animationFormat")).toBeInTheDocument();
     expect(await optionTexts(user, animationSelect())).toEqual(["editor.animationWebp"]);
 
-    await choosePlatform(user, "네이버 스마트 스토어");
+    await choosePlatform(user, "detailPage.exportPlatforms.naver");
     expect(await optionTexts(user, animationSelect())).toEqual(["editor.animationGif"]);
     expect(within(dialog).getByText("editor.animationGifNote")).toBeInTheDocument();
   });
@@ -240,13 +240,13 @@ describe("DetailPageDownloadDialog", () => {
     const user = userEvent.setup();
     render(<DetailPageDownloadDialog store={makeStore(1, { animated: true })} />);
 
-    const dialog = await openWithPlatform(user, "일반(범용)");
+    const dialog = await openWithPlatform(user, "detailPage.exportPlatforms.general");
     const animationSelect = () => within(dialog).getAllByRole("combobox").at(-1)!;
     await user.click(animationSelect());
     await user.click(await screen.findByRole("option", { name: "editor.animationWebp" }));
     expect(within(dialog).getByText("editor.animationWebpNote")).toBeInTheDocument();
 
-    await choosePlatform(user, "카페24");
+    await choosePlatform(user, "detailPage.exportPlatforms.cafe24");
     expect(within(dialog).getByText("editor.animationGifNote")).toBeInTheDocument();
     expect(within(dialog).queryByText("editor.animationWebpNote")).toBeNull();
   });
@@ -257,7 +257,7 @@ describe("DetailPageDownloadDialog", () => {
     vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(() => {});
     render(<DetailPageDownloadDialog store={store} fileName="my-page" />);
 
-    const dialog = await openWithPlatform(user, "네이버 스마트 스토어");
+    const dialog = await openWithPlatform(user, "detailPage.exportPlatforms.naver");
     await user.click(within(dialog).getByText("editor.downloadAction"));
 
     await vi.waitFor(() => expect(gifExport.exportGifZip).toHaveBeenCalled());
@@ -290,7 +290,7 @@ describe("DetailPageDownloadDialog", () => {
     });
     render(<DetailPageDownloadDialog store={store} fileName="my-page" />);
 
-    const dialog = await openWithPlatform(user, "카페24");
+    const dialog = await openWithPlatform(user, "detailPage.exportPlatforms.cafe24");
     await chooseFormat(user, "JPG");
     await user.click(within(dialog).getByText("editor.downloadAction"));
 
@@ -324,7 +324,7 @@ describe("DetailPageDownloadDialog", () => {
     });
     render(<DetailPageDownloadDialog store={store} fileName="my-page" />);
 
-    const dialog = await openWithPlatform(user, "카페24");
+    const dialog = await openWithPlatform(user, "detailPage.exportPlatforms.cafe24");
     await user.click(within(dialog).getByText("editor.downloadAction"));
 
     await vi.waitFor(() => expect(names).toEqual(["my-page-cafe24.jpg"]));
@@ -339,7 +339,7 @@ describe("DetailPageDownloadDialog", () => {
     expect(within(dialog).queryByText(/editor\.sizeUnfitNote/)).toBeNull();
 
     // 그 안내는 카페24·PNG 에 대한 말이다. 플랫폼을 바꾸면 사라진다.
-    await choosePlatform(user, "네이버 스마트 스토어");
+    await choosePlatform(user, "detailPage.exportPlatforms.naver");
     expect(within(dialog).queryByText(/editor\.formatFallbackNote/)).toBeNull();
   });
 
@@ -350,7 +350,7 @@ describe("DetailPageDownloadDialog", () => {
     const clickSpy = vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(() => {});
     render(<DetailPageDownloadDialog store={store} fileName="my-page" />);
 
-    const dialog = await openWithPlatform(user, "카페24");
+    const dialog = await openWithPlatform(user, "detailPage.exportPlatforms.cafe24");
     await user.click(within(dialog).getByText("editor.downloadAction"));
 
     await vi.waitFor(() => expect(clickSpy).toHaveBeenCalledTimes(1));
@@ -435,7 +435,7 @@ describe("DetailPageDownloadDialog", () => {
     const user = userEvent.setup();
     render(<DetailPageDownloadDialog store={makeStore(1)} />);
 
-    const dialog = await openWithPlatform(user, "일반(범용)");
+    const dialog = await openWithPlatform(user, "detailPage.exportPlatforms.general");
 
     const action = within(dialog).getByText("editor.downloadAction").closest("button")!;
     expect(action.className).toContain("text-le-on-accent");
@@ -465,7 +465,7 @@ describe("DetailPageDownloadDialog", () => {
       .mockImplementation(() => {});
     render(<DetailPageDownloadDialog store={store} fileName="my-page" />);
 
-    const dialog = await openWithPlatform(user, "일반(범용)");
+    const dialog = await openWithPlatform(user, "detailPage.exportPlatforms.general");
     await user.click(within(dialog).getByText("editor.downloadAction"));
 
     await vi.waitFor(() => expect(store.toDataURL).toHaveBeenCalled());
@@ -485,7 +485,7 @@ describe("DetailPageDownloadDialog", () => {
         slotBindings={{ "p1.title": { element_id: "e1" } }}
       />,
     );
-    await openWithPlatform(user, "네이버 스마트 스토어");
+    await openWithPlatform(user, "detailPage.exportPlatforms.naver");
     await chooseFormat(user, "editor.formatPsd");
 
     const dialog = screen.getByRole("dialog");
@@ -511,7 +511,7 @@ describe("DetailPageDownloadDialog", () => {
   it("svg: shows vector info and delegates to exportSvgBlobs", async () => {
     const user = userEvent.setup();
     render(<DetailPageDownloadDialog store={makeStore(2)} fileName="my-page" />);
-    await openWithPlatform(user, "네이버 스마트 스토어");
+    await openWithPlatform(user, "detailPage.exportPlatforms.naver");
     await chooseFormat(user, "editor.formatSvg");
 
     const dialog = screen.getByRole("dialog");
@@ -535,7 +535,7 @@ describe("DetailPageDownloadDialog", () => {
   it("ai: shows vector info and delegates to exportAiBlob", async () => {
     const user = userEvent.setup();
     render(<DetailPageDownloadDialog store={makeStore(2)} fileName="my-page" />);
-    await openWithPlatform(user, "네이버 스마트 스토어");
+    await openWithPlatform(user, "detailPage.exportPlatforms.naver");
     await chooseFormat(user, "editor.formatAi");
 
     const dialog = screen.getByRole("dialog");
@@ -561,7 +561,7 @@ describe("DetailPageDownloadDialog", () => {
     // 17 pages × 1000px overshoots Illustrator's 16,383px artboard; merging
     // there would produce a file Illustrator refuses to open.
     render(<DetailPageDownloadDialog store={makeStore(17)} fileName="my-page" />);
-    await openWithPlatform(user, "네이버 스마트 스토어");
+    await openWithPlatform(user, "detailPage.exportPlatforms.naver");
     await chooseFormat(user, "editor.formatAi");
 
     const dialog = screen.getByRole("dialog");
@@ -585,7 +585,7 @@ describe("DetailPageDownloadDialog", () => {
       names.push(this.download);
     });
     render(<DetailPageDownloadDialog store={makeStore(2)} fileName="my-page" />);
-    const dialog = await openWithPlatform(user, "네이버 스마트 스토어");
+    const dialog = await openWithPlatform(user, "detailPage.exportPlatforms.naver");
     await user.click(within(dialog).getByRole("switch"));
     await user.click(within(dialog).getByText("editor.downloadAction"));
 
@@ -603,7 +603,7 @@ describe("DetailPageDownloadDialog", () => {
       names.push(this.download);
     });
     render(<DetailPageDownloadDialog store={store} fileName="my-page" />);
-    const dialog = await openWithPlatform(user, "네이버 스마트 스토어");
+    const dialog = await openWithPlatform(user, "detailPage.exportPlatforms.naver");
 
     const toggle = within(dialog).getByRole("switch");
     expect(toggle).toBeDisabled();
@@ -620,7 +620,7 @@ describe("DetailPageDownloadDialog", () => {
     const store = makeStore(1);
     vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(() => {});
     render(<DetailPageDownloadDialog store={store} />);
-    await openWithPlatform(user, "네이버 스마트 스토어");
+    await openWithPlatform(user, "detailPage.exportPlatforms.naver");
     await chooseFormat(user, "JPG");
 
     const dialog = screen.getByRole("dialog");
@@ -640,7 +640,7 @@ describe("DetailPageDownloadDialog", () => {
   it("pdf: AI 와 같은 작성기로 굽고 .pdf 로 내려받는다", async () => {
     const user = userEvent.setup();
     render(<DetailPageDownloadDialog store={makeStore(2)} fileName="my-page" />);
-    await openWithPlatform(user, "네이버 스마트 스토어");
+    await openWithPlatform(user, "detailPage.exportPlatforms.naver");
     await chooseFormat(user, "editor.formatPdf");
 
     const dialog = screen.getByRole("dialog");
@@ -660,7 +660,7 @@ describe("DetailPageDownloadDialog", () => {
       return new Blob(["psd"]);
     });
     render(<DetailPageDownloadDialog store={makeStore(1)} fileName="my-page" />);
-    await openWithPlatform(user, "네이버 스마트 스토어");
+    await openWithPlatform(user, "detailPage.exportPlatforms.naver");
     await chooseFormat(user, "editor.formatPsd");
     const dialog = screen.getByRole("dialog");
     await user.click(within(dialog).getByText("editor.downloadAction"));
@@ -680,7 +680,7 @@ describe("DetailPageDownloadDialog", () => {
       }),
     );
     render(<DetailPageDownloadDialog store={makeStore(2)} fileName="my-page" />);
-    await openWithPlatform(user, "네이버 스마트 스토어");
+    await openWithPlatform(user, "detailPage.exportPlatforms.naver");
     await chooseFormat(user, "editor.formatPsd");
     const dialog = screen.getByRole("dialog");
     await user.click(within(dialog).getByText("editor.downloadAction"));

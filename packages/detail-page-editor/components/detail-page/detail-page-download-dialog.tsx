@@ -565,7 +565,7 @@ export const DetailPageDownloadDialog = observer(function DetailPageDownloadDial
                   <SelectContent>
                     {EXPORT_PLATFORMS.map((p) => (
                       <SelectItem key={p.value} value={p.value}>
-                        {p.label}
+                        {t(p.labelKey, { defaultValue: p.label })}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -733,7 +733,7 @@ export const DetailPageDownloadDialog = observer(function DetailPageDownloadDial
                       <li>
                         •{" "}
                         {t("editor.platformWidthNote", {
-                          platform: chosen.label,
+                          platform: t(chosen.labelKey, { defaultValue: chosen.label }),
                           width: chosen.width.toLocaleString(),
                         })}
                       </li>
