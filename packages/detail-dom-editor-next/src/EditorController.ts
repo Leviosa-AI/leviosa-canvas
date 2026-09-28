@@ -1,12 +1,16 @@
 // Copyright © 2026 주식회사레비오사에이아이. All rights reserved. See LICENSE.
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import {
   applyPatch,
   documentSha256,
+  DPNEXT_ROOT_PARENT_ID,
+  DpnextRevisionConflict,
   validateDocument,
   type DetailDocumentPatchV1,
   type DetailDocumentV2,
+  type DpnextNode,
+  type DpnextPatchOperation,
 } from "../../detail-document-next/src";
 import { History } from "./History";
 
@@ -46,6 +50,32 @@ async function snapshotFor(document: DetailDocumentV2): Promise<EditorSnapshot> 
   return { document: clone, sha256: await documentSha256(clone) };
 }
 
+// 현재 최상위 섹션 목록을 desired로 되돌리는 연산: 없어진 섹션은 제자리에 다시 넣고, 새로 생긴 섹션은 지운다.
+function restoreOperations(current: DpnextNode[], desired: DpnextNode[]): DpnextPatchOperation[] {
+  const wanted = new Set(desired.map((section) => section.id));
+  const operations: DpnextPatchOperation[] = [];
+  const order: string[] = [];
+  for (const section of current) {
+    if (wanted.has(section.id)) order.push(section.id);
+    else operations.push({ op: "remove_node", node_id: section.id });
+  }
+  desired.forEach((section, index) => {
+    const at = order.indexOf(section.id);
+    if (at === -1) {
+      operations.push({ op: "insert_node", parent_id: DPNEXT_ROOT_PARENT_ID, index, value: structuredClone(section) });
+      order.splice(index, 0, section.id);
+      return;
+    }
+    if (at !== index) {
+      operations.push({ op: "move_node", node_id: section.id, parent_id: DPNEXT_ROOT_PARENT_ID, index });
+      order.splice(at, 1);
+      order.splice(index, 0, section.id);
+    }
+    operations.push({ op: "replace_section", node_id: section.id, value: structuredClone(section) });
+  });
+  return operations;
+}
+
 function shortcutIntent(event: Pick<KeyboardEvent, "key" | "metaKey" | "ctrlKey" | "shiftKey">): "undo" | "redo" | null {
   if (!(event.metaKey || event.ctrlKey) || event.key.toLowerCase() !== "z") return null;
   return event.shiftKey ? "redo" : "undo";
@@ -72,17 +102,33 @@ export function useEditorController(initialDocument: DetailDocumentV2): EditorCo
     error: null,
   });
 
-  const publish = useCallback((snapshot: EditorSnapshot, selection = state.selection, error: string | null = null) => {
-    setState({
+  // 커밋·undo·redo·load를 한 줄로 세워, 비동기 SHA 계산 사이에 다른 커밋이 끼어들지 못하게 한다.
+  const queue = useRef<Promise<unknown>>(Promise.resolve());
+  const serial = useCallback(<T>(task: () => Promise<T>): Promise<T> => {
+    const run = queue.current.then(task, task);
+    queue.current = run.catch(() => undefined);
+    return run;
+  }, []);
+
+  // 적용 직전에 기준 문서가 그대로인지 다시 확인한다.
+  const assertBase = useCallback((base: EditorSnapshot) => {
+    const present = history.current();
+    if (present.sha256 !== base.sha256 || present.document.revision !== base.document.revision) {
+      throw new DpnextRevisionConflict("DetailDocument changed during commit");
+    }
+  }, [history]);
+
+  const publish = useCallback((snapshot: EditorSnapshot) => {
+    setState((current) => ({
       ...cloneSnapshot(snapshot),
-      selection,
+      selection: current.selection,
       canUndo: history.canUndo(),
       canRedo: history.canRedo(),
-      error,
-    });
-  }, [history, state.selection]);
+      error: null,
+    }));
+  }, [history]);
 
-  const loadDocument = useCallback(async (document: DetailDocumentV2) => {
+  const loadDocument = useCallback((document: DetailDocumentV2) => serial(async () => {
     const next = await snapshotFor(document);
     history.replace(next);
     setState({
@@ -92,7 +138,7 @@ export function useEditorController(initialDocument: DetailDocumentV2): EditorCo
       canRedo: false,
       error: null,
     });
-  }, [history]);
+  }), [history, serial]);
 
   useEffect(() => {
     let cancelled = false;
@@ -112,42 +158,43 @@ export function useEditorController(initialDocument: DetailDocumentV2): EditorCo
     };
   }, [history, initialDocument]);
 
-  const applyValidatedPatch = useCallback(async (patch: DetailDocumentPatchV1) => {
+  const applyValidatedPatch = useCallback((patch: DetailDocumentPatchV1) => serial(async () => {
     const current = history.current();
     const nextDocument = applyPatch(current.document, patch, current.sha256, { allowUserOwned: true });
     const next = await snapshotFor(nextDocument);
+    assertBase(current);
     history.push(next);
-    publish(next, state.selection);
+    publish(next);
     return cloneSnapshot(next);
-  }, [history, publish, state.selection]);
+  }), [assertBase, history, publish, serial]);
 
   const setSelection = useCallback((nodeIds: string[]) => {
     setState((current) => ({ ...current, selection: [...nodeIds] }));
   }, []);
 
-  const restore = useCallback(async (direction: "undo" | "redo"): Promise<EditorCommit | null> => {
-    if (direction === "undo" ? !history.canUndo() : !history.canRedo()) return null;
+  const restore = useCallback((direction: "undo" | "redo") => serial(async (): Promise<EditorCommit | null> => {
+    const desired = history.peek(direction);
+    if (!desired) return null;
     const current = history.current();
-    const desired = direction === "undo" ? history.undo() : history.redo();
     const patch: DetailDocumentPatchV1 = {
       schema_version: "detail-document-patch-v1",
       document_id: current.document.document_id,
       base_revision: current.document.revision,
       base_sha256: current.sha256,
       intent: direction,
-      operations: desired.document.sections.map((section) => ({
-        op: "replace_section" as const,
-        node_id: section.id,
-        value: structuredClone(section),
-      })),
+      operations: restoreOperations(current.document.sections, desired.document.sections),
     };
     const restored = await snapshotFor(
       applyPatch(current.document, patch, current.sha256, { allowUserOwned: true }),
     );
+    assertBase(current);
+    // 복원이 성공한 뒤에만 커서를 옮긴다.
+    if (direction === "undo") history.undo();
+    else history.redo();
     history.replacePresent(restored);
     publish(restored);
     return { ...cloneSnapshot(restored), patch };
-  }, [history, publish]);
+  }), [assertBase, history, publish, serial]);
 
   const undo = useCallback(() => restore("undo"), [restore]);
   const redo = useCallback(() => restore("redo"), [restore]);

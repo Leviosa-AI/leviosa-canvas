@@ -4,6 +4,9 @@ import { validateDocument, validatePatch } from "./validate";
 
 export class DpnextRevisionConflict extends Error {}
 
+// insert_node·move_node의 parent_id로 쓰면 최상위 sections 배열을 가리킨다.
+export const DPNEXT_ROOT_PARENT_ID = "$root";
+
 const PATCH_OPERATIONS = new Set([
   "replace_text",
   "set_style",
@@ -24,6 +27,14 @@ function locate(nodes: DpnextNode[], nodeId: string): { node: DpnextNode; parent
     if (child) return child;
   }
   return null;
+}
+
+function childList(sections: DpnextNode[], parentId: string): DpnextNode[] {
+  if (parentId === DPNEXT_ROOT_PARENT_ID) return sections;
+  const parent = locate(sections, parentId);
+  if (!parent) throw new Error(`missing parent: ${parentId}`);
+  parent.node.children ??= [];
+  return parent.node.children;
 }
 
 export function applyPatch(
@@ -48,10 +59,7 @@ export function applyPatch(
       throw new Error(`unsupported patch operation: ${operation.op}`);
     }
     if (operation.op === "insert_node") {
-      const target = locate(next.sections, operation.parent_id);
-      if (!target) throw new Error(`missing parent: ${operation.parent_id}`);
-      target.node.children ??= [];
-      target.node.children.splice(operation.index, 0, structuredClone(operation.value));
+      childList(next.sections, operation.parent_id).splice(operation.index, 0, structuredClone(operation.value));
       continue;
     }
     const target = locate(next.sections, operation.node_id);
@@ -63,10 +71,7 @@ export function applyPatch(
       target.parent.splice(target.index, 1);
     } else if (operation.op === "move_node") {
       const [moving] = target.parent.splice(target.index, 1);
-      const parent = locate(next.sections, operation.parent_id);
-      if (!parent) throw new Error(`missing parent: ${operation.parent_id}`);
-      parent.node.children ??= [];
-      parent.node.children.splice(operation.index, 0, moving);
+      childList(next.sections, operation.parent_id).splice(operation.index, 0, moving);
     } else if (operation.op === "replace_text") {
       target.node.content = operation.value;
     } else if (operation.op === "set_style") {

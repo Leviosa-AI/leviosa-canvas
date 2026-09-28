@@ -24,3 +24,15 @@ describe("dpnext lab inspector layout fields", () => {
     expect((screen.getByLabelText("height") as HTMLInputElement).value).toBe("");
   });
 });
+
+describe("dpnext lab embed nonce", () => {
+  it("refuses to talk to the parent when embedded without a nonce", () => {
+    window.history.replaceState(null, "", "/?mode=embed");
+    try {
+      render(<LabApp />);
+      expect(screen.getByRole("alert")).toHaveTextContent("nonce");
+    } finally {
+      window.history.replaceState(null, "", "/");
+    }
+  });
+});
