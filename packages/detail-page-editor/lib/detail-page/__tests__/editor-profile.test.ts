@@ -13,7 +13,7 @@ describe("편집기 설정표", () => {
     expect(detailPageEditorProfile()).toEqual({
       page: { width: "document", height: "auto", fixed: false },
       maxPages: Number.POSITIVE_INFINITY,
-      exports: ["png", "jpeg", "psd", "ai", "svg"],
+      exports: ["png", "jpeg", "psd", "ai", "pdf", "svg"],
       registerPlatform: true,
       wording: "section",
     });
@@ -27,7 +27,7 @@ describe("편집기 설정표", () => {
       maxPages: 10,
       // 형식은 상세페이지와 같다. 다른 것은 기본값(첫 항목)이 JPG 라는 것과,
       // 인스타그램 한 곳으로만 나가므로 등록 플랫폼을 안 묻는다는 것뿐이다.
-      exports: ["jpeg", "png", "psd", "ai", "svg"],
+      exports: ["jpeg", "png", "psd", "ai", "pdf", "svg"],
       registerPlatform: false,
       wording: "plate",
     });

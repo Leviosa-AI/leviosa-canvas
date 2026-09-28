@@ -46,6 +46,13 @@
       "svgNote": "Drag into a Figma canvas to keep layers editable",
       "aiNote": "Font subsets preserve appearance; typing new characters requires the same font installed",
       "aiOverflowNote": "Taller than the {{limit}}px artboard limit — saved as one artboard per page",
+      "formatPdf": "PDF",
+      "pdfNote": "Saved as vector pages; text stays selectable and searchable",
+      "jpegQuality": "JPG quality",
+      "mergeTooLargeHint": "The merged image would exceed the browser limit ({{limit}}px), so pages are saved as separate images in a ZIP",
+      "missingImagesNote": "{{count}} image(s) could not be loaded and were left blank. Re-upload them and export again.",
+      "psdTooLarge": "PSD files are limited to {{limit}}px per side. Export the current page only, or choose another format.",
+      "psdExportCurrentPage": "Export the current page as PSD",
       "exporting": "Exporting...",
       "downloadAction": "Download"
     },

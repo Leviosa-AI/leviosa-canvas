@@ -162,6 +162,7 @@ function elementBounds(el: ExportElement, matrix: Matrix, extraHeight = 0) {
  */
 export class PsdTooLargeError extends Error {
   readonly code = "PSD_TOO_LARGE";
+  readonly limit = PSD_MAX_DIMENSION;
   constructor(
     readonly width: number,
     readonly height: number,
