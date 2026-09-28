@@ -57,12 +57,16 @@ function nextPaint(): Promise<void> {
   });
 }
 
-/** 이 페이지의 그림이 전부 캐시에 오를 때까지. 그 뒤 한 프레임을 더 기다린다. */
+/**
+ * 이 페이지의 그림이 전부 캐시에 오를 때까지. 그 뒤 한 프레임을 더 기다린다.
+ * **못 받은 주소들**을 돌려준다(다 받았으면 빈 배열) — 조용히 빠진 채 굽지 않게.
+ */
 export async function waitForPageImages(page: {
   children?: readonly ElementLike[];
-}): Promise<void> {
+}): Promise<string[]> {
   const sources = pageImageSources(page);
-  if (!sources.length) return;
-  await loadImages(sources);
+  if (!sources.length) return [];
+  const failed = await loadImages(sources);
   await nextPaint();
+  return failed;
 }

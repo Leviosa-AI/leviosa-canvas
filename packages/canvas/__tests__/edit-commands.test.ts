@@ -7,7 +7,7 @@
  * 어긋나게 놓이는 것.
  */
 
-import { beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
   alignElements,
@@ -18,7 +18,9 @@ import {
   isClipboardEmpty,
   moveElements,
   pasteElements,
+  pasteExternal,
 } from "../edit/commands";
+import { clearImageCache } from "../render/image-cache";
 import { elementRect } from "../edit/rect";
 import { createCanvasStore } from "../store";
 import type { DocumentJson } from "../types";
@@ -187,5 +189,80 @@ describe("클립보드", () => {
     expect(isClipboardEmpty()).toBe(true);
     expect(pasteElements(store)).toEqual([]);
     expect(store.pages[0].children).toHaveLength(3);
+  });
+
+  it("들어가 있는 그룹이 있으면 그 안에, 그룹 기준 좌표로 붙인다", () => {
+    const store = createCanvasStore(doc());
+    store.getElementById("grp")!.set({ x: 30, y: 20 });
+    store.selectElements(["a"]);
+    copyElements(store);
+    const made = pasteElements(store, "grp");
+    const copy = store.getElementById(made[0])!;
+    expect(copy.parent).toBe(store.getElementById("grp"));
+    // 보이는 자리는 a(100,40) + 50 어긋남 — 그룹 오프셋만큼 빼서 든다.
+    expect(copy.absolutePosition).toEqual({ x: 150, y: 90 });
+  });
+
+  it("옮긴 그룹 안에서 복사해 밖에 붙이면 보이던 자리에 놓인다", () => {
+    const store = createCanvasStore(doc());
+    store.getElementById("grp")!.set({ x: 30, y: 20 });
+    store.selectElements(["g1"]);
+    copyElements(store);
+    const made = pasteElements(store);
+    const copy = store.getElementById(made[0])!;
+    expect(copy.parent).toBe(store.pages[0]);
+    expect({ x: copy.x, y: copy.y }).toEqual({ x: 90, y: 80 });
+  });
+});
+
+describe("pasteExternal", () => {
+  class FakeImage {
+    crossOrigin = "";
+    onload: (() => void) | null = null;
+    onerror: (() => void) | null = null;
+    naturalWidth = 2000;
+    naturalHeight = 500;
+    set src(_: string) {
+      queueMicrotask(() => this.onload?.());
+    }
+  }
+
+  beforeEach(() => {
+    clearImageCache();
+    vi.stubGlobal("Image", FakeImage);
+    let n = 0;
+    vi.spyOn(URL, "createObjectURL").mockImplementation(() => `blob:x${++n}`);
+  });
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    vi.restoreAllMocks();
+  });
+
+  it("그림 파일은 페이지에 맞춰 줄인 image 요소가 된다", async () => {
+    const store = createCanvasStore(doc());
+    const file = new File(["x"], "a.png", { type: "image/png" });
+    const made = await pasteExternal(store, { files: [file] });
+    const el = store.getElementById(made[0])!;
+    expect(el.type).toBe("image");
+    expect(el.src).toBe("blob:x1");
+    // 1000 × 0.8 = 800 폭, 비율 유지
+    expect({ w: el.width, h: el.height }).toEqual({ w: 800, h: 200 });
+    expect({ x: el.x, y: el.y }).toEqual({ x: 100, y: 150 });
+    expect(store.selectedElementsIds).toEqual(made);
+  });
+
+  it("글자만 있으면 text 요소 하나", async () => {
+    const store = createCanvasStore(doc());
+    const made = await pasteExternal(store, { text: "  안녕  " });
+    const el = store.getElementById(made[0])!;
+    expect(el.type).toBe("text");
+    expect(el.text).toBe("안녕");
+  });
+
+  it("그림이 아닌 파일과 빈 글자는 무시한다", async () => {
+    const store = createCanvasStore(doc());
+    const file = new File(["x"], "a.txt", { type: "text/plain" });
+    expect(await pasteExternal(store, { files: [file], text: " " })).toEqual([]);
+    expect(store.history.canUndo).toBe(false);
   });
 });

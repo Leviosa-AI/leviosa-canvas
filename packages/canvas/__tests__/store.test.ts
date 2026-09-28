@@ -1,5 +1,5 @@
 // Copyright © 2026 주식회사레비오사에이아이. All rights reserved. See LICENSE.
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import {
   createCanvasStore,
@@ -294,6 +294,29 @@ describe("CanvasStore — 그룹", () => {
     const photo = store.getElementById("photo")!;
     expect({ x: photo.x, y: photo.y }).toEqual({ x: 70, y: 590 });
   });
+
+  it("돌린 그룹 안 자식의 절대 좌표는 회전을 거친다", () => {
+    const store = createCanvasStore(doc());
+    store.getElementById("grp")!.set({ rotation: 90 });
+    // sub(0,70)을 90도 돌리면 (-70,0), 그룹 원점 (100,200)을 더한다.
+    const pos = store.getElementById("sub")!.absolutePosition;
+    expect(pos.x).toBeCloseTo(30);
+    expect(pos.y).toBeCloseTo(200);
+  });
+
+  it("돌리고 반투명한 그룹을 풀어도 겉모습이 같다", () => {
+    const store = createCanvasStore(doc());
+    store.getElementById("grp")!.set({ rotation: 90, opacity: 0.5 });
+    store.getElementById("sub")!.set({ opacity: 0.8 });
+    const before = store.getElementById("sub")!.absolutePosition;
+    store.ungroupElements(["grp"]);
+    const sub = store.getElementById("sub")!;
+    expect(sub.x).toBeCloseTo(before.x);
+    expect(sub.y).toBeCloseTo(before.y);
+    expect(sub.rotation).toBe(90);
+    expect(sub.opacity).toBeCloseTo(0.4);
+    expect(store.getElementById("title")!.opacity).toBe(0.5);
+  });
 });
 
 describe("CanvasStore — 히스토리", () => {
@@ -358,6 +381,70 @@ describe("CanvasStore — 히스토리", () => {
     store.getElementById("sub")!.set({ x: 9 });
     expect(store.history.canRedo).toBe(false);
   });
+
+  it("안 바뀐 변경은 undo 단계도 안 만들고 redo도 안 날린다", () => {
+    const store = createCanvasStore(doc());
+    store.getElementById("title")!.set({ x: 1 });
+    store.history.undo();
+    expect(store.history.canUndo).toBe(false);
+    // 같은 값으로 set — run()이 false다.
+    store.getElementById("sub")!.set({ x: 0 });
+    store.setSize(860, 1200);
+    expect(store.history.canUndo).toBe(false);
+    expect(store.history.canRedo).toBe(true);
+  });
+});
+
+describe("CanvasStore — 히스토리 합치기(coalesce)", () => {
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it("같은 이름으로 300ms 안에 이어지면 undo 한 번이다", () => {
+    vi.useFakeTimers();
+    const store = createCanvasStore(doc());
+    const title = store.getElementById("title")!;
+    for (const opacity of [0.9, 0.8, 0.7, 0.6]) {
+      store.history.coalesce("opacity:title", () => title.set({ opacity }));
+      vi.advanceTimersByTime(100);
+    }
+    store.history.undo();
+    expect(store.getElementById("title")!.opacity).toBeUndefined();
+    expect(store.history.canUndo).toBe(false);
+  });
+
+  it("틈이 길거나 이름이 다르면 끊긴다", () => {
+    vi.useFakeTimers();
+    const store = createCanvasStore(doc());
+    const title = store.getElementById("title")!;
+    store.history.coalesce("a", () => title.set({ x: 1 }));
+    vi.advanceTimersByTime(500);
+    store.history.coalesce("a", () => title.set({ x: 2 }));
+    store.history.coalesce("b", () => title.set({ x: 3 }));
+    store.history.undo();
+    expect(store.getElementById("title")!.x).toBe(2);
+    store.history.undo();
+    expect(store.getElementById("title")!.x).toBe(1);
+  });
+
+  it("undo 뒤의 같은 이름 변경은 새 단계다", () => {
+    vi.useFakeTimers();
+    const store = createCanvasStore(doc());
+    store.history.coalesce("a", () =>
+      store.getElementById("title")!.set({ x: 1 }),
+    );
+    vi.advanceTimersByTime(400);
+    store.history.coalesce("a", () =>
+      store.getElementById("sub")!.set({ x: 5 }),
+    );
+    store.history.undo();
+    store.history.coalesce("a", () =>
+      store.getElementById("title")!.set({ x: 7 }),
+    );
+    store.history.undo();
+    // 합쳐졌다면 x=1 단계까지 삼켜 0으로 갔을 것이다.
+    expect(store.getElementById("title")!.x).toBe(1);
+  });
 });
 
 describe("CanvasStore — 선택과 페이지", () => {
@@ -373,5 +460,26 @@ describe("CanvasStore — 선택과 페이지", () => {
     expect(store.activePage?.id).toBe("page-1");
     store.selectPage("page-2");
     expect(store.activePage?.id).toBe("page-2");
+  });
+
+  it("보던 페이지를 지우면 알림 안에서 다음 페이지로 옮긴다", () => {
+    const store = createCanvasStore(doc());
+    store.selectElements(["photo"]);
+    const seen: Array<string | null> = [];
+    store.subscribe(() => seen.push(store.activePageId));
+    store.deletePages(["page-1"]);
+    expect(store.activePageId).toBe("page-2");
+    expect(seen).toEqual(["page-2"]);
+    expect(store.selectedElementsIds).toEqual([]);
+  });
+
+  it("마지막 페이지는 안 지운다", () => {
+    const store = createCanvasStore(doc());
+    store.deletePages(["page-1", "page-2"]);
+    expect(store.pages).toHaveLength(2);
+    store.deletePages(["page-1"]);
+    store.deletePages(["page-2"]);
+    expect(store.pages.map((p) => p.id)).toEqual(["page-2"]);
+    expect(store.history.canUndo).toBe(true);
   });
 });
