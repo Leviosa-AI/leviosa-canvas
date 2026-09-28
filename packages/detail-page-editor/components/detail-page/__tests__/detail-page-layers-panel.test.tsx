@@ -11,6 +11,7 @@ import {
   selectionExpandIds,
   zoneAt,
 } from "../detail-page-layers-panel";
+import { renderWithDetailPageHost } from "./host-stub";
 import {
   getHoveredLayerId,
   setHoveredLayerId,
@@ -264,7 +265,7 @@ describe("DetailPageLayersPanel — 키보드 삭제", () => {
   afterEach(() => vi.restoreAllMocks());
 
   const rowOf = (text: string) =>
-    screen.getByText(text).closest('[role="button"]') as HTMLElement;
+    screen.getByText(text).closest('[role="treeitem"]') as HTMLElement;
 
   it("포커스한 행에서 Backspace로 지운다", async () => {
     const user = userEvent.setup();
@@ -317,7 +318,7 @@ describe("DetailPageLayersPanel — 드래그 이동", () => {
   });
 
   const rowOf = (text: string) =>
-    screen.getByText(text).closest('[role="button"]') as HTMLElement;
+    screen.getByText(text).closest('[role="treeitem"]') as HTMLElement;
 
   it("행을 다른 행 위로 끌면 그 행보다 앞으로 옮긴다", () => {
     const store = makeStore([
@@ -337,6 +338,21 @@ describe("DetailPageLayersPanel — 드래그 이동", () => {
 
     // 목록은 뒤집혀 보이므로 "C 행 위"는 모델의 맨 앞(2번 칸).
     expect(setElementZIndex).toHaveBeenCalledWith("a", 2);
+  });
+
+  it("못 옮기는 자리에 놓으면 이유를 알린다", () => {
+    const inner = el({ id: "I", type: "group", name: "안쪽", children: [el({ id: "c", name: "C" })] });
+    const outer = el({ id: "G", type: "group", name: "바깥", children: [inner] });
+    const store = makeStore([outer], ["I"]);
+    const info = vi.fn();
+    renderWithDetailPageHost(<DetailPageLayersPanel store={store} />, { toast: { info } });
+
+    const dt = dataTransfer();
+    fireEvent.dragStart(rowOf("바깥"), { dataTransfer: dt });
+    fireEvent.dragOver(rowOf("안쪽"), { dataTransfer: dt, clientY: 0 });
+    fireEvent.drop(rowOf("안쪽"), { dataTransfer: dt });
+
+    expect(info).toHaveBeenCalledWith("detailPage.layers.moveIntoSelf");
   });
 
   it("행 위 어디를 가리키는지에 따라 놓을 자리가 갈린다", () => {
@@ -471,7 +487,7 @@ describe("DetailPageLayersPanel — 범위 선택", () => {
   afterEach(() => vi.restoreAllMocks());
 
   const rowOf = (text: string) =>
-    screen.getByText(text).closest('[role="button"]') as HTMLElement;
+    screen.getByText(text).closest('[role="treeitem"]') as HTMLElement;
 
   const five = () =>
     makeStore(
@@ -597,5 +613,63 @@ describe("flattenLayers / rangeIds", () => {
     const rows = [{ el: { id: "a" } }, { el: { id: "b" } }];
     expect(rangeIds(rows, "없음", "b")).toEqual(["b"]);
     expect(rangeIds(rows, null, "b")).toEqual(["b"]);
+  });
+});
+
+describe("DetailPageLayersPanel — 이름·검색·접근성", () => {
+  it("더블클릭으로 이름을 바꾼다", async () => {
+    const user = userEvent.setup();
+    const shape = el({ id: "s1", name: "도형 A" });
+    render(<DetailPageLayersPanel store={makeStore([shape])} />);
+
+    await user.dblClick(screen.getByText("도형 A"));
+    const input = screen.getByRole("textbox", { name: "detailPage.layers.rename" });
+    await user.clear(input);
+    await user.type(input, "로고{Enter}");
+
+    expect(shape.set).toHaveBeenCalledWith({ name: "로고" });
+  });
+
+  it("이름을 붙인 텍스트 레이어는 이름으로 보인다", () => {
+    render(
+      <DetailPageLayersPanel
+        store={makeStore([el({ id: "t1", type: "text", text: "본문", name: "헤드카피" })])}
+      />,
+    );
+    expect(screen.getByText("헤드카피")).toBeInTheDocument();
+  });
+
+  it("검색은 접힌 그룹 속까지 이름으로 거른다", async () => {
+    const user = userEvent.setup();
+    const store = makeStore([
+      el({ id: "g", type: "group", name: "묶음", children: [el({ id: "x", name: "배지" })] }),
+      el({ id: "y", name: "배경" }),
+    ]);
+    render(<DetailPageLayersPanel store={store} />);
+    // 접혀 있으니 처음엔 안 보인다.
+    expect(screen.queryByText("배지")).not.toBeInTheDocument();
+
+    await user.type(screen.getByRole("searchbox", { name: "detailPage.layers.search" }), "배지");
+    expect(screen.getByText("배지")).toBeInTheDocument();
+    expect(screen.queryByText("배경")).not.toBeInTheDocument();
+  });
+
+  it("트리 의미를 단다 — 선택·펼침·토글 눌림", () => {
+    const store = makeStore(
+      [el({ id: "g", type: "group", name: "묶음", children: [el({ id: "x", name: "배지" })] })],
+      ["x"],
+    );
+    render(<DetailPageLayersPanel store={store} />);
+
+    expect(screen.getByRole("tree")).toBeInTheDocument();
+    const group = screen.getByRole("treeitem", { name: /묶음/ });
+    expect(group).toHaveAttribute("aria-expanded", "true");
+    expect(screen.getByRole("treeitem", { name: /배지/ })).toHaveAttribute(
+      "aria-selected",
+      "true",
+    );
+    expect(
+      screen.getAllByRole("button", { name: "detailPage.layers.lock" })[0],
+    ).toHaveAttribute("aria-pressed", "false");
   });
 });

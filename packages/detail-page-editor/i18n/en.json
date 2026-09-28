@@ -743,7 +743,15 @@
         "lock": "Lock",
         "delete": "Delete",
         "title": "Layers",
-        "empty": "This page has no elements yet."
+        "empty": "This page has no elements yet.",
+        "rename": "Layer name",
+        "search": "Find layers",
+        "searchPlaceholder": "Find by name or type",
+        "noMatch": "No matching layers.",
+        "moveMissing": "Couldn't find the layer to move.",
+        "moveIntoSelf": "A group can't go inside itself.",
+        "moveNotGroup": "You can only drop inside a group.",
+        "moveUnsupported": "This editor can't move it there."
       },
       "pages": {
         "roles": {

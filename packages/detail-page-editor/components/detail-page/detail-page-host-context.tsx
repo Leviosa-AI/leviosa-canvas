@@ -548,6 +548,15 @@ export function DetailPageHostProvider({
 }
 
 /**
+ * 호스트가 없어도 그려지는 자리(레이어 패널 같은 — 하네스와 단위 시험이 호스트 없이
+ * 띄운다)에서 알림 정도만 빌릴 때. 없으면 null 이고, 부르는 쪽이 조용히 넘어간다.
+ * 호스트가 **필요한** 일에는 `useDetailPageHost` 를 쓴다.
+ */
+export function useOptionalDetailPageHost(): DetailPageHost | null {
+  return useContext(DetailPageHostContext);
+}
+
+/**
  * 편집기 안에서 바깥을 부를 때 쓴다.
  *
  * 없으면 던진다. 조용히 폴백을 만들면 "호스트를 안 꽂았다"는 사실이 런타임 한참

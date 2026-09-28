@@ -743,7 +743,15 @@
         "lock": "잠금",
         "delete": "삭제",
         "title": "레이어",
-        "empty": "이 페이지에는 아직 요소가 없어요."
+        "empty": "이 페이지에는 아직 요소가 없어요.",
+        "rename": "레이어 이름",
+        "search": "레이어 찾기",
+        "searchPlaceholder": "이름·종류로 찾기",
+        "noMatch": "맞는 레이어가 없어요.",
+        "moveMissing": "옮길 레이어를 찾지 못했어요.",
+        "moveIntoSelf": "그룹을 자기 안으로는 넣을 수 없어요.",
+        "moveNotGroup": "그룹 안으로만 넣을 수 있어요.",
+        "moveUnsupported": "이 편집기에서는 그 자리로 옮길 수 없어요."
       },
       "pages": {
         "roles": {
