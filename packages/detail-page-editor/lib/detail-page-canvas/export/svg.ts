@@ -12,7 +12,14 @@ import {
   type ExportElement,
   type ExportPage,
 } from "./document-model";
-import { isItalic, layoutText, normalizeFontWeight, transformText } from "./text-layout";
+import { documentCropFrame, type Size } from "./frame";
+import {
+  highlightBands,
+  isItalic,
+  layoutText,
+  normalizeFontWeight,
+  transformText,
+} from "./text-layout";
 
 /**
  * Serializes a Canvas document to Figma-compatible SVG. Figma's SVG importer
@@ -35,11 +42,14 @@ export type BuildSvgOptions = {
   hrefFor?: (src: string) => string;
   /** Export only these page ids; default all pages. */
   pageIds?: string[];
+  /** 원본 크기. 잘린 사진을 화면과 똑같이 오리려면 필요하다 — 모르면 자른 영역을 상자에 채운다. */
+  imageSize?: (src: string) => Size | null | undefined;
 };
 
 type SvgEnv = {
   measure: BuildSvgOptions["measure"];
   hrefFor: (src: string) => string;
+  imageSize: NonNullable<BuildSvgOptions["imageSize"]>;
   defs: string[];
   nextId: () => string;
 };
@@ -75,6 +85,7 @@ function makeEnv(opts: BuildSvgOptions): SvgEnv {
   return {
     measure: opts.measure,
     hrefFor: opts.hrefFor ?? ((src) => src),
+    imageSize: opts.imageSize ?? (() => null),
     defs: [],
     nextId: () => `lv${counter++}`,
   };
@@ -146,13 +157,34 @@ function elementMarkup(el: ExportElement, env: SvgEnv): string | null {
       env,
     ).join("\n");
     if (!inner) return null;
-    return `<g ${attrs({ id: el.name || el.id, opacity: opacityAttr(el) })}>\n${inner}\n</g>`;
+    // 그룹의 이동·회전은 자식 전부에 실린다(자식 좌표는 그룹 원점 기준). 화면(Konva)과 같은 순서.
+    const gx = num(el.x);
+    const gy = num(el.y);
+    const r = num(el.rotation);
+    const transform = [
+      gx || gy ? `translate(${fmt(gx)} ${fmt(gy)})` : "",
+      r ? `rotate(${fmt(r)})` : "",
+    ]
+      .filter(Boolean)
+      .join(" ");
+    return `<g ${attrs({ id: el.name || el.id, opacity: opacityAttr(el), transform })}>\n${inner}\n</g>`;
   }
   if (el.type === "text") return textMarkup(el, env);
   if (el.type === "figure") return figureMarkup(el, env);
-  if (el.type === "svg") return inlineSvgMarkup(el) ?? imageMarkup(el, env);
+  if (el.type === "svg") {
+    const inline = inlineSvgMarkup(el);
+    // 중첩 <svg>의 transform은 SVG 2에만 있다 — 돌아간 아이콘은 <g>로 감싸 돌린다.
+    if (inline) return num(el.rotation) ? `<g ${attrs(rotateAttr(el))}>${inline}</g>` : inline;
+    return imageMarkup(el, env);
+  }
   if (el.type === "image") return imageMarkup(el, env);
   return null;
+}
+
+/** 요소 회전 — 화면(Konva)처럼 요소의 왼쪽 위(x, y)를 축으로 돈다. */
+function rotateAttr(el: ExportElement): { transform?: string } {
+  const r = num(el.rotation);
+  return r ? { transform: `rotate(${fmt(r)} ${fmt(num(el.x))} ${fmt(num(el.y))})` } : {};
 }
 
 function opacityAttr(el: ExportElement): number | undefined {
@@ -214,6 +246,7 @@ function figureMarkup(el: ExportElement, env: SvgEnv): string {
     id: el.name || el.id,
     fill,
     opacity: opacityAttr(el),
+    ...rotateAttr(el),
     ...(el.stroke && strokeWidth > 0
       ? { stroke: el.stroke, "stroke-width": strokeWidth }
       : {}),
@@ -241,14 +274,14 @@ function textMarkup(el: ExportElement, env: SvgEnv): string {
   const tspans = layout.lines
     .map((line, i) => {
       const lineY = y + layout.offsetY + i * layout.leading + layout.leading / 2 + fontSize * 0.35;
-      return `<tspan x="${fmt(ax / layout.scaleX)}" y="${fmt(lineY)}">${escapeXml(line) || " "}</tspan>`;
+      return `<tspan x="${fmt(ax)}" y="${fmt(lineY)}">${escapeXml(line) || " "}</tspan>`;
     })
     .join("");
 
   // 스톡 편집기의 letterSpacing은 em이다(Konva에는 letterSpacing * fontSize로 넘어간다).
   // 숫자를 그대로 쓰면 SVG는 px로 읽어 자간이 사실상 0이 되고, 글자가 편집기보다 넓어진다.
   const letterSpacing = num(el.letterSpacing) * fontSize;
-  return `<text ${attrs({
+  return `${highlightMarkup(el)}<text ${attrs({
     id: el.name || el.id,
     "font-family": el.fontFamily || "Pretendard",
     "font-size": fontSize,
@@ -261,8 +294,29 @@ function textMarkup(el: ExportElement, env: SvgEnv): string {
       ? { "text-decoration": el.textDecoration }
       : {}),
     "text-anchor": anchor,
-    ...(layout.scaleX < 1 ? { transform: `scale(${fmt(layout.scaleX)} 1)` } : {}),
+    ...rotateAttr(el),
   })}>${tspans}</text>`;
+}
+
+/** 형광펜 띠 — 글자 뒤에 줄마다 둥근 사각형 하나(화면과 같은 셈). 글자와 같이 돈다. */
+function highlightMarkup(el: ExportElement): string {
+  const x = num(el.x);
+  const y = num(el.y);
+  return highlightBands(el)
+    .map(
+      (band) =>
+        `<rect ${attrs({
+          x: x + band.x,
+          y: y + band.y,
+          width: band.width,
+          height: band.height,
+          ...(band.cornerRadius ? { rx: band.cornerRadius } : {}),
+          fill: band.color,
+          opacity: opacityAttr(el),
+          ...rotateAttr(el),
+        })}/>\n`,
+    )
+    .join("");
 }
 
 /**
@@ -298,6 +352,8 @@ function sameLineRun(a: ExportElement, b: ExportElement, env: SvgEnv): boolean {
   if (Math.abs(baselineOf(a, env) - baselineOf(b, env)) > 0.3 * fs) return false;
   if ((a.fontFamily || "") !== (b.fontFamily || "")) return false;
   if (num(a.rotation) || num(b.rotation)) return false;
+  // 형광펜 띠는 런마다 따로 그려야 한다 — 한 줄로 합치면 띠가 사라진다.
+  if (a.custom?.highlightColor || b.custom?.highlightColor) return false;
   if (num(a.opacity, 1) !== num(b.opacity, 1)) return false;
   // 흐르게 하려면 둘 다 왼쪽 기준이어야 한다(가운데/오른쪽 정렬 런은 앵커가 다르다).
   const leftAligned = (el: ExportElement) => el.align !== "center" && el.align !== "right";
@@ -404,10 +460,43 @@ function imageMarkup(el: ExportElement, env: SvgEnv): string | null {
     );
     clip = `url(#${id})`;
   }
+  const href = env.hrefFor(src);
+
+  // 사람이 자른 사진: 원본에서 오려 올 자리를 viewBox로 잡은 중첩 <svg>에 원본을 통째로
+  // 깐다. 원본 크기를 모르면 자른 영역이 상자를 딱 채운다고 본다 — 자르기 창이 상자 비율을
+  // 자른 영역에 맞춰 두므로 대개 그대로 맞다.
+  const cw = num(el.cropWidth, 1);
+  const ch = num(el.cropHeight, 1);
+  const natural = env.imageSize(src) ?? {
+    width: cw > 0 ? w / cw : w,
+    height: ch > 0 ? h / ch : h,
+  };
+  const cropped = documentCropFrame(el, natural, { width: w, height: h });
+  if (cropped) {
+    const { source, dest } = cropped;
+    const nested =
+      `<svg ${attrs({
+        x: x + dest.x,
+        y: y + dest.y,
+        width: dest.width,
+        height: dest.height,
+        viewBox: `${fmt(source.x)} ${fmt(source.y)} ${fmt(source.width)} ${fmt(source.height)}`,
+        preserveAspectRatio: "none",
+      })}>` +
+      `<image ${attrs({ href, width: natural.width, height: natural.height, preserveAspectRatio: "none" })}/>` +
+      `</svg>`;
+    return `<g ${attrs({
+      id: el.name || el.id,
+      opacity: opacityAttr(el),
+      ...(clip ? { "clip-path": clip } : {}),
+      ...rotateAttr(el),
+    })}>${nested}</g>`;
+  }
+
   const fit = String(el.custom?.objectFit ?? "cover");
   return `<image ${attrs({
     id: el.name || el.id,
-    href: env.hrefFor(src),
+    href,
     x,
     y,
     width: w,
@@ -415,6 +504,7 @@ function imageMarkup(el: ExportElement, env: SvgEnv): string | null {
     preserveAspectRatio: FIT_TO_PRESERVE[fit] ?? FIT_TO_PRESERVE.cover,
     opacity: opacityAttr(el),
     ...(clip ? { "clip-path": clip } : {}),
+    ...rotateAttr(el),
   })}/>`;
 }
 

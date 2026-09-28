@@ -394,6 +394,7 @@ describe("DetailPageDownloadDialog", () => {
       "PNG",
       "editor.formatPsd",
       "editor.formatAi",
+      "editor.formatPdf",
       "editor.formatSvg",
     ]);
     await user.click(screen.getByRole("option", { name: "JPG" }));
@@ -573,5 +574,120 @@ describe("DetailPageDownloadDialog", () => {
         expect.objectContaining({ merged: false }),
       ),
     );
+  });
+
+  it("페이지별 PNG 여러 장은 ZIP 한 개로 내려받는다", async () => {
+    const user = userEvent.setup();
+    const names: string[] = [];
+    vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(function (
+      this: HTMLAnchorElement,
+    ) {
+      names.push(this.download);
+    });
+    render(<DetailPageDownloadDialog store={makeStore(2)} fileName="my-page" />);
+    const dialog = await openWithPlatform(user, "네이버 스마트 스토어");
+    await user.click(within(dialog).getByRole("switch"));
+    await user.click(within(dialog).getByText("editor.downloadAction"));
+
+    await vi.waitFor(() => expect(names).toEqual(["my-page-naver.zip"]));
+  });
+
+  it("병합본이 캔버스 넓이 한계를 넘으면 병합을 끄고 페이지별 ZIP 으로 내린다", async () => {
+    // 네이버 폭 860 × 17,000px 남짓 — 1,600만 px 를 넘으면 Safari 가 빈 그림을 낸다.
+    const user = userEvent.setup();
+    const store = makeStore(17);
+    const names: string[] = [];
+    vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(function (
+      this: HTMLAnchorElement,
+    ) {
+      names.push(this.download);
+    });
+    render(<DetailPageDownloadDialog store={store} fileName="my-page" />);
+    const dialog = await openWithPlatform(user, "네이버 스마트 스토어");
+
+    const toggle = within(dialog).getByRole("switch");
+    expect(toggle).toBeDisabled();
+    expect(toggle).not.toBeChecked();
+    expect(within(dialog).getByText(/editor\.mergeTooLargeHint/)).toBeInTheDocument();
+
+    await user.click(within(dialog).getByText("editor.downloadAction"));
+    await vi.waitFor(() => expect(names).toEqual(["my-page-naver.zip"]));
+    expect(store.toDataURL).toHaveBeenCalledTimes(17);
+  });
+
+  it("JPG 화질 슬라이더 값이 화질 상한이 된다", async () => {
+    const user = userEvent.setup();
+    const store = makeStore(1);
+    vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(() => {});
+    render(<DetailPageDownloadDialog store={store} />);
+    await openWithPlatform(user, "네이버 스마트 스토어");
+    await chooseFormat(user, "JPG");
+
+    const dialog = screen.getByRole("dialog");
+    expect(within(dialog).getByText("editor.jpegQuality")).toBeInTheDocument();
+    const thumb = within(dialog).getAllByRole("slider").at(-1)!;
+    thumb.focus();
+    await user.keyboard("{ArrowLeft}{ArrowLeft}"); // 95 → 85
+    await user.click(within(dialog).getByText("editor.downloadAction"));
+
+    await vi.waitFor(() =>
+      expect(store.toDataURL).toHaveBeenCalledWith(
+        expect.objectContaining({ mimeType: "image/jpeg", quality: 0.85 }),
+      ),
+    );
+  });
+
+  it("pdf: AI 와 같은 작성기로 굽고 .pdf 로 내려받는다", async () => {
+    const user = userEvent.setup();
+    render(<DetailPageDownloadDialog store={makeStore(2)} fileName="my-page" />);
+    await openWithPlatform(user, "네이버 스마트 스토어");
+    await chooseFormat(user, "editor.formatPdf");
+
+    const dialog = screen.getByRole("dialog");
+    expect(within(dialog).getByText(/editor\.pdfNote/)).toBeInTheDocument();
+    await user.click(within(dialog).getByText("editor.downloadAction"));
+    await vi.waitFor(() =>
+      expect(exportFiles.downloadBlob).toHaveBeenCalledWith(expect.any(Blob), "my-page-naver.pdf"),
+    );
+  });
+
+  it("못 불러온 그림이 있으면 내려받되 창을 열어 두고 개수를 알린다", async () => {
+    const user = userEvent.setup();
+    vi.mocked(exportFiles.exportPsdBlob).mockImplementationOnce(async (_doc, opts) => {
+      opts?.onMissingImage?.("https://s3/a.png");
+      opts?.onMissingImage?.("https://s3/b.png");
+      opts?.onMissingImage?.("https://s3/a.png");
+      return new Blob(["psd"]);
+    });
+    render(<DetailPageDownloadDialog store={makeStore(1)} fileName="my-page" />);
+    await openWithPlatform(user, "네이버 스마트 스토어");
+    await chooseFormat(user, "editor.formatPsd");
+    const dialog = screen.getByRole("dialog");
+    await user.click(within(dialog).getByText("editor.downloadAction"));
+
+    await vi.waitFor(() =>
+      expect(within(dialog).getByText("editor.missingImagesNote:2")).toBeInTheDocument(),
+    );
+    expect(exportFiles.downloadBlob).toHaveBeenCalled();
+  });
+
+  it("PSD 한계를 넘으면 번역된 문구와 현재 페이지만 내보내기를 권한다", async () => {
+    const user = userEvent.setup();
+    vi.mocked(exportFiles.exportPsdBlob).mockRejectedValueOnce(
+      Object.assign(new Error("document 750x40000 exceeds the PSD limit"), {
+        code: "PSD_TOO_LARGE",
+        limit: 30000,
+      }),
+    );
+    render(<DetailPageDownloadDialog store={makeStore(2)} fileName="my-page" />);
+    await openWithPlatform(user, "네이버 스마트 스토어");
+    await chooseFormat(user, "editor.formatPsd");
+    const dialog = screen.getByRole("dialog");
+    await user.click(within(dialog).getByText("editor.downloadAction"));
+
+    await vi.waitFor(() => expect(within(dialog).getByText("editor.psdTooLarge")).toBeInTheDocument());
+    expect(within(dialog).queryByText(/exceeds the PSD limit/)).toBeNull();
+    await user.click(within(dialog).getByText("editor.psdExportCurrentPage"));
+    expect(within(dialog).getByText(/editor\.pagesCount:1/)).toBeInTheDocument();
   });
 });

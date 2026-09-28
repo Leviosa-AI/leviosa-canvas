@@ -10,6 +10,7 @@ import {
 import type { AiBitmap } from "./pdf/resources";
 import { buildPsd } from "./psd";
 import { drawBitmap, drawPlaceholder, type Raster2D } from "./raster";
+import type { Size } from "./frame";
 import { buildSvgDocument, buildSvgPages } from "./svg";
 import { cssFont } from "./text-layout";
 
@@ -23,18 +24,24 @@ import { cssFont } from "./text-layout";
  * lands in the editor's main bundle.
  */
 
-export type PsdExportOptions = {
+/**
+ * 못 불러온 그림을 알린다. 내보내기는 멈추지 않고 자리표시로 채우지만, 조용히 넘기면
+ * 빠진 채 나간 파일을 사용자가 모른다 — 대화창이 개수를 알린다.
+ */
+type MissingImageHook = { onMissingImage?: (src: string) => void };
+
+export type PsdExportOptions = MissingImageHook & {
   slotBindings?: Record<string, { element_id?: string } | undefined>;
   pageIds?: string[];
 };
 
-export type SvgExportOptions = {
+export type SvgExportOptions = MissingImageHook & {
   pageIds?: string[];
   /** true: one stacked SVG; false: one Blob per page. */
   merged: boolean;
 };
 
-export type AiExportOptions = {
+export type AiExportOptions = MissingImageHook & {
   pageIds?: string[];
   /** true: one tall artboard; false: one artboard per page. */
   merged: boolean;
@@ -101,7 +108,9 @@ export async function exportPsdBlob(
     loadBitmap: async (el) => {
       const src = String(el.src ?? "");
       if (!src) return null;
-      return loadImageElement(src);
+      const image = await loadImageElement(src);
+      if (!image) opts.onMissingImage?.(src);
+      return image;
     },
   });
   const buffer = writePsdBuffer(psd);
@@ -133,7 +142,11 @@ function fetchAsDataUri(src: string): Promise<string | null> {
  * Sources that fail to fetch keep their original URL rather than breaking
  * the whole export.
  */
-async function buildHrefMap(doc: ExportDocument, pageIds?: string[]): Promise<Map<string, string>> {
+async function buildHrefMap(
+  doc: ExportDocument,
+  pageIds?: string[],
+  onMissingImage?: (src: string) => void,
+): Promise<Map<string, string>> {
   const pages = pageIds?.length
     ? (doc.pages ?? []).filter((p) => p.id && pageIds.includes(p.id))
     : (doc.pages ?? []);
@@ -148,7 +161,33 @@ async function buildHrefMap(doc: ExportDocument, pageIds?: string[]): Promise<Ma
     [...remote].map(async (src) => [src, await fetchAsDataUri(src)] as const),
   );
   const map = new Map<string, string>();
-  for (const [src, dataUri] of entries) if (dataUri) map.set(src, dataUri);
+  for (const [src, dataUri] of entries) {
+    if (dataUri) map.set(src, dataUri);
+    else onMissingImage?.(src);
+  }
+  return map;
+}
+
+/**
+ * 잘린 사진의 원본 크기. SVG는 원본 전체를 깔고 viewBox로 오려 내므로 크기를 알아야
+ * 화면과 똑같이 오린다(모르면 svg.ts가 자른 영역을 상자에 채운다).
+ */
+async function buildSizeMap(
+  doc: ExportDocument,
+  hrefFor: (src: string) => string,
+): Promise<Map<string, Size>> {
+  const cropped = new Set<string>();
+  walkElements(doc.pages ?? [], (el) => {
+    const src = String(el.src ?? "");
+    if (el.type === "image" && src && typeof el.cropWidth === "number") cropped.add(src);
+  });
+  const map = new Map<string, Size>();
+  await Promise.all(
+    [...cropped].map(async (src) => {
+      const image = await loadImageElement(hrefFor(src));
+      if (image) map.set(src, { width: image.naturalWidth, height: image.naturalHeight });
+    }),
+  );
   return map;
 }
 
@@ -176,10 +215,13 @@ export async function exportSvgBlobs(
   opts: SvgExportOptions,
 ): Promise<Blob[]> {
   await ensureFontsLoaded(doc);
-  const hrefMap = await buildHrefMap(doc, opts.pageIds);
+  const hrefMap = await buildHrefMap(doc, opts.pageIds, opts.onMissingImage);
+  const hrefFor = (src: string) => hrefMap.get(src) ?? src;
+  const sizeMap = await buildSizeMap(doc, hrefFor);
   const buildOpts = {
     measure: makeCanvasMeasure(),
-    hrefFor: (src: string) => hrefMap.get(src) ?? src,
+    hrefFor,
+    imageSize: (src: string) => sizeMap.get(src),
     pageIds: opts.pageIds,
   };
   const documents = opts.merged
@@ -216,7 +258,10 @@ async function canvasToJpeg(canvas: HTMLCanvasElement): Promise<Uint8Array | nul
  * transparency ships as raw RGB plus an alpha soft mask, because flattening a
  * cut-out product shot onto white is exactly the bug this avoids.
  */
-async function bakeBitmap(el: ExportElement): Promise<AiBitmap | null> {
+async function bakeBitmap(
+  el: ExportElement,
+  onMissingImage?: (src: string) => void,
+): Promise<AiBitmap | null> {
   const src = String(el.src ?? "");
   if (!src) return null;
   const width = Math.max(1, Math.round(Number(el.width) || 0));
@@ -228,6 +273,7 @@ async function bakeBitmap(el: ExportElement): Promise<AiBitmap | null> {
   if (!ctx) return null;
 
   const image = await loadImageElement(src);
+  if (!image) onMissingImage?.(src);
   const ox = -Number(el.x ?? 0);
   const oy = -Number(el.y ?? 0);
   if (image) drawBitmap(ctx, el, image, ox, oy);
@@ -269,7 +315,7 @@ export async function exportAiBlob(
   const embeddedFonts = await buildCatalogFontSubsets(doc, opts.pageIds);
   const bytes = await buildAiPdf(doc, {
     measure: makeCanvasMeasure(),
-    loadBitmap: bakeBitmap,
+    loadBitmap: (el) => bakeBitmap(el, opts.onMissingImage),
     deflate: typeof CompressionStream === "undefined" ? undefined : deflateBytes,
     pageIds: opts.pageIds,
     merged: opts.merged,

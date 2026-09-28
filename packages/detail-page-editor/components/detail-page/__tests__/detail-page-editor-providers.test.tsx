@@ -119,7 +119,7 @@ describe("설정표 선택", () => {
     expect(detailPageEditorProfile()).toMatchObject({
       page: { width: 1080, height: 1350, fixed: true },
       maxPages: 10,
-      exports: ["jpeg", "png", "psd", "ai", "svg"],
+      exports: ["jpeg", "png", "psd", "ai", "pdf", "svg"],
       registerPlatform: false,
       wording: "plate",
     });

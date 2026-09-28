@@ -46,6 +46,13 @@
       "svgNote": "피그마 캔버스에 드래그하면 레이어가 유지됩니다",
       "aiNote": "폰트 서브셋으로 모양을 보존하며, 새 글자 입력에는 같은 폰트 설치가 필요합니다",
       "aiOverflowNote": "높이가 아트보드 한계({{limit}}px)를 넘어 페이지별 아트보드로 저장됩니다",
+      "formatPdf": "PDF",
+      "pdfNote": "페이지마다 벡터로 저장되며 글자는 선택·검색할 수 있습니다",
+      "jpegQuality": "JPG 화질",
+      "mergeTooLargeHint": "합친 이미지가 브라우저 한계({{limit}}px)를 넘어 페이지별 이미지를 ZIP으로 묶어 저장합니다",
+      "missingImagesNote": "이미지 {{count}}개를 불러오지 못해 빈 자리로 저장했습니다. 이미지를 다시 올린 뒤 내보내 주세요.",
+      "psdTooLarge": "PSD는 가로·세로 {{limit}}px까지만 저장할 수 있습니다. 현재 페이지만 내보내거나 다른 형식을 골라 주세요.",
+      "psdExportCurrentPage": "현재 페이지만 PSD로 내보내기",
       "exporting": "내보내는 중...",
       "downloadAction": "다운로드"
     },

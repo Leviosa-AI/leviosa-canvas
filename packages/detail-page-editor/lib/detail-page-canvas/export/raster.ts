@@ -5,7 +5,14 @@ import {
   radialGradientKonvaProps,
 } from "@leviosa-ai/canvas/paint/konva-fallback";
 import type { ExportElement } from "./document-model";
-import { cssFont, layoutText, normalizeFontWeight, transformText } from "./text-layout";
+import { documentCropFrame } from "./frame";
+import {
+  cssFont,
+  highlightBands,
+  layoutText,
+  normalizeFontWeight,
+  transformText,
+} from "./text-layout";
 
 /**
  * Canvas rasterization for export layers (PSD layer pixels + composite). All
@@ -36,6 +43,7 @@ export type Raster2D = Pick<
   | "createLinearGradient"
   | "createRadialGradient"
   | "drawImage"
+  | "transform"
 > & {
   font: string;
   fillStyle: string | CanvasGradient | CanvasPattern;
@@ -125,8 +133,9 @@ function clamp01(n: number): number {
   return Math.min(1, Math.max(0, n));
 }
 
+/** 스톡 편집기의 letterSpacing은 em이다 — 화면(Konva)처럼 폰트 크기를 곱해 px로 쓴다. */
 function applyLetterSpacing(ctx: Raster2D, el: ExportElement): void {
-  const spacing = num(el.letterSpacing);
+  const spacing = num(el.letterSpacing) * num(el.fontSize, 16);
   if (spacing && "letterSpacing" in ctx) ctx.letterSpacing = `${spacing}px`;
 }
 
@@ -135,19 +144,17 @@ export function drawText(ctx: Raster2D, el: ExportElement, ox = 0, oy = 0): void
   ctx.font = cssFont(el);
   applyLetterSpacing(ctx, el);
   const layout = layoutText(el, (s) => ctx.measureText(s).width);
-  const { lines, leading, offsetY, scaleX } = layout;
+  const { lines, leading, offsetY } = layout;
   const fontSize = num(el.fontSize, 16);
   ctx.save();
-  ctx.scale(scaleX, 1);
   ctx.font = cssFont(el);
   applyLetterSpacing(ctx, el);
   ctx.fillStyle = el.fill || "#000";
   ctx.textBaseline = "middle";
   const align = el.align === "center" || el.align === "right" ? el.align : "left";
   ctx.textAlign = align;
-  // Anchor in unscaled coordinates, mapped into the condensed space.
   const ax = align === "center" ? num(el.width) / 2 : align === "right" ? num(el.width) : 0;
-  const anchorX = (num(el.x) + ox + ax) / scaleX;
+  const anchorX = num(el.x) + ox + ax;
   lines.forEach((line, i) => {
     const y = num(el.y) + oy + offsetY + i * leading + leading / 2;
     ctx.fillText(line, anchorX, y);
@@ -165,6 +172,20 @@ export function drawText(ctx: Raster2D, el: ExportElement, ox = 0, oy = 0): void
     }
   });
   ctx.restore();
+}
+
+/** 형광펜 띠를 (el.x + ox, el.y + oy) 상자에 그린다. 글자보다 먼저 불러야 뒤에 깔린다. */
+export function drawHighlight(ctx: Raster2D, el: ExportElement, ox = 0, oy = 0): void {
+  for (const band of highlightBands(el)) {
+    drawFigure(ctx, {
+      x: num(el.x) + ox + band.x,
+      y: num(el.y) + oy + band.y,
+      width: band.width,
+      height: band.height,
+      cornerRadius: band.cornerRadius,
+      fill: band.color,
+    });
+  }
 }
 
 /** Draw a figure (rect/ellipse) element onto ctx at (el.x + ox, el.y + oy). */
@@ -218,6 +239,14 @@ export function drawBitmap(
     return;
   }
   const source = image as CanvasImageSource;
+  // 사람이 자른 사진은 화면(렌더러)과 같은 자리를 오려 온다.
+  const cropped = documentCropFrame(el, { width: iw, height: ih }, { width: w, height: h });
+  if (cropped) {
+    const { source: s, dest: d } = cropped;
+    ctx.drawImage(source, s.x, s.y, s.width, s.height, x + d.x, y + d.y, d.width, d.height);
+    ctx.restore();
+    return;
+  }
   if (fit === "fill") {
     ctx.drawImage(source, x, y, w, h);
     ctx.restore();
