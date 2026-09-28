@@ -1,5 +1,5 @@
 // Copyright © 2026 주식회사레비오사에이아이. All rights reserved. See LICENSE.
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import {
   createCanvasStore,
@@ -357,6 +357,70 @@ describe("CanvasStore — 히스토리", () => {
     expect(store.history.canRedo).toBe(true);
     store.getElementById("sub")!.set({ x: 9 });
     expect(store.history.canRedo).toBe(false);
+  });
+
+  it("안 바뀐 변경은 undo 단계도 안 만들고 redo도 안 날린다", () => {
+    const store = createCanvasStore(doc());
+    store.getElementById("title")!.set({ x: 1 });
+    store.history.undo();
+    expect(store.history.canUndo).toBe(false);
+    // 같은 값으로 set — run()이 false다.
+    store.getElementById("sub")!.set({ x: 0 });
+    store.setSize(860, 1200);
+    expect(store.history.canUndo).toBe(false);
+    expect(store.history.canRedo).toBe(true);
+  });
+});
+
+describe("CanvasStore — 히스토리 합치기(coalesce)", () => {
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it("같은 이름으로 300ms 안에 이어지면 undo 한 번이다", () => {
+    vi.useFakeTimers();
+    const store = createCanvasStore(doc());
+    const title = store.getElementById("title")!;
+    for (const opacity of [0.9, 0.8, 0.7, 0.6]) {
+      store.history.coalesce("opacity:title", () => title.set({ opacity }));
+      vi.advanceTimersByTime(100);
+    }
+    store.history.undo();
+    expect(store.getElementById("title")!.opacity).toBeUndefined();
+    expect(store.history.canUndo).toBe(false);
+  });
+
+  it("틈이 길거나 이름이 다르면 끊긴다", () => {
+    vi.useFakeTimers();
+    const store = createCanvasStore(doc());
+    const title = store.getElementById("title")!;
+    store.history.coalesce("a", () => title.set({ x: 1 }));
+    vi.advanceTimersByTime(500);
+    store.history.coalesce("a", () => title.set({ x: 2 }));
+    store.history.coalesce("b", () => title.set({ x: 3 }));
+    store.history.undo();
+    expect(store.getElementById("title")!.x).toBe(2);
+    store.history.undo();
+    expect(store.getElementById("title")!.x).toBe(1);
+  });
+
+  it("undo 뒤의 같은 이름 변경은 새 단계다", () => {
+    vi.useFakeTimers();
+    const store = createCanvasStore(doc());
+    store.history.coalesce("a", () =>
+      store.getElementById("title")!.set({ x: 1 }),
+    );
+    vi.advanceTimersByTime(400);
+    store.history.coalesce("a", () =>
+      store.getElementById("sub")!.set({ x: 5 }),
+    );
+    store.history.undo();
+    store.history.coalesce("a", () =>
+      store.getElementById("title")!.set({ x: 7 }),
+    );
+    store.history.undo();
+    // 합쳐졌다면 x=1 단계까지 삼켜 0으로 갔을 것이다.
+    expect(store.getElementById("title")!.x).toBe(1);
   });
 });
 

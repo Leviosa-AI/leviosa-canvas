@@ -430,6 +430,8 @@ type Snapshot = {
 };
 
 const HISTORY_DEPTH = 100;
+/** 같은 이름의 변경이 이 안에 이어지면 undo 한 단계로 합친다(`coalesce`). */
+const COALESCE_MS = 300;
 
 export class CanvasHistory {
   private readonly store: CanvasStore;
@@ -440,6 +442,9 @@ export class CanvasHistory {
   private pending: Snapshot | null = null;
   /** undo/redo가 상태를 되돌리는 동안의 변경은 기록하지 않는다. */
   private applying = false;
+  /** 바로 앞 단계의 `coalesce` 이름과 시각. 이름 없는 단계가 끼면 끊긴다. */
+  private lastKey: string | null = null;
+  private lastAt = 0;
 
   constructor(store: CanvasStore) {
     this.store = store;
@@ -453,16 +458,35 @@ export class CanvasHistory {
     };
   }
 
-  private push(snapshot: Snapshot): void {
-    this.past.push(snapshot);
-    if (this.past.length > HISTORY_DEPTH) this.past.shift();
+  private push(snapshot: Snapshot, key: string | null = null): void {
+    const now = Date.now();
+    const merge =
+      key !== null &&
+      key === this.lastKey &&
+      now - this.lastAt < COALESCE_MS &&
+      this.past.length > 0;
+    // 합칠 때는 새 스냅샷을 버린다 — 맨 위에 이미 «첫 틱 직전» 상태가 있다.
+    if (!merge) {
+      this.past.push(snapshot);
+      if (this.past.length > HISTORY_DEPTH) this.past.shift();
+    }
     this.future = [];
+    this.lastKey = key;
+    this.lastAt = now;
   }
 
-  /** 변경 **직전**에 불린다. 트랜잭션 안이면 시작 시점 것만 남긴다. */
-  record(): void {
-    if (this.applying || this.depth > 0) return;
-    this.push(this.snapshot());
+  /**
+   * 변경 **직전** 상태. 기록할 자리가 아니면(트랜잭션 안·되돌리는 중) null.
+   * `mutate`가 이걸 잡아 두었다가 실제로 바뀌었을 때만 `commit`한다 — 안 바뀐
+   * 변경이 undo 단계를 쌓고 redo를 날리지 않게.
+   */
+  capture(): Snapshot | null {
+    if (this.applying || this.depth > 0) return null;
+    return this.snapshot();
+  }
+
+  commit(snapshot: Snapshot): void {
+    this.push(snapshot);
   }
 
   startTransaction(): void {
@@ -472,6 +496,10 @@ export class CanvasHistory {
   }
 
   endTransaction(): void {
+    this.finishTransaction(null);
+  }
+
+  private finishTransaction(key: string | null): void {
     if (this.applying || this.depth === 0) return;
     this.depth -= 1;
     if (this.depth > 0) return;
@@ -480,7 +508,28 @@ export class CanvasHistory {
     if (!pending) return;
     // 트랜잭션이 실제로 아무것도 안 바꿨으면 undo 단계를 만들지 않는다.
     if (pending.json === JSON.stringify(this.store.toJSON())) return;
-    this.push(pending);
+    this.push(pending, key);
+  }
+
+  /**
+   * 슬라이더·타자처럼 틱마다 들어오는 변경을 undo **한 단계**로 합친다.
+   *
+   * `run`을 트랜잭션 하나로 돌리고, 바로 앞 단계가 같은 `key`로 `COALESCE_MS` 안에
+   * 남은 것이면 그 단계에 합친다. ⌘Z 한 번이면 끌기 시작 전으로 돌아간다.
+   *
+   * ```ts
+   * store.history.coalesce(`opacity:${id}`, () => el.set({ opacity }));
+   * ```
+   *
+   * 다른 이름·이름 없는 변경·undo/redo가 끼면 끊긴다.
+   */
+  coalesce(key: string, run: () => void): void {
+    this.startTransaction();
+    try {
+      run();
+    } finally {
+      this.finishTransaction(key);
+    }
   }
 
   /** 되돌리는 중인가. 그 동안의 선택은 사람이 한 것이 아니다. */
@@ -509,6 +558,7 @@ export class CanvasHistory {
   undo(): void {
     const prev = this.past.pop();
     if (!prev) return;
+    this.lastKey = null;
     this.future.push(this.snapshot());
     this.apply(prev);
   }
@@ -516,6 +566,7 @@ export class CanvasHistory {
   redo(): void {
     const next = this.future.pop();
     if (!next) return;
+    this.lastKey = null;
     this.past.push(this.snapshot());
     this.apply(next);
   }
@@ -525,6 +576,7 @@ export class CanvasHistory {
     this.future = [];
     this.pending = null;
     this.depth = 0;
+    this.lastKey = null;
   }
 }
 
@@ -611,10 +663,11 @@ export class CanvasStore {
 
   /**
    * 모든 문서 변경의 단일 통로. `run`이 true를 돌려주면 실제로 바뀐 것으로 보고
-   * 히스토리에 직전 상태를 남기고 구독자에게 알린다.
+   * 히스토리에 직전 상태를 남기고 구독자에게 알린다. false면 undo 단계도 안 생기고
+   * redo도 그대로 남는다.
    */
   mutate(run: () => boolean): void {
-    if (this.notifyDepth === 0) this.history.record();
+    const before = this.notifyDepth === 0 ? this.history.capture() : null;
     this.notifyDepth += 1;
     try {
       if (run()) {
@@ -625,6 +678,7 @@ export class CanvasStore {
       this.notifyDepth -= 1;
       if (this.notifyDepth === 0 && this.dirty) {
         this.dirty = false;
+        if (before) this.history.commit(before);
         this.notify();
         this.notifyChange();
       }
