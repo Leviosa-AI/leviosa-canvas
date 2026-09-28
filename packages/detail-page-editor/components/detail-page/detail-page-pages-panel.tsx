@@ -11,6 +11,7 @@ import { Copy, GripVertical, Plus, Trash2 } from "lucide-react";
 import {
   DndContext,
   closestCenter,
+  KeyboardSensor,
   PointerSensor,
   useSensor,
   useSensors,
@@ -19,11 +20,13 @@ import {
 } from "@dnd-kit/core";
 import {
   SortableContext,
+  sortableKeyboardCoordinates,
   verticalListSortingStrategy,
   useSortable,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 
+import { ConfirmDeleteButton } from "./confirm-delete-button";
 import { detailPageThumbnailBus } from "./detail-page-thumbnail-bus";
 
 /**
@@ -203,8 +206,12 @@ const PageRow = observer(function PageRow({
       ].join(" ")}
     >
       <div className="flex items-center gap-2">
+        {/* 손잡이가 포커스를 받아야 키보드(스페이스로 집고 ↑↓, 다시 스페이스)로도
+            순서를 바꾼다 — 키보드 센서는 이 손잡이의 keydown 을 듣는다. */}
         <span
           {...listeners}
+          role="button"
+          tabIndex={0}
           aria-label={t("detailPage.pages.reorderHandle")}
           className={[
             "shrink-0 touch-none rounded text-le-ink-300 hover:text-le-ink-500",
@@ -253,19 +260,14 @@ const PageRow = observer(function PageRow({
           >
             <Copy aria-hidden="true" size={13} />
           </button>
-          <button
-            type="button"
+          <ConfirmDeleteButton
+            label={t("detailPage.pageToolbar.delete")}
             disabled={store.pages.length <= 1}
-            onClick={(event) => {
-              event.stopPropagation();
-              store.deletePages?.([page.id]);
-            }}
-            aria-label={t("detailPage.pageToolbar.delete")}
-            title={t("detailPage.pageToolbar.delete")}
+            onConfirm={() => store.deletePages?.([page.id])}
             className="flex h-6 w-6 items-center justify-center rounded-le-md border border-le-ink-200 text-le-ink-500 hover:border-le-ink-400 hover:text-le-danger-600 disabled:cursor-not-allowed disabled:text-le-ink-200 disabled:hover:border-le-ink-200"
           >
             <Trash2 aria-hidden="true" size={13} />
-          </button>
+          </ConfirmDeleteButton>
         </div>
       </div>
     </div>
@@ -296,6 +298,7 @@ export const DetailPagePagesPanel = observer(function DetailPagePagesPanel({
       // A small threshold so a plain click still selects (no drag starts).
       activationConstraint: { distance: 4 },
     }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
   );
 
   const handleDragEnd = useCallback(

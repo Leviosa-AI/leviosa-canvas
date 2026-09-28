@@ -441,7 +441,8 @@
         "filterProduct": "Product",
         "filterModel": "Model",
         "filterGenerated": "Generated",
-        "filterOther": "Other"
+        "filterOther": "Other",
+        "uploadSomeTooLarge": "Skipped {{count}} file(s) over 20MB."
       },
       "brandGifs": {
         "notAGif": "Only GIF files can be uploaded.",
@@ -922,6 +923,11 @@
         "loadFailed": "Could not load your references.",
         "empty": "No saved references yet. Save a detail page you like and it is ready to reference on your next product.",
         "screenCount": "{{count}} screens"
+      },
+      "confirmDelete": {
+        "ask": "Delete?",
+        "confirm": "Confirm",
+        "cancel": "Cancel"
       }
     }
   },
