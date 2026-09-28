@@ -90,7 +90,9 @@ export function PromptEditPanel({
         onUsage?.(quota.limit, quota.limit);
         toast.error(t("detailPage.promptEdit.quotaExhausted"));
       } else {
-        toast.error(err instanceof Error ? err.message : t("detailPage.promptEdit.requestFailed"));
+        // 원문은 콘솔로만 — 서버 문구를 그대로 띄우지 않는다.
+        console.error("Prompt edit failed", err);
+        toast.error(t("detailPage.promptEdit.requestFailed"));
       }
     } finally {
       setBusy(false);

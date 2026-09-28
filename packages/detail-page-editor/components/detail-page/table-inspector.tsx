@@ -10,6 +10,7 @@ import { ColorInput } from "../cardnews/color-input";
 import { SpecPromptEditPanel } from "./spec-prompt-edit-panel";
 import {
   NumberField,
+  historyOf,
   Section,
   ToggleButton,
 } from "./inspector-controls";
@@ -157,6 +158,8 @@ export const TableInspector = observer(function TableInspector({
 }) {
   const { t } = useTranslation("branding");
   const [notice, setNotice] = useState<string | null>(null);
+  // 정렬을 바꿀 열. 기본은 마지막 열(수치가 흔히 오는 자리) — 열이 줄면 끝으로 당긴다.
+  const [alignPick, setAlignPick] = useState<number | null>(null);
 
   const apply = (patch: Partial<TableSpec>) => {
     syncTableGroup(store, el, { ...spec, ...patch });
@@ -171,6 +174,8 @@ export const TableInspector = observer(function TableInspector({
   const rowCount = spec.data.rows.length;
   const columnCount = resolved.columnCount;
   const isGrid = spec.kind === "grid";
+  const alignColumn = Math.min(alignPick ?? columnCount - 1, columnCount - 1);
+  const alignOf = (column: number) => spec.options.align[column] ?? "left";
 
   /** 스프레드시트에서 붙여넣기 — 표 전체를 갈아 끼운다. */
   const onPaste = (event: React.ClipboardEvent) => {
@@ -379,6 +384,7 @@ export const TableInspector = observer(function TableInspector({
               </ToggleButton>
               {spec.style.firstWidth !== null ? (
                 <NumberField
+                  history={historyOf(store)}
                   value={spec.style.firstWidth}
                   min={40}
                   max={480}
@@ -393,21 +399,33 @@ export const TableInspector = observer(function TableInspector({
             <span className="w-16 shrink-0 text-[11px] text-le-ink-500">
               {t("detailPage.table.align")}
             </span>
+            <select
+              aria-label={t("detailPage.table.alignColumn")}
+              value={alignColumn}
+              onChange={(e) => setAlignPick(Number(e.target.value))}
+              className="h-7 w-16 shrink-0 rounded-le-md border border-le-ink-200 bg-le-surface px-1 text-[11px] text-le-ink-700"
+            >
+              {Array.from({ length: columnCount }, (_, column) => (
+                <option key={column} value={column}>
+                  {t("detailPage.table.alignColumnOption", { column: column + 1 })}
+                </option>
+              ))}
+            </select>
             <div className="flex flex-1 gap-1">
               {ALIGNS.map((align) => (
                 <button
                   key={align}
                   type="button"
                   aria-label={t(`detailPage.table.aligns.${align}`)}
-                  aria-pressed={(spec.options.align[columnCount - 1] ?? "left") === align}
+                  aria-pressed={alignOf(alignColumn) === align}
                   onClick={() => {
                     const next = [...spec.options.align];
                     while (next.length < columnCount) next.push("left");
-                    next[columnCount - 1] = align;
+                    next[alignColumn] = align;
                     setOptions({ align: next });
                   }}
                   className={`h-7 flex-1 rounded-le-md border text-[11px] ${
-                    (spec.options.align[columnCount - 1] ?? "left") === align
+                    alignOf(alignColumn) === align
                       ? "border-le-ink-300 bg-le-ink-100 font-le-semibold text-le-ink-900"
                       : "border-le-ink-200 bg-le-surface text-le-ink-600 hover:bg-le-ink-50"
                   }`}
@@ -535,6 +553,7 @@ export const TableInspector = observer(function TableInspector({
               {t("detailPage.table.fontSize")}
             </span>
             <NumberField
+              history={historyOf(store)}
               value={spec.style.fontSize}
               min={9}
               max={40}
@@ -547,6 +566,7 @@ export const TableInspector = observer(function TableInspector({
               {t("detailPage.table.padX")}
             </span>
             <NumberField
+              history={historyOf(store)}
               value={spec.style.padX}
               min={0}
               max={60}
@@ -559,6 +579,7 @@ export const TableInspector = observer(function TableInspector({
               {t("detailPage.table.padY")}
             </span>
             <NumberField
+              history={historyOf(store)}
               value={spec.style.padY}
               min={0}
               max={64}

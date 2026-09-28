@@ -123,21 +123,21 @@ describe("DetailPageProperties — GIF 인스펙터", () => {
   it("custom.detailPageGif 선택 시 헤더가 'GIF'로 뜬다(이미지 아님)", () => {
     const gif = makeElement({ id: "g", type: "image", custom: { detailPageGif: true } });
     render(<DetailPageProperties store={makeStore([gif])} />);
-    expect(screen.getByText("GIF")).toBeTruthy();
+    expect(screen.getByText("detailPage.properties.typeGif")).toBeTruthy();
     expect(screen.queryByText("detailPage.properties.typeImage")).toBeNull();
   });
 
   it(".gif src 이미지도 헤더가 'GIF'", () => {
     const gif = makeElement({ id: "g2", type: "image", src: "https://s3/a.gif" });
     render(<DetailPageProperties store={makeStore([gif])} />);
-    expect(screen.getByText("GIF")).toBeTruthy();
+    expect(screen.getByText("detailPage.properties.typeGif")).toBeTruthy();
   });
 
   it("일반 이미지는 헤더가 여전히 이미지 라벨", () => {
     const img = makeElement({ id: "i", type: "image", src: "https://s3/a.png" });
     render(<DetailPageProperties store={makeStore([img])} />);
     expect(screen.getByText("detailPage.properties.typeImage")).toBeTruthy();
-    expect(screen.queryByText("GIF")).toBeNull();
+    expect(screen.queryByText("detailPage.properties.typeGif")).toBeNull();
   });
 });
 
@@ -738,7 +738,7 @@ describe("DetailPageProperties — 그룹 편집", () => {
     expect(screen.getByText("detailPage.groupEdit.title")).toBeTruthy();
     expect(screen.getByText("detailPage.groupEdit.texts")).toBeTruthy();
     // 텍스트가 여러 개여도 프롬프트 편집 컴포넌트는 딱 하나.
-    expect(screen.getAllByText("프롬프트로 편집")).toHaveLength(1);
+    expect(screen.getAllByText("detailPage.promptEdit.header")).toHaveLength(1);
   });
 
   it("그룹 해제·삭제는 우측 패널에 그대로 남는다", () => {
@@ -760,7 +760,7 @@ describe("DetailPageProperties — 그룹 편집", () => {
     const store = makeStore([group]);
     renderAiEdit(store, [group], "gen_1");
     expect(screen.getByText("detailPage.groupEdit.title")).toBeTruthy();
-    expect(screen.getAllByText("프롬프트로 편집")).toHaveLength(1);
+    expect(screen.getAllByText("detailPage.promptEdit.header")).toHaveLength(1);
   });
 
   it("exposes ONE prompt panel for a group of SVG shapes (with markup)", () => {
@@ -772,7 +772,7 @@ describe("DetailPageProperties — 그룹 편집", () => {
     renderAiEdit(store, [group], "gen_1");
     expect(screen.getByText("detailPage.groupEdit.title")).toBeTruthy();
     expect(screen.getByText("detailPage.groupEdit.shapes")).toBeTruthy();
-    expect(screen.getAllByText("프롬프트로 편집")).toHaveLength(1);
+    expect(screen.getAllByText("detailPage.promptEdit.header")).toHaveLength(1);
   });
 
   it("describes a mixed text+shape group and shows one panel", () => {
@@ -783,7 +783,7 @@ describe("DetailPageProperties — 그룹 편집", () => {
     const store = makeStore([group]);
     renderAiEdit(store, [group], "gen_1");
     expect(screen.getByText("detailPage.groupEdit.both")).toBeTruthy();
-    expect(screen.getAllByText("프롬프트로 편집")).toHaveLength(1);
+    expect(screen.getAllByText("detailPage.promptEdit.header")).toHaveLength(1);
   });
 
   it("sends every editable descendant in ONE call and applies results by id", async () => {
@@ -805,10 +805,10 @@ describe("DetailPageProperties — 그룹 편집", () => {
     renderAiEdit(store, [group], "gen_1");
 
     await user.type(
-      screen.getByPlaceholderText(/어떻게 바꿀까요/),
+      screen.getByPlaceholderText("detailPage.promptEdit.groupPlaceholder"),
       "톤을 통일해서",
     );
-    await user.click(screen.getByRole("button", { name: "프롬프트로 수정" }));
+    await user.click(screen.getByRole("button", { name: "detailPage.promptEdit.send" }));
 
     expect(mockGroupPromptEdit).toHaveBeenCalledTimes(1);
     const [genId, payload] = mockGroupPromptEdit.mock.calls[0];
@@ -889,7 +889,7 @@ describe("DetailPageProperties — 크기·위치 드래그 스크럽", () => {
     const el = makeElement({ id: "f1", type: "figure", width: 100, height: 50, x: 0, y: 0 });
     const store = makeStore([el]);
     render(<DetailPageProperties store={store} />);
-    const handle = screen.getByTitle(/W —/);
+    const handle = screen.getByText("W");
     fireEvent.pointerDown(handle, { button: 0, clientX: 200, pointerId: 1 });
     fireEvent.pointerMove(handle, { clientX: 240, pointerId: 1 });
     fireEvent.pointerUp(handle, { pointerId: 1 });
@@ -901,7 +901,7 @@ describe("DetailPageProperties — 크기·위치 드래그 스크럽", () => {
     const el = makeElement({ id: "f1", type: "figure", width: 100, height: 50, x: 0, y: 0 });
     const store = makeStore([el]);
     render(<DetailPageProperties store={store} />);
-    const handle = screen.getByTitle(/H —/);
+    const handle = screen.getByText("H");
     fireEvent.pointerDown(handle, { button: 0, clientX: 100, pointerId: 1 });
     fireEvent.pointerMove(handle, { clientX: 105, shiftKey: true, pointerId: 1 });
     fireEvent.pointerUp(handle, { pointerId: 1 });
@@ -915,6 +915,6 @@ describe("DetailPageProperties — 크기·위치 드래그 스크럽", () => {
       makeElement({ id: "b", type: "figure" }),
     ]);
     render(<DetailPageProperties store={store} />);
-    expect(screen.queryByTitle(/W —/)).toBeNull();
+    expect(screen.queryByText("W")).toBeNull();
   });
 });

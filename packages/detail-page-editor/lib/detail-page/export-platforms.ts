@@ -29,7 +29,10 @@ export type AnimationFormat = "webp" | "gif" | "mp4";
 
 export type ExportPlatform = {
   value: string;
+  /** 한국어 이름. 번역이 없는 소비자를 위한 기본값이다 — 화면은 ``labelKey`` 로 그린다. */
   label: string;
+  /** i18n 키(``t(labelKey, { defaultValue: label })``). */
+  labelKey: string;
   /** 상세설명 권장 폭(px). null 이면 문서 폭에 해상도 배율을 곱한 그대로 나간다. */
   width: number | null;
   /** 이 플랫폼이 받는 움직이는 이미지 형식. 첫 항목이 기본값이다. */
@@ -44,6 +47,7 @@ export const EXPORT_PLATFORMS: readonly ExportPlatform[] = [
   {
     value: "naver",
     label: "네이버 스마트 스토어",
+    labelKey: "detailPage.exportPlatforms.naver",
     width: 860,
     animation: ["gif", "mp4"],
     maxBytes: 20 * MB,
@@ -51,6 +55,7 @@ export const EXPORT_PLATFORMS: readonly ExportPlatform[] = [
   {
     value: "coupang",
     label: "쿠팡",
+    labelKey: "detailPage.exportPlatforms.coupang",
     width: 780,
     animation: ["webp"],
     maxBytes: 5 * MB,
@@ -58,6 +63,7 @@ export const EXPORT_PLATFORMS: readonly ExportPlatform[] = [
   {
     value: "cafe24",
     label: "카페24",
+    labelKey: "detailPage.exportPlatforms.cafe24",
     width: 800,
     animation: ["gif", "webp"],
     maxBytes: 5 * MB,
@@ -65,6 +71,7 @@ export const EXPORT_PLATFORMS: readonly ExportPlatform[] = [
   {
     value: "gmarket",
     label: "지마켓 · 옥션",
+    labelKey: "detailPage.exportPlatforms.gmarket",
     width: 860,
     animation: ["gif"],
     maxBytes: 10 * MB,
@@ -72,6 +79,7 @@ export const EXPORT_PLATFORMS: readonly ExportPlatform[] = [
   {
     value: "11st",
     label: "11번가",
+    labelKey: "detailPage.exportPlatforms.11st",
     width: 780,
     animation: ["gif"],
     maxBytes: 10 * MB,
@@ -79,6 +87,7 @@ export const EXPORT_PLATFORMS: readonly ExportPlatform[] = [
   {
     value: "kakao",
     label: "카카오톡 스토어",
+    labelKey: "detailPage.exportPlatforms.kakao",
     width: 750,
     animation: ["gif"],
     maxBytes: 10 * MB,
@@ -86,6 +95,7 @@ export const EXPORT_PLATFORMS: readonly ExportPlatform[] = [
   {
     value: "ohouse",
     label: "오늘의집",
+    labelKey: "detailPage.exportPlatforms.ohouse",
     width: 1440,
     animation: ["gif", "mp4"],
     maxBytes: 6 * MB,
@@ -93,6 +103,7 @@ export const EXPORT_PLATFORMS: readonly ExportPlatform[] = [
   {
     value: "general",
     label: "일반(범용)",
+    labelKey: "detailPage.exportPlatforms.general",
     width: null,
     animation: ["webp", "gif", "mp4"],
     maxBytes: null,
