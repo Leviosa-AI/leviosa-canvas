@@ -1,5 +1,6 @@
 // Copyright © 2026 주식회사레비오사에이아이. All rights reserved. See LICENSE.
 import { describe, expect, it } from "vitest";
+import { createCanvas, loadImage } from "canvas";
 
 import {
   gradientToSvgPaint,
@@ -109,6 +110,28 @@ describe("withExplicitSize", () => {
 });
 
 describe("shapeSvgDataUri", () => {
+  it("HTML 도형의 custom.gradient를 GIF 입력에도 보존한다", async () => {
+    const uri = await shapeSvgDataUri({
+      type: "figure", width: 518, height: 34,
+      fill: "rgba(0, 0, 0, 0)", stroke: "rgb(48, 48, 48)", strokeWidth: 0,
+      custom: { gradient: "linear-gradient(90deg, rgb(238, 107, 28) 0%, rgb(255, 172, 89) 100%)" },
+    });
+    const markup = atob(uri!.split(",")[1]);
+    expect(markup).toContain('<linearGradient');
+    expect(markup).toContain('stop-color="rgb(238, 107, 28)"');
+    expect(markup).toContain('fill="url(#');
+    expect(markup).not.toContain('fill="rgba(0, 0, 0, 0)"');
+    expect(markup).not.toContain(' stroke=');
+    const canvas = createCanvas(518, 34);
+    const ctx = canvas.getContext("2d");
+    ctx.drawImage(await loadImage(Buffer.from(markup)), 0, 0);
+    const [r, g, b, a] = ctx.getImageData(259, 17, 1, 1).data;
+    expect(r).toBeGreaterThan(230);
+    expect(g).toBeGreaterThan(100);
+    expect(b).toBeLessThan(100);
+    expect(a).toBe(255);
+  });
+
   it("figure를 요소 치수 그대로 굽는다", async () => {
     const uri = await shapeSvgDataUri({
       id: "bar",

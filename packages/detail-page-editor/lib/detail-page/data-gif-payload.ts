@@ -83,6 +83,7 @@ export type CountUpGifInput = {
   /** 원본 상자 크기와 글자 기준선(px). 주면 서버가 캔버스를 추정하지 않는다. */
   width?: number;
   height?: number;
+  baseline?: number;
 };
 
 export type CellGridGifInput = {
@@ -133,6 +134,7 @@ export function buildDataGifPayload(input: DataGifRequestInput) {
         marker: input.marker,
         width: input.width,
         height: input.height,
+        baseline: input.baseline,
       },
       ...common,
     };

@@ -123,6 +123,23 @@ describe("layoutTextLines", () => {
     expect(lines.map((l) => l.y)).toEqual([20, 60]);
   });
 
+  it("화면의 한 줄 숫자를 GIF에서 강제로 접지 않는다", () => {
+    const lines = layoutTextLines(
+      [text({ text: "32.05배", width: 112, height: 48, fontSize: 28, lineHeight: "48.16px" })],
+      box, monoMeasure,
+    );
+    expect(lines.map((line) => line.text)).toEqual(["32.05배"]);
+    expect(lines[0].y).toBeCloseTo(24.08);
+  });
+
+  it("여러 줄 상자는 em 자간을 포함한 폭으로 접는다", () => {
+    const lines = layoutTextLines(
+      [text({ text: "12345", width: 45, height: 100, fontSize: 10, letterSpacing: -0.1 })],
+      box, monoMeasure,
+    );
+    expect(lines.map((line) => line.text)).toEqual(["12345"]);
+  });
+
   it("verticalAlign=middle이면 남는 높이의 절반만큼 내려간다", () => {
     const lines = layoutTextLines(
       [text({ text: "가", fontSize: 20, height: 100, verticalAlign: "middle" })],
