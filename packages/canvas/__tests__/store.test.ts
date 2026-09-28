@@ -294,6 +294,29 @@ describe("CanvasStore — 그룹", () => {
     const photo = store.getElementById("photo")!;
     expect({ x: photo.x, y: photo.y }).toEqual({ x: 70, y: 590 });
   });
+
+  it("돌린 그룹 안 자식의 절대 좌표는 회전을 거친다", () => {
+    const store = createCanvasStore(doc());
+    store.getElementById("grp")!.set({ rotation: 90 });
+    // sub(0,70)을 90도 돌리면 (-70,0), 그룹 원점 (100,200)을 더한다.
+    const pos = store.getElementById("sub")!.absolutePosition;
+    expect(pos.x).toBeCloseTo(30);
+    expect(pos.y).toBeCloseTo(200);
+  });
+
+  it("돌리고 반투명한 그룹을 풀어도 겉모습이 같다", () => {
+    const store = createCanvasStore(doc());
+    store.getElementById("grp")!.set({ rotation: 90, opacity: 0.5 });
+    store.getElementById("sub")!.set({ opacity: 0.8 });
+    const before = store.getElementById("sub")!.absolutePosition;
+    store.ungroupElements(["grp"]);
+    const sub = store.getElementById("sub")!;
+    expect(sub.x).toBeCloseTo(before.x);
+    expect(sub.y).toBeCloseTo(before.y);
+    expect(sub.rotation).toBe(90);
+    expect(sub.opacity).toBeCloseTo(0.4);
+    expect(store.getElementById("title")!.opacity).toBe(0.5);
+  });
 });
 
 describe("CanvasStore — 히스토리", () => {
@@ -437,5 +460,26 @@ describe("CanvasStore — 선택과 페이지", () => {
     expect(store.activePage?.id).toBe("page-1");
     store.selectPage("page-2");
     expect(store.activePage?.id).toBe("page-2");
+  });
+
+  it("보던 페이지를 지우면 알림 안에서 다음 페이지로 옮긴다", () => {
+    const store = createCanvasStore(doc());
+    store.selectElements(["photo"]);
+    const seen: Array<string | null> = [];
+    store.subscribe(() => seen.push(store.activePageId));
+    store.deletePages(["page-1"]);
+    expect(store.activePageId).toBe("page-2");
+    expect(seen).toEqual(["page-2"]);
+    expect(store.selectedElementsIds).toEqual([]);
+  });
+
+  it("마지막 페이지는 안 지운다", () => {
+    const store = createCanvasStore(doc());
+    store.deletePages(["page-1", "page-2"]);
+    expect(store.pages).toHaveLength(2);
+    store.deletePages(["page-1"]);
+    store.deletePages(["page-2"]);
+    expect(store.pages.map((p) => p.id)).toEqual(["page-2"]);
+    expect(store.history.canUndo).toBe(true);
   });
 });

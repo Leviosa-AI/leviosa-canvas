@@ -184,12 +184,16 @@ export class CanvasElement implements CanvasContainer {
     return this.parent ? this.parent.children.indexOf(this) : -1;
   }
 
-  /** 페이지 좌표계 기준 위치 — 그룹 안 요소는 조상들의 x/y가 더해진다. */
+  /**
+   * 페이지 좌표계 기준 위치 — 그룹 안 요소는 조상들의 회전과 x/y를 거친다
+   * (Konva가 그리는 순서 그대로: 조상 원점 기준으로 돌리고 옮긴다).
+   */
   get absolutePosition(): { x: number; y: number } {
     let x = this.x ?? 0;
     let y = this.y ?? 0;
     let node = this.parent;
     while (node instanceof CanvasElement) {
+      [x, y] = rotatePoint(x, y, node.rotation ?? 0);
       x += node.x ?? 0;
       y += node.y ?? 0;
       node = node.parent;
@@ -247,6 +251,15 @@ export class CanvasElement implements CanvasContainer {
     }
     return json;
   }
+}
+
+/** 원점 기준으로 `deg`도 돌린 점. 0도면 그대로(부동소수 찌꺼기를 안 만든다). */
+function rotatePoint(x: number, y: number, deg: number): [number, number] {
+  if (!deg) return [x, y];
+  const rad = (deg * Math.PI) / 180;
+  const cos = Math.cos(rad);
+  const sin = Math.sin(rad);
+  return [x * cos - y * sin, x * sin + y * cos];
 }
 
 /** 트리 전체의 id를 새로 딴 복제본. 복제·붙여넣기가 같이 쓴다. */
@@ -909,7 +922,13 @@ export class CanvasStore {
     return group;
   }
 
-  /** 그룹을 풀어 자식을 그룹이 있던 자리에 되돌린다(좌표를 부모 기준으로 환산). */
+  /**
+   * 그룹을 풀어 자식을 그룹이 있던 자리에 되돌린다(좌표를 부모 기준으로 환산).
+   *
+   * 그룹의 회전·불투명도도 자식에 얹는다 — 안 그러면 돌려 둔 그룹을 풀자마자 자식이
+   * 똑바로 서고 반투명이 풀린다. 그룹에 없던 값은 자식에도 새로 안 만든다(무손실).
+   * 그룹 scale은 엔진이 그리지 않으므로(트랜스포머가 폭·높이로 흡수) 옮기지 않는다.
+   */
   ungroupElements(ids: string[]): void {
     const groups = ids
       .map((id) => this.getElementById(id))
@@ -927,9 +946,16 @@ export class CanvasStore {
         const at = siblings.indexOf(group);
         if (at < 0) continue;
         const kids = [...group.children];
+        const turn = group.rotation ?? 0;
+        const alpha = group.opacity;
         for (const kid of kids) {
-          setAttr(kid, "x", (kid.x ?? 0) + (group.x ?? 0));
-          setAttr(kid, "y", (kid.y ?? 0) + (group.y ?? 0));
+          const [rx, ry] = rotatePoint(kid.x ?? 0, kid.y ?? 0, turn);
+          setAttr(kid, "x", rx + (group.x ?? 0));
+          setAttr(kid, "y", ry + (group.y ?? 0));
+          if (turn) setAttr(kid, "rotation", (kid.rotation ?? 0) + turn);
+          if (typeof alpha === "number" && alpha !== 1) {
+            setAttr(kid, "opacity", (kid.opacity ?? 1) * alpha);
+          }
           kid.parent = parent;
           kid.version += 1;
           freed.push(kid.id);
@@ -957,16 +983,24 @@ export class CanvasStore {
     return page;
   }
 
+  /**
+   * 페이지를 지운다. **마지막 한 장은 안 지운다** — 빈 문서는 그릴 판이 없어 편집기가
+   * 멈춘다. 보고 있던 페이지·선택도 같은 변경 안에서 옮겨 구독자가 한 번에 안다.
+   */
   deletePages(ids: string[]): void {
     const remove = new Set(ids);
-    if (!this.pages.some((page) => remove.has(page.id))) return;
+    const rest = this.pages.filter((page) => !remove.has(page.id));
+    if (rest.length === this.pages.length || !rest.length) return;
     this.mutate(() => {
-      this.pages = this.pages.filter((page) => !remove.has(page.id));
+      this.pages = rest;
+      if (!this.activePageId || remove.has(this.activePageId)) {
+        this.activePageId = rest[0].id;
+      }
+      this.selectedElementsIds = this.selectedElementsIds.filter(
+        (id) => this.getElementById(id) !== null,
+      );
       return true;
     });
-    if (this.activePageId && remove.has(this.activePageId)) {
-      this.activePageId = this.pages[0]?.id ?? null;
-    }
   }
 
   setSize(width: number, height: number): void {
