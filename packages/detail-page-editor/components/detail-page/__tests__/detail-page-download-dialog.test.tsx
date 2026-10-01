@@ -592,10 +592,26 @@ describe("DetailPageDownloadDialog", () => {
     await vi.waitFor(() => expect(names).toEqual(["my-page-naver.zip"]));
   });
 
-  it("병합본이 캔버스 넓이 한계를 넘으면 병합을 끄고 페이지별 ZIP 으로 내린다", async () => {
-    // 네이버 폭 860 × 17,000px 남짓 — 1,600만 px 를 넘으면 Safari 가 빈 그림을 낸다.
+  it("데스크톱에서는 860×35,000px 남짓한 병합본도 한 장으로 내린다", async () => {
+    // 네이버 폭 860 × 34,400px — 넓이 2,958만 px. iOS 한계(1,677만)는 넘지만
+    // 데스크톱 캔버스(한 변 65,535·넓이 2.68억)에는 들어간다.
     const user = userEvent.setup();
-    const store = makeStore(17);
+    render(<DetailPageDownloadDialog store={makeStore(30)} />);
+    const dialog = await openWithPlatform(user, "detailPage.exportPlatforms.naver");
+
+    const toggle = within(dialog).getByRole("switch");
+    expect(toggle).toBeEnabled();
+    expect(toggle).toBeChecked();
+    expect(within(dialog).queryByText(/editor\.mergeTooLargeHint/)).toBeNull();
+  });
+
+  it("iOS 에서 병합본이 캔버스 넓이 한계를 넘으면 병합을 끄고 페이지별 ZIP 으로 내린다", async () => {
+    // 네이버 폭 860 × 20,640px — 1,677만 px 를 넘으면 iOS Safari 가 빈 그림을 낸다.
+    vi.spyOn(navigator, "userAgent", "get").mockReturnValue(
+      "Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15",
+    );
+    const user = userEvent.setup();
+    const store = makeStore(18);
     const names: string[] = [];
     vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(function (
       this: HTMLAnchorElement,
@@ -612,7 +628,7 @@ describe("DetailPageDownloadDialog", () => {
 
     await user.click(within(dialog).getByText("editor.downloadAction"));
     await vi.waitFor(() => expect(names).toEqual(["my-page-naver.zip"]));
-    expect(store.toDataURL).toHaveBeenCalledTimes(17);
+    expect(store.toDataURL).toHaveBeenCalledTimes(18);
   });
 
   it("JPG 화질 슬라이더 값이 화질 상한이 된다", async () => {
