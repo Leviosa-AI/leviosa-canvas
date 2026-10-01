@@ -39,7 +39,7 @@ import {
   detailPageEditorProfile,
   type DetailPageEditorFormat,
 } from "../../lib/detail-page/editor-profile";
-import { MAX_CANVAS_PIXELS } from "../../lib/detail-page/reference-image";
+import { exceededCanvasLimit } from "../../lib/detail-page/canvas-limits";
 
 /**
  * hookable-style 다운로드 팝오버 — 다운로드 버튼 바로 아래에 떠서 **등록 플랫폼을
@@ -332,12 +332,13 @@ export const DetailPageDownloadDialog = observer(function DetailPageDownloadDial
   const maxBytes = chosen?.maxBytes ?? null;
   // 상세페이지는 세로로 길어서, 병합하면 아트보드 한계를 넘길 수 있다.
   const aiOverflow = isPdfFormat(format) && single && totalHeight > AI_MAX_ARTBOARD;
-  // 병합 PNG/JPG 는 한 캔버스에 쌓는다. 넓이가 브라우저 한계를 넘으면 Safari 는 **빈 그림**을
-  // 내놓으므로 병합을 끄고 페이지별 ZIP 으로 내린다.
-  const mergeTooLarge =
-    isRasterFormat(format) &&
-    selectedPages.length > 1 &&
-    outWidth * outHeight > MAX_CANVAS_PIXELS;
+  // 병합 PNG/JPG 는 한 캔버스에 쌓는다. 이 브라우저의 캔버스 한계를 넘으면 **빈 그림**이
+  // 나오므로 병합을 끄고 페이지별 ZIP 으로 내린다.
+  const mergeLimit =
+    isRasterFormat(format) && selectedPages.length > 1
+      ? exceededCanvasLimit(outWidth, outHeight)
+      : null;
+  const mergeTooLarge = mergeLimit !== null;
   const merge = single && !mergeTooLarge;
 
   // 내려받기가 끝난 뒤. 말할 것이 없으면 창을 닫고, 있으면 열어 둔 채 알린다 —
@@ -638,7 +639,7 @@ export const DetailPageDownloadDialog = observer(function DetailPageDownloadDial
                 {mergeTooLarge ? (
                   <p className="text-[10px] leading-relaxed text-le-warn-700">
                     {t("editor.mergeTooLargeHint", {
-                      limit: MAX_CANVAS_PIXELS.toLocaleString(),
+                      limit: mergeLimit?.toLocaleString(),
                     })}
                   </p>
                 ) : null}
