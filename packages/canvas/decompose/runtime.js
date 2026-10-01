@@ -110,13 +110,24 @@ export const EXTRACT = ({label, sliceBy, placeholderClass, splitSvgParts}) => {
     }
     return true;
   };
-  // Rotation from the computed transform matrix, in degrees.
-  const rotationDeg = s => {
-    const t=s.transform; if(!t||t==='none') return 0;
-    const m=t.match(/matrix\(([^)]+)\)/); if(!m) return 0;
-    const p=m[1].split(',').map(Number);
-    return Math.round(Math.atan2(p[1], p[0]) * 180 / Math.PI * 100)/100;
+  // Rotation from the computed transform matrix, in degrees. Read it off the
+  // y-axis column (c,d), not the x-axis one (a,b): a mirror (scaleX(-1), a chat
+  // bubble's tail flipped to the other side) negates the x column, and atan2(b,a)
+  // then reads it as a 180° turn — the editor drew those bubbles upside down and
+  // swung them off their box. The mirror itself is reported by ``mirrored``.
+  const matrixOf = s => {
+    const t=s.transform; if(!t||t==='none') return null;
+    const m=t.match(/matrix\(([^)]+)\)/); if(!m) return null;
+    return m[1].split(',').map(Number);
   };
+  const rotationDeg = s => {
+    const p=matrixOf(s); if(!p) return 0;
+    return Math.round(Math.atan2(-p[2], p[3]) * 180 / Math.PI * 100)/100;
+  };
+  // A negative determinant is a reflection. With the rotation read as above, any
+  // reflection is "flip across the box's vertical axis, then rotate" — the order
+  // the editor's flipX draws in (scaleY(-1) comes out as flipX + 180°).
+  const mirrored = s => { const p=matrixOf(s); return !!p && p[0]*p[3]-p[1]*p[2] < 0; };
   // Geometry around the element CENTER using the layout size, so a rotated
   // element is not stretched to its axis-aligned bounding box.
   const geom = el => {
@@ -131,7 +142,9 @@ export const EXTRACT = ({label, sliceBy, placeholderClass, splitSvgParts}) => {
     const h=rotation ? (el.offsetHeight>0 ? el.offsetHeight : r.height) : r.height;
     const cx=r.left + r.width/2 - srect.left;
     const cy=r.top + r.height/2 - srect.top;
-    return {x:cx-w/2, y:cy-h/2, width:w, height:h, rotation:rotation};
+    const g={x:cx-w/2, y:cy-h/2, width:w, height:h, rotation:rotation};
+    if(mirrored(getComputedStyle(el))) g.flipX=true;
+    return g;
   };
   // Effective screen background: templates frequently paint the page background
   // on an ancestor (the .dp page wrapper / body), not on the section itself, so
@@ -579,6 +592,7 @@ export const EXTRACT = ({label, sliceBy, placeholderClass, splitSvgParts}) => {
               : cs.bottom!=='auto' ? pr.bottom-px(cs.bottom)-h : pr.top;
       }
       const g={x:mx-srect.left, y:my-srect.top, width:w, height:h, rotation:rotationDeg(cs)};
+      if(mirrored(cs)) g.flipX=true;
       const clip = clips && !isInlineText ? {x:pr.left-srect.left, y:pr.top-srect.top,
         width:pr.width, height:pr.height, radius:radiusOf(es, pr.width, pr.height)} : null;
       const opacity=Number(cs.opacity||1);

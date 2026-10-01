@@ -409,6 +409,8 @@ def _canvas_element(e, eid):
         "opacity": e.get("opacity", 1),
         "selectable": True,
     }
+    if b.get("flipX"):
+        base["flipX"] = True
     if e["kind"] == "group":
         # One editable unit for a line that had to be split into single-colour
         # fragments. The group is locked design (not a slot); its run children

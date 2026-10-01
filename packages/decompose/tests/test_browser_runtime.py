@@ -203,3 +203,47 @@ def test_photo_frame_with_inline_chip_keeps_the_photo():
     # 칩은 사진 위에 그대로 남는다 — 상자와 묶인 group 안의 text 로.
     assert texts == ["데일리 미스트"]
     assert kinds.index("image") < kinds.index("text")
+
+
+MIRRORED_TAILS = """<!doctype html><html><head><style>
+* { box-sizing: border-box; margin: 0 }
+body { width: 750px; height: 600px; background: #fff }
+.bubble { position: relative; width: 520px; height: 112px; margin: 20px }
+.bubble svg { position: absolute; inset: 0; width: 100%; height: 100% }
+.flip svg { transform: scaleX(-1) }
+.turn svg { transform: rotate(30deg) }
+</style></head><body>
+<div class="bubble"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 520 112"><path d="M2 2H518V100H60L40 110L50 100H2Z" fill="#fff" stroke="#e8bdc7"/></svg></div>
+<div class="bubble flip"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 520 112"><path d="M2 2H518V100H60L40 110L50 100H2Z" fill="#fff" stroke="#e8bdc7"/></svg></div>
+<div class="bubble turn"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 520 112"><path d="M2 2H518V100H60L40 110L50 100H2Z" fill="#fff" stroke="#e8bdc7"/></svg></div>
+</body></html>"""
+
+
+def test_mirrored_svg_is_a_flip_not_a_half_turn():
+    """luna 잡 4afa5d73 — 말풍선 꼬리를 ``scaleX(-1)`` 로 뒤집은 svg 를 180° 회전으로 읽어
+    편집기에서 위아래가 뒤집히고 상자 밖으로 밀려났다. 반전은 flipX 로, 회전은 그대로."""
+    pytest.importorskip("playwright.async_api")
+
+    async def run():
+        from playwright.async_api import async_playwright
+
+        async with async_playwright() as playwright:
+            browser = await playwright.chromium.launch(args=["--headless=new"])
+            try:
+                page = await browser.new_page(viewport={"width": 750, "height": 600})
+                await page.set_content(MIRRORED_TAILS, wait_until="load")
+                return await page.evaluate(
+                    decompose.EXTRACT,
+                    {"label": "fixture", "sliceBy": None, "placeholderClass": None, "splitSvgParts": False},
+                )
+            finally:
+                await browser.close()
+
+    svgs = [e for e in asyncio.run(run())["elements"] if e["kind"] == "svg"]
+    plain, flipped, turned = (s["box"] for s in svgs)
+    assert plain["rotation"] == 0 and not plain.get("flipX")
+    assert flipped["rotation"] == 0 and flipped.get("flipX") is True
+    assert flipped["x"] == plain["x"] and flipped["width"] == plain["width"]
+    assert turned["rotation"] == 30 and not turned.get("flipX")
+    child = decompose._canvas_element(svgs[1], "b1")
+    assert child["flipX"] is True and child["rotation"] == 0
