@@ -497,6 +497,43 @@ describe("align frame — group vs section", () => {
     expect(top.set).toHaveBeenCalledWith({ x: 480 }); // (1000 - 40) / 2
   });
 
+  it("그룹은 보이는 네모로 정렬한다 — 폭 0인 그룹을 섹션 밖으로 날리지 않는다", async () => {
+    const user = userEvent.setup();
+    // 그룹 x 80, 자기 폭 0. 자식이 0~700을 차지하므로 보이는 네모는 80~780.
+    const store = createCanvasStore({
+      width: 860,
+      height: 1000,
+      pages: [
+        {
+          id: "p1",
+          width: 860,
+          height: 1000,
+          children: [
+            {
+              id: "g",
+              type: "group",
+              x: 80,
+              y: 0,
+              width: 0,
+              height: 0,
+              children: [{ id: "c", type: "figure", x: 0, y: 0, width: 700, height: 100 }],
+            },
+          ],
+        },
+      ],
+    });
+    store.selectElements(["g"]);
+    render(
+      <CanvasStoreContext.Provider value={store}>
+        <DetailPageProperties store={store} />
+      </CanvasStoreContext.Provider>,
+    );
+
+    await user.click(screen.getByRole("button", { name: "detailPage.properties.alignRight" }));
+    // 오른쪽 끝이 860에 닿게: 보이는 왼쪽 = 160. 예전에는 폭 0으로 읽어 x = 860이 됐다.
+    expect(store.getElementById("g")!.x).toBe(160);
+  });
+
   const pressed = (name: string) =>
     screen
       .getByRole("button", { name: `detailPage.properties.${name}` })
