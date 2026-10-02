@@ -15,7 +15,7 @@ import { loadImage } from "../render/image-cache";
 import { displayText, isSingleLineBox } from "../render/attrs";
 import { applyInTransaction } from "../render/interaction";
 import { measureTextLayout, singleLineTextX } from "../render/text-layout";
-import { elementRect, moveElementTo, unionRect } from "./rect";
+import { elementRect, flipArea, moveElementTo, unionRect, type Rect } from "./rect";
 
 // ---------------------------------------------------------------------------
 // 정렬
@@ -366,34 +366,79 @@ export async function pasteExternal(
 // 뒤집기·잠금·숨김
 // ---------------------------------------------------------------------------
 
-/** 고른 것을 좌우(`flipX`)·상하(`flipY`)로 뒤집는다. 잠긴 것은 건너뛴다. */
+/**
+ * 고른 것을 좌우(`flipX`)·상하(`flipY`)로 뒤집는다. 잠긴 것은 건너뛴다.
+ *
+ * Figma처럼 **고른 것 전체를 하나로** 거울에 비춘다 — 바깥 네모 가운데를 축으로 각자
+ * 뒤집히면서 서로 자리도 바뀐다. 하나만 골랐으면 그 자리에서 뒤집힌다. 축은 상자가 아니라
+ * **보이는 그림**(`inkRect`)으로 잡는다: 한 줄 글자는 상자보다 좁게 그려지고(제목 상자
+ * 700에 글자 390), 그런 글자를 든 그룹도 마찬가지라 상자로 재면 뒤집을 때 밀려난다.
+ * 돈 것은 화면 기준으로 비추므로 회전이 반대로 바뀐다(M·R(θ) = R(−θ)·M).
+ */
 export function flipElements(store: CanvasStore, axis: "x" | "y"): boolean {
   const els = store.selectedElements.filter((el) => !el.locked);
   if (!els.length) return false;
   const key = axis === "x" ? "flipX" : "flipY";
+  // ponytail: 부모별로 따로 비춘다 — 서로 다른 그룹 속 요소를 섞어 고르는 일은 드물다.
+  const byParent = new Map<unknown, CanvasElement[]>();
+  for (const el of els) byParent.set(el.parent, [...(byParent.get(el.parent) ?? []), el]);
   applyInTransaction(store, () => {
-    for (const el of els) el.set({ [key]: el[key] !== true, ...inkStays(el, axis) });
+    for (const group of byParent.values()) {
+      const before = group.map((el) => inkRect(el));
+      const whole = unionRect(before)!;
+      group.forEach((el, i) => {
+        const rotation = num(el, "rotation", 0);
+        el.set({ [key]: el[key] !== true, ...(rotation ? { rotation: -rotation } : {}) });
+        const old = before[i];
+        const now = inkRect(el);
+        const mirror = (o: number, size: number, start: number, total: number) =>
+          start * 2 + total - (o + size);
+        const targetX = axis === "x" ? mirror(old.x, old.width, whole.x, whole.width) : old.x;
+        const targetY = axis === "y" ? mirror(old.y, old.height, whole.y, whole.height) : old.y;
+        const dx = targetX - now.x;
+        const dy = targetY - now.y;
+        if (Math.abs(dx) > 0.01 || Math.abs(dy) > 0.01) {
+          el.set({ x: num(el, "x", 0) + dx, y: num(el, "y", 0) + dy });
+        }
+      });
+    }
   });
   return true;
 }
 
 /**
- * 한 줄 글자는 상자보다 좁게 그려진다(제목 상자 700에 글자 390). 뒤집기 축은 상자 가운데라
- * 그대로 뒤집으면 글자가 상자 반대편으로 건너가 «제자리에서 뒤집혔다»가 아니게 된다.
- * 보이는 글자의 가운데가 그 자리에 남도록 원점을 (회전 축을 따라) 옮긴다.
+ * 보이는 그림이 부모 좌표에서 차지하는 네모. `elementRect`와 같되 한 줄 글자는 상자 대신
+ * 실제 글자 폭을 보고, 그룹은 자식 각각의 뒤집기까지 따라간다.
  */
-function inkStays(el: CanvasElement, axis: "x" | "y"): { x: number; y: number } | null {
-  if (axis !== "x" || el.type !== "text" || !isSingleLineBox(el)) return null;
-  const layout = measureTextLayout(el, displayText(el));
-  const ink = singleLineTextX(el, layout) + layout.blockWidth / 2;
-  // 지금 안 뒤집혀 있으면 글자 가운데가 ink → (폭 − ink)로 가고, 뒤집혀 있으면 그 반대다.
-  const shift = (ink * 2 - num(el, "width", 0)) * (el.flipX === true ? -1 : 1);
-  if (Math.abs(shift) < 0.01) return null;
+function inkRect(el: CanvasElement): Rect {
+  const kids = (el.children ?? []) as CanvasElement[];
+  let local: Rect;
+  if (kids.length) {
+    local = unionRect(kids.map((child) => inkRect(child))) ?? { x: 0, y: 0, width: 0, height: 0 };
+  } else if (el.type === "text" && isSingleLineBox(el)) {
+    const layout = measureTextLayout(el, displayText(el));
+    local = { x: singleLineTextX(el, layout), y: 0, width: layout.blockWidth, height: num(el, "height", 0) };
+  } else {
+    local = { x: 0, y: 0, width: num(el, "width", 0), height: num(el, "height", 0) };
+  }
+  // 부모 좌표 = T(x, y)·R(회전)·F(flipArea 가운데 축) — element-view와 같은 순서.
+  const area = flipArea(el);
+  const fx = (x: number) => (el.flipX === true ? area.x * 2 + area.width - x : x);
+  const fy = (y: number) => (el.flipY === true ? area.y * 2 + area.height - y : y);
   const rad = (num(el, "rotation", 0) * Math.PI) / 180;
-  return {
-    x: num(el, "x", 0) + shift * Math.cos(rad),
-    y: num(el, "y", 0) + shift * Math.sin(rad),
-  };
+  const cos = Math.cos(rad);
+  const sin = Math.sin(rad);
+  const corners = [
+    [local.x, local.y],
+    [local.x + local.width, local.y],
+    [local.x, local.y + local.height],
+    [local.x + local.width, local.y + local.height],
+  ].map(([lx, ly]) => {
+    const px = fx(lx);
+    const py = fy(ly);
+    return { x: num(el, "x", 0) + px * cos - py * sin, y: num(el, "y", 0) + px * sin + py * cos };
+  });
+  return unionRect(corners.map((c) => ({ ...c, width: 0, height: 0 })))!;
 }
 
 /**
