@@ -174,7 +174,7 @@ const SectionBar = observer(function SectionBar({
           data-le-part="mobile-sheet"
         >
           <div
-            className="absolute inset-0 bg-black/30"
+            className="absolute inset-0 bg-le-scrim/60"
             style={{ animation: "le-fade-in 160ms ease-out" }}
             onClick={close}
             aria-hidden="true"
@@ -183,7 +183,7 @@ const SectionBar = observer(function SectionBar({
             ref={sheetRef}
             role="dialog"
             aria-modal="true"
-            className="absolute inset-x-0 bottom-0 flex h-[75%] flex-col overflow-hidden rounded-t-2xl bg-le-surface shadow-2xl"
+            className="absolute inset-x-0 bottom-0 flex h-[75%] flex-col overflow-hidden rounded-t-le-xl bg-le-surface shadow-2xl"
             style={
               dragY !== null
                 ? { transform: `translateY(${dragY}px)` }
@@ -259,7 +259,7 @@ function InspectorBar({ store, inspector }: { store: unknown; inspector: ReactNo
       <div
         ref={hostRef}
         data-le-mobile-inspector=""
-        className="absolute inset-x-2 bottom-full z-50 mb-2 max-h-[45dvh] overflow-y-auto rounded-xl border border-le-ink-200 bg-le-surface shadow-lg"
+        className="absolute inset-x-2 bottom-full z-50 mb-2 max-h-[45dvh] overflow-y-auto rounded-le-xl border border-le-ink-200 bg-le-surface shadow-lg"
         style={{ display: shown ? undefined : "none" }}
       >
         {inspector}
