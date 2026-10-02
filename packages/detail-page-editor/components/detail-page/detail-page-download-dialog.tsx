@@ -529,10 +529,12 @@ export const DetailPageDownloadDialog = observer(function DetailPageDownloadDial
         onClick={() => setOpen((v) => !v)}
         aria-haspopup="dialog"
         aria-expanded={open}
-        className="inline-flex h-9 items-center gap-2 rounded-le-md bg-le-ink-900 px-3 text-sm font-le-semibold text-le-on-accent transition-colors hover:bg-le-ink-800"
+        aria-label={t("editor.download")}
+        className="inline-flex h-9 shrink-0 items-center gap-2 rounded-le-md bg-le-ink-900 px-3 text-sm font-le-semibold text-le-on-accent transition-colors hover:bg-le-ink-800"
       >
         <Download aria-hidden="true" size={16} />
-        {t("editor.download")}
+        {/* 폰에서는 아이콘만 — 글자까지 넣으면 헤더가 넘쳐 한 글자씩 꺾인다. */}
+        <span className="hidden sm:inline">{t("editor.download")}</span>
       </button>
 
       {open ? (

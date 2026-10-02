@@ -416,7 +416,7 @@ export function DetailPageEditor({
             <ChevronLeft aria-hidden="true" size={20} />
           </button>
         ) : null}
-        <p className="ml-1 max-w-[280px] truncate text-sm font-le-semibold text-le-ink-900">
+        <p className="ml-1 min-w-0 max-w-[280px] truncate text-sm font-le-semibold text-le-ink-900">
           {productName?.trim() || t("editor.untitled")}
         </p>
 
@@ -446,10 +446,13 @@ export function DetailPageEditor({
           type="button"
           onClick={handleSave}
           disabled={saving}
-          className="inline-flex h-9 items-center gap-2 rounded-le-md border border-le-ink-200 bg-le-surface px-3 text-sm font-le-semibold text-le-ink-900 hover:bg-le-ink-50 disabled:cursor-not-allowed disabled:opacity-50"
+          aria-label={saving ? t("editor.saving") : t("editor.save")}
+          className="inline-flex h-9 shrink-0 items-center gap-2 rounded-le-md border border-le-ink-200 bg-le-surface px-3 text-sm font-le-semibold text-le-ink-900 hover:bg-le-ink-50 disabled:cursor-not-allowed disabled:opacity-50"
         >
           <Save aria-hidden="true" size={16} />
-          {saving ? t("editor.saving") : t("editor.save")}
+          <span className="hidden sm:inline">
+            {saving ? t("editor.saving") : t("editor.save")}
+          </span>
         </button>
         {downloadPart}
 

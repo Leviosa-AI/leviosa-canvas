@@ -508,7 +508,9 @@ const PageView = memo(function PageView({
                   const id = hit && store.getElementById(hit)?.locked ? null : hit;
                   onPick(id, event.evt.shiftKey);
                   // 빈 곳에서 시작한 끌기는 마퀴다(요소 위에서 시작하면 그 요소가 끌린다).
-                  if (!id) startMarquee(event);
+                  // 손가락으로 빈 곳을 끌면 마퀴가 아니라 화면 이동이다 — 폰에서는 화면을
+                  // 옮길 길이 그것뿐이다. 이동은 작업 영역이 맡는다.
+                  if (!id && event.evt.pointerType !== "touch") startMarquee(event);
                 }
               : undefined
           }

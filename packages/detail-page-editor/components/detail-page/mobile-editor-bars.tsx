@@ -64,7 +64,7 @@ type StoreLike = {
 };
 
 const BAR_CLASS =
-  "flex shrink-0 items-stretch border-t border-le-ink-200 bg-le-surface pb-[env(safe-area-inset-bottom)]";
+  "flex shrink-0 items-stretch [scrollbar-width:none] border-t border-le-ink-200 bg-le-surface pb-[env(safe-area-inset-bottom)]";
 
 // 레일 탭은 세로 레일 폭을 채우게 짜여 있다 — 가로로 흘릴 때는 칸 폭을 못 박고,
 // 브랜드 구역 앞에 긋는 가로 구분선은 숨긴다.
@@ -265,7 +265,7 @@ function InspectorBar({ store, inspector }: { store: unknown; inspector: ReactNo
         {inspector}
       </div>
       <div className={BAR_CLASS}>
-        <div className="flex min-w-0 flex-1 overflow-x-auto">
+        <div className="flex min-w-0 flex-1 overflow-x-auto [scrollbar-width:none]">
           {titles.map((title) => (
             <button
               key={title}
