@@ -52,9 +52,11 @@ import {
   absorbTransform,
   applyInTransaction,
   groupResizePatches,
+  isDoubleTap,
   resolveFlip,
   pickFromPath,
   toggleSelection,
+  type Tap,
   type TransformResult,
 } from "./interaction";
 import { createValueBus, useBusValue, type ValueBus } from "./overlay-bus";
@@ -396,6 +398,26 @@ const PageView = memo(function PageView({
     [store, scopeId],
   );
 
+  // 손가락 두 번 누르기. Konva 의 `dbltap` 은 못 쓴다 — 첫 탭에 고르면 선택 상자가 그
+  // 위에 깔려서, 두 번째 탭의 누른 도형(상자)과 뗀 도형(글자)이 달라 안 터진다. 그래서
+  // 누르기 두 번을 직접 잰다. 두 번째가 상자 위면 지금 고른 것을 두 번 누른 것으로 본다.
+  const lastTap = useRef<Tap | null>(null);
+  const touchDoubleTap = useCallback(
+    (event: Konva.KonvaEventObject<PointerEvent>, hit: string | null, skip: boolean) => {
+      const id = hit ?? (skip ? (store.selectedElementsIds[0] ?? null) : null);
+      if (!id) {
+        lastTap.current = null;
+        return false;
+      }
+      const tap = { at: event.evt.timeStamp, x: event.evt.clientX, y: event.evt.clientY, id };
+      const double = isDoubleTap(lastTap.current, tap);
+      lastTap.current = double ? null : tap;
+      if (double) onDrill(id);
+      return double;
+    },
+    [store, onDrill],
+  );
+
   /**
    * 빈 곳에서 시작한 끌기는 마퀴다.
    *
@@ -458,6 +480,12 @@ const PageView = memo(function PageView({
             interactive
               ? (event: Konva.KonvaEventObject<PointerEvent>) => {
                   const { id: hit, skip } = hitId(event);
+                  if (
+                    event.evt.pointerType === "touch" &&
+                    touchDoubleTap(event, hit, skip)
+                  ) {
+                    return;
+                  }
                   if (skip) return;
                   // 잠긴 요소는 집히지 않는다 — 빈 곳처럼 본다. 잠근 배경 위에서도
                   // 마퀴를 그을 수 있어야 한다.

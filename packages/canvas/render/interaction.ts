@@ -254,3 +254,20 @@ export function nudge(
     }
   });
 }
+
+/** 손가락 누르기 하나. `id` 는 누른 요소(선택 상자 위면 지금 고른 것). */
+export type Tap = { at: number; x: number; y: number; id: string };
+
+/** 두 번 누르기로 볼 간격·흔들림. Konva 의 `dblClickWindow`(400ms)와 맞췄다. */
+export const DOUBLE_TAP_MS = 400;
+export const DOUBLE_TAP_PX = 24;
+
+/** 같은 요소를, 충분히 빨리, 거의 같은 자리에서 두 번 눌렀는가. */
+export function isDoubleTap(prev: Tap | null, next: Tap): boolean {
+  return (
+    prev !== null &&
+    prev.id === next.id &&
+    next.at - prev.at <= DOUBLE_TAP_MS &&
+    Math.hypot(next.x - prev.x, next.y - prev.y) <= DOUBLE_TAP_PX
+  );
+}
