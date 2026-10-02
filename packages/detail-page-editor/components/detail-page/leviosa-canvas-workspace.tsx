@@ -393,8 +393,8 @@ export function LeviosaCanvasWorkspace({
       else settleAnchor();
     };
     const onEnd = (event: TouchEvent) => {
+      // 끝 이벤트는 흘려보낸다 — Konva 가 window 에서 받아 진행 중이던 드래그를 닫는다.
       if (!pinching.current) return;
-      event.stopPropagation();
       if (event.touches.length === 0) {
         pinching.current = null;
         anchor.current = null;
