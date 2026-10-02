@@ -5,7 +5,11 @@ import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 
 import { CanvasSelectionTools } from "../canvas-selection-tools";
-import { popoverPlacement, toolbarPosition } from "../selection-quick-toolbar";
+import {
+  popoverHorizontal,
+  popoverPlacement,
+  toolbarPosition,
+} from "../selection-quick-toolbar";
 import { EditorAiProvider } from "../editor-ai-context";
 import { withDetailPageHost } from "./host-stub";
 
@@ -189,5 +193,15 @@ describe("CanvasSelectionTools", () => {
     // 띠는 물러난다 — 자르기 줄이 그 자리에 뜬다.
     expect(screen.queryByLabelText("detailPage.quickToolbar.crop")).toBeNull();
     expect(screen.getByText("detailPage.crop.title")).toBeTruthy();
+  });
+});
+
+describe("popoverHorizontal — 좁은 화면", () => {
+  it("넓으면 그대로 둔다", () => {
+    expect(popoverHorizontal(360, 100, 1200)).toEqual({ width: 360, shift: 0 });
+  });
+  it("폰 폭이면 줄이고, 오른쪽 끝 띠에서 열면 안으로 민다", () => {
+    // 작업 영역 375, 띠가 오른쪽 250 에 있다 → 폭 359, 왼쪽 끝이 8 에 온다.
+    expect(popoverHorizontal(360, 250, 375)).toEqual({ width: 359, shift: -242 });
   });
 });

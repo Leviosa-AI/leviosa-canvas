@@ -67,6 +67,12 @@ import { useDocumentFonts, type FontLoader } from "./use-document-fonts";
 
 /** 정렬선에 붙는 거리 — 화면에서 잰다(축소해 놓아도 손맛이 같아야 한다). */
 const SNAP_TOLERANCE_PX = 6;
+/** 손가락이 주 입력인 화면(폰·태블릿). 첫 렌더에 한 번 잰다. */
+const COARSE_POINTER =
+  typeof window !== "undefined" &&
+  typeof window.matchMedia === "function" &&
+  window.matchMedia("(pointer: coarse)").matches;
+const widenAnchorHit = (anchor: Konva.Rect) => anchor.hitStrokeWidth(24);
 
 /** 지금 집을 수 있는 형제들과, 그들이 놓인 좌표계의 원점. */
 function scopeOf(
@@ -296,7 +302,9 @@ function SelectionLayer({
         ignoreStroke
         borderStroke="#2563eb"
         anchorStroke="#2563eb"
-        anchorSize={8}
+        anchorSize={COARSE_POINTER ? 12 : 8}
+        // 손가락은 8px 손잡이를 못 짚는다 — 터치 화면에서는 보이는 것보다 넓게 잡힌다.
+        anchorStyleFunc={COARSE_POINTER ? widenAnchorHit : undefined}
         // 손잡이를 반대편으로 넘기면 뒤집힌다 — 음수 scale은 `resolveFlip`이
         // flipX/flipY로 바꿔 문서에 쓴다(element-view가 그린다).
         rotationSnaps={[0, 45, 90, 135, 180, 225, 270, 315]}
@@ -428,7 +436,19 @@ const PageView = memo(function PageView({
         window.addEventListener("pointerup", end, true);
         window.addEventListener("pointercancel", end, true);
       }
-      if (double) onDrill(id);
+      if (double) {
+        // 여는 것은 손을 뗄 때다. iOS 는 터치가 끝나는 이벤트 안에서 받은 focus 에만
+        // 키보드를 띄운다 — 누르는 순간 열면 입력창은 뜨는데 키보드가 안 올라온다.
+        const pointerId = event.evt.pointerId;
+        const open = (e: PointerEvent) => {
+          if (e.pointerId !== pointerId) return;
+          window.removeEventListener("pointerup", open, true);
+          window.removeEventListener("pointercancel", open, true);
+          if (e.type === "pointerup") onDrill(id);
+        };
+        window.addEventListener("pointerup", open, true);
+        window.addEventListener("pointercancel", open, true);
+      }
       return double;
     },
     [store, onDrill],

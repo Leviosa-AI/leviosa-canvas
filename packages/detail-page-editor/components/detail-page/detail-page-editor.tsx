@@ -37,7 +37,7 @@ import {
   useDetailPageHost,
 } from "./detail-page-host-context";
 import { SectionReauthorController } from "./section-reauthor-controller";
-import { MobileBottomBar, useIsMobile } from "./mobile-editor-bars";
+import { MobileBottomBar, useIsMobile, useKeyboardViewport } from "./mobile-editor-bars";
 import type {
   GenerateGifFn,
   GenerateImageFn,
@@ -193,6 +193,7 @@ export function DetailPageEditor({
   const { usage, applyUsage } = useDetailPageEditUsage(generatedId);
   // 폰에서는 좌측 레일·우측 인스펙터를 하단 띠 하나로 접는다(mobile-editor-bars).
   const mobile = useIsMobile();
+  const keyboard = useKeyboardViewport();
   const [saveError, setSaveError] = useState<string | null>(null);
   const [saveOk, setSaveOk] = useState(false);
   // 편집 한도 소진 시 "편집 크레딧 추가하기" → pricing 모달을 인플레이스로 연다.
@@ -523,6 +524,18 @@ export function DetailPageEditor({
     <div
       data-le-root=""
       className="flex h-dvh min-h-[480px] flex-col md:h-screen md:min-h-[640px] bg-le-ink-100"
+      // 폰에서 키보드가 뜨면 보이는 자리만큼으로 줄여 띠·입력창을 키보드 위에 둔다.
+      style={
+        mobile && keyboard
+          ? {
+              height: keyboard.height,
+              minHeight: 0,
+              position: "fixed",
+              insetInline: 0,
+              top: keyboard.top,
+            }
+          : undefined
+      }
     >
       {/* hookable식 상단 헤더: 뒤로가기 · 상품명 · (되돌리기/다시실행) · 저장 ·
           다운로드 · 앱 공용 크롬(크레딧/알림/언어, 호스트 주입). 높이를 고정하고

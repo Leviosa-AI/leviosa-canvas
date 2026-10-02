@@ -49,6 +49,39 @@ export function useIsMobile(): boolean {
   );
 }
 
+/**
+ * 키보드가 올라와 눈에 보이는 높이가 줄었으면 그 높이(px), 아니면 null.
+ *
+ * iOS 는 키보드가 떠도 레이아웃 높이(`100dvh`)를 안 줄이고 그 위를 덮는다 — 그러면
+ * 하단 띠와 고치는 글자가 키보드 밑에 깔린다. 편집기를 보이는 높이로 줄여 띠를 키보드
+ * 바로 위로 올린다.
+ */
+function subscribeViewport(onChange: () => void) {
+  const vv = window.visualViewport;
+  vv?.addEventListener("resize", onChange);
+  vv?.addEventListener("scroll", onChange);
+  return () => {
+    vv?.removeEventListener("resize", onChange);
+    vv?.removeEventListener("scroll", onChange);
+  };
+}
+// ponytail: 120px 넘게 줄면 키보드로 본다 — 주소창이 접히고 펴지는 정도는 안 넘는다.
+const KEYBOARD_PX = 120;
+export function useKeyboardViewport(): { height: number; top: number } | null {
+  const key = useSyncExternalStore(
+    subscribeViewport,
+    () => {
+      const vv = window.visualViewport;
+      if (!vv || window.innerHeight - vv.height < KEYBOARD_PX) return "";
+      return `${Math.round(vv.height)}:${Math.round(vv.offsetTop)}`;
+    },
+    () => "",
+  );
+  if (!key) return null;
+  const [height, top] = key.split(":").map(Number);
+  return { height, top };
+}
+
 type MobileSection = {
   name: string;
   Tab: (props: Record<string, unknown>) => ReactElement | null;
