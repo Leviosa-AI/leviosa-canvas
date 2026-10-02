@@ -104,7 +104,11 @@ export function Section({
   children: React.ReactNode;
 }) {
   return (
-    <section className="border-t border-le-ink-200 px-4 py-3 first:border-t-0">
+    // `data-le-section` 은 모바일 하단 띠가 섹션을 탭으로 세우는 손잡이다(mobile-editor-bars).
+    <section
+      data-le-section={title}
+      className="border-t border-le-ink-200 px-4 py-3 first:border-t-0"
+    >
       <h4 className="mb-2 text-[11px] font-le-semibold uppercase tracking-[0.06em] text-le-ink-400">
         {title}
       </h4>
