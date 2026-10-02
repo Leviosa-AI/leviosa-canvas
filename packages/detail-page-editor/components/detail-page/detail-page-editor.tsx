@@ -37,6 +37,7 @@ import {
   useDetailPageHost,
 } from "./detail-page-host-context";
 import { SectionReauthorController } from "./section-reauthor-controller";
+import { MobileBottomBar, useIsMobile, useKeyboardViewport } from "./mobile-editor-bars";
 import type {
   GenerateGifFn,
   GenerateImageFn,
@@ -190,6 +191,9 @@ export function DetailPageEditor({
   // 프롬프트 편집 사용량은 여기서 한 번만 조회한다 — 캔버스 위 띠와 우측 패널(표·차트)이
   // 같은 숫자를 봐야 "몇 번 남았는가"가 갈라지지 않는다.
   const { usage, applyUsage } = useDetailPageEditUsage(generatedId);
+  // 폰에서는 좌측 레일·우측 인스펙터를 하단 띠 하나로 접는다(mobile-editor-bars).
+  const mobile = useIsMobile();
+  const keyboard = useKeyboardViewport();
   const [saveError, setSaveError] = useState<string | null>(null);
   const [saveOk, setSaveOk] = useState(false);
   // 편집 한도 소진 시 "편집 크레딧 추가하기" → pricing 모달을 인플레이스로 연다.
@@ -330,7 +334,7 @@ export function DetailPageEditor({
     return (
       <div className="absolute inset-0 flex">
         {hotkeys}
-        {SidebarSlot ? (
+        {mobile ? null : SidebarSlot ? (
           <SidebarSlot
             store={store}
             sections={sidebarSections as never}
@@ -357,7 +361,7 @@ export function DetailPageEditor({
         </div>
       </div>
     );
-  }, [store, sidebarSections, SidebarSlot, chosenFrame, onChooseFrame, handleSave, uploadFile]);
+  }, [store, sidebarSections, SidebarSlot, mobile, chosenFrame, onChooseFrame, handleSave, uploadFile]);
 
   const aiValue = useMemo(
     () => ({
@@ -413,7 +417,7 @@ export function DetailPageEditor({
             <ChevronLeft aria-hidden="true" size={20} />
           </button>
         ) : null}
-        <p className="ml-1 max-w-[280px] truncate text-sm font-le-semibold text-le-ink-900">
+        <p className="ml-1 min-w-0 max-w-[280px] truncate text-sm font-le-semibold text-le-ink-900">
           {productName?.trim() || t("editor.untitled")}
         </p>
 
@@ -443,10 +447,13 @@ export function DetailPageEditor({
           type="button"
           onClick={handleSave}
           disabled={saving}
-          className="inline-flex h-9 items-center gap-2 rounded-le-md border border-le-ink-200 bg-le-surface px-3 text-sm font-le-semibold text-le-ink-900 hover:bg-le-ink-50 disabled:cursor-not-allowed disabled:opacity-50"
+          aria-label={saving ? t("editor.saving") : t("editor.save")}
+          className="inline-flex h-9 shrink-0 items-center gap-2 rounded-le-md border border-le-ink-200 bg-le-surface px-3 text-sm font-le-semibold text-le-ink-900 hover:bg-le-ink-50 disabled:cursor-not-allowed disabled:opacity-50"
         >
           <Save aria-hidden="true" size={16} />
-          {saving ? t("editor.saving") : t("editor.save")}
+          <span className="hidden sm:inline">
+            {saving ? t("editor.saving") : t("editor.save")}
+          </span>
         </button>
         {downloadPart}
 
@@ -516,22 +523,43 @@ export function DetailPageEditor({
     <TooltipProvider>
     <div
       data-le-root=""
-      className="flex h-screen min-h-[640px] flex-col bg-le-ink-100"
+      className="flex h-dvh min-h-[480px] flex-col md:h-screen md:min-h-[640px] bg-le-ink-100"
+      // 폰에서 키보드가 뜨면 보이는 자리만큼으로 줄여 띠·입력창을 키보드 위에 둔다.
+      style={
+        mobile && keyboard
+          ? {
+              height: keyboard.height,
+              minHeight: 0,
+              position: "fixed",
+              insetInline: 0,
+              top: keyboard.top,
+            }
+          : undefined
+      }
     >
       {/* hookable식 상단 헤더: 뒤로가기 · 상품명 · (되돌리기/다시실행) · 저장 ·
           다운로드 · 앱 공용 크롬(크레딧/알림/언어, 호스트 주입). 높이를 고정하고
           본문은 flex-1 min-h-0으로 두어, 헤더 높이가 바뀌어도 캔버스가 남는 높이를
           정확히 채워 페이지 하단이 잘리지 않는다. */}
       {header}
-      <div className="grid min-h-0 flex-1 grid-cols-[1fr_360px]">
+      <div
+        className={`grid min-h-0 flex-1 ${mobile ? "grid-cols-1" : "grid-cols-[1fr_360px]"}`}
+      >
         {/* 캔버스 칸의 높이를 못 박는다. 안 그러면 그리드 행이 내용만큼 늘어나(높이
             100%가 auto로 풀린다) 작업 영역이 화면 아래로 자라고, 아래 붙는 배율·화면
             띠가 화면 밖으로 밀린다. */}
         <div data-le-part="workspace" className="relative min-w-0 overflow-hidden">
           {canvas}
         </div>
-        {inspector}
+        {mobile ? null : inspector}
       </div>
+      {mobile ? (
+        <MobileBottomBar
+          store={store}
+          sections={sidebarSections}
+          inspector={defaultInspector}
+        />
+      ) : null}
       {/* 화면 하나만 마크업째 다시 저작 — 요청은 캔버스 옆 페이지 툴바에서 온다. */}
       <SectionReauthorController
         store={store}

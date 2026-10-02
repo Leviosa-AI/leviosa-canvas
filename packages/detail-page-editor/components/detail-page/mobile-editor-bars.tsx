@@ -1,0 +1,382 @@
+// Copyright © 2026 주식회사레비오사에이아이. All rights reserved. See LICENSE.
+"use client";
+
+/**
+ * 좁은 화면(폰)의 하단 띠 — 좌측 레일과 우측 인스펙터가 들어갈 자리가 없어서 둘 다
+ * 화면 아래 한 줄로 내린다(Canva 모바일과 같은 모양).
+ *
+ * - 아무것도 안 골랐으면 좌측 레일의 탭을 가로로 흘린다. 누르면 패널이 아래에서
+ *   올라오는 시트로 열린다.
+ * - 뭔가 골랐으면 인스펙터의 섹션(`Section` 제목)을 탭으로 세운다. 누르면 그 섹션
+ *   하나만 띠 바로 위에 뜬다.
+ *
+ * 인스펙터를 섹션별로 다시 짜지 않는다. 인스펙터를 통째로 그려 두고, `Section` 이 다는
+ * `data-le-section` 을 읽어 탭을 세우고 고른 것 하나만 CSS 로 보인다 — 인스펙터가 늘어도
+ * 여기는 안 고친다.
+ */
+
+import {
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+  useSyncExternalStore,
+  type ReactElement,
+  type PointerEvent as ReactPointerEvent,
+  type ReactNode,
+} from "react";
+import { Check, Settings2 } from "lucide-react";
+import { useTranslation } from "react-i18next";
+import { SectionTab } from "@leviosa-ai/canvas";
+
+import { observer } from "./canvas-observer";
+import { selectedElementsDeep } from "./detail-page-selection";
+
+const MOBILE_QUERY = "(max-width: 767px)";
+
+function subscribeMobile(onChange: () => void) {
+  const mq = window.matchMedia(MOBILE_QUERY);
+  mq.addEventListener("change", onChange);
+  return () => mq.removeEventListener("change", onChange);
+}
+
+export function useIsMobile(): boolean {
+  return useSyncExternalStore(
+    subscribeMobile,
+    () => window.matchMedia(MOBILE_QUERY).matches,
+    () => false,
+  );
+}
+
+/**
+ * 키보드가 올라와 눈에 보이는 높이가 줄었으면 그 높이(px), 아니면 null.
+ *
+ * iOS 는 키보드가 떠도 레이아웃 높이(`100dvh`)를 안 줄이고 그 위를 덮는다 — 그러면
+ * 하단 띠와 고치는 글자가 키보드 밑에 깔린다. 편집기를 보이는 높이로 줄여 띠를 키보드
+ * 바로 위로 올린다.
+ */
+function subscribeViewport(onChange: () => void) {
+  const vv = window.visualViewport;
+  vv?.addEventListener("resize", onChange);
+  vv?.addEventListener("scroll", onChange);
+  return () => {
+    vv?.removeEventListener("resize", onChange);
+    vv?.removeEventListener("scroll", onChange);
+  };
+}
+// ponytail: 120px 넘게 줄면 키보드로 본다 — 주소창이 접히고 펴지는 정도는 안 넘는다.
+const KEYBOARD_PX = 120;
+export function useKeyboardViewport(): { height: number; top: number } | null {
+  const key = useSyncExternalStore(
+    subscribeViewport,
+    () => {
+      const vv = window.visualViewport;
+      if (!vv || window.innerHeight - vv.height < KEYBOARD_PX) return "";
+      return `${Math.round(vv.height)}:${Math.round(vv.offsetTop)}`;
+    },
+    () => "",
+  );
+  if (!key) return null;
+  const [height, top] = key.split(":").map(Number);
+  return { height, top };
+}
+
+type MobileSection = {
+  name: string;
+  Tab: (props: Record<string, unknown>) => ReactElement | null;
+  Panel: (props: { store: unknown }) => ReactElement | null;
+  visibleInList?: boolean;
+};
+
+type StoreLike = {
+  pages: { children: { id: string }[] }[];
+  openedSidePanel: string;
+  openSidePanel: (name: string) => void;
+  selectElements: (ids: string[]) => void;
+};
+
+const BAR_CLASS =
+  "flex shrink-0 items-stretch [scrollbar-width:none] border-t border-le-ink-200 bg-le-surface pb-[env(safe-area-inset-bottom)]";
+
+// 레일 탭은 세로 레일 폭을 채우게 짜여 있다 — 가로로 흘릴 때는 칸 폭을 못 박고,
+// 브랜드 구역 앞에 긋는 가로 구분선은 숨긴다.
+const SHEET_CSS = `
+[data-le-mobile-tabs] > div > span[aria-hidden="true"] { display: none; }
+[data-le-mobile-tabs] > div > button { padding: 10px 4px !important; font-size: 11px !important; }
+@keyframes le-sheet-up { from { transform: translateY(100%); } to { transform: none; } }
+@keyframes le-fade-in { from { opacity: 0; } to { opacity: 1; } }
+`;
+
+/** 아무것도 안 골랐을 때 — 좌측 레일 탭 띠 + 아래서 올라오는 시트. */
+const SectionBar = observer(function SectionBar({
+  store,
+  sections,
+}: {
+  store: unknown;
+  sections: ReadonlyArray<MobileSection>;
+}) {
+  const s = store as StoreLike;
+  const opened = s.openedSidePanel;
+  const Panel = sections.find((section) => section.name === opened)?.Panel;
+  const close = () => s.openSidePanel("");
+  // 시트에서 뭔가 넣으면 시트를 닫고 넣은 것을 고른다 — 폰에서는 시트가 캔버스를 가리고
+  // 있어서, 안 그러면 뭐가 들어갔는지 안 보인다. 하단 띠도 그걸로 인스펙터로 넘어간다.
+  // (편집기의 `addElement` 는 선택을 안 옮긴다 — store.ts.)
+  const ids = s.pages.flatMap((page) => page.children.map((el) => el.id));
+  // 화면을 넣거나 복제한 것(페이지 패널)은 요소를 넣은 것이 아니다 — 화면 수가 바뀌면
+  // 기준만 새로 잡는다.
+  const pageCount = s.pages.length;
+  const seen = useRef<{ ids: Set<string>; pages: number } | null>(null);
+  useEffect(() => {
+    if (!Panel) {
+      seen.current = null;
+      return;
+    }
+    if (!seen.current || seen.current.pages !== pageCount) {
+      seen.current = { ids: new Set(ids), pages: pageCount };
+      return;
+    }
+    const known = seen.current.ids;
+    const added = ids.filter((id) => !known.has(id));
+    if (added.length) {
+      s.openSidePanel("");
+      s.selectElements(added);
+    }
+  });
+
+  // 끌어내리기. 시트 높이의 1/4 을 넘기거나 빠르게 튕기면 닫고, 아니면 제자리로.
+  const sheetRef = useRef<HTMLDivElement>(null);
+  const [dragY, setDragY] = useState<number | null>(null);
+  // 한 번 끌었으면 놓을 때 여는 애니메이션을 다시 틀지 않고 제자리로 미끄러진다.
+  const [dragged, setDragged] = useState(false);
+  const startDrag = (down: ReactPointerEvent<HTMLDivElement>) => {
+    const handle = down.currentTarget as HTMLDivElement;
+    handle.setPointerCapture(down.pointerId);
+    const y0 = down.clientY;
+    const t0 = down.timeStamp;
+    setDragged(true);
+    const move = (e: PointerEvent) => setDragY(Math.max(0, e.clientY - y0));
+    const up = (e: PointerEvent) => {
+      handle.removeEventListener("pointermove", move);
+      handle.removeEventListener("pointerup", up);
+      handle.removeEventListener("pointercancel", up);
+      const dy = Math.max(0, e.clientY - y0);
+      const height = sheetRef.current?.offsetHeight ?? 1;
+      const flick = dy / Math.max(1, e.timeStamp - t0) > 0.5;
+      setDragY(null);
+      if (e.type === "pointerup" && (dy < 4 || dy > height / 4 || flick)) close();
+    };
+    handle.addEventListener("pointermove", move);
+    handle.addEventListener("pointerup", up);
+    handle.addEventListener("pointercancel", up);
+  };
+
+  // 시트는 띠 위에서 멈춘다 — 띠가 보여야 다른 탭으로 바로 옮겨 간다(Canva 와 같다).
+  const navRef = useRef<HTMLElement>(null);
+  const [barHeight, setBarHeight] = useState(0);
+  useLayoutEffect(() => {
+    if (Panel) setBarHeight(navRef.current?.offsetHeight ?? 0);
+    else setDragged(false);
+  }, [Panel]);
+
+  return (
+    <>
+      <style>{SHEET_CSS}</style>
+      <nav
+        ref={navRef}
+        data-le-part="mobile-section-bar"
+        data-le-mobile-tabs=""
+        className={`${BAR_CLASS} overflow-x-auto`}
+      >
+        {sections
+          .filter((section) => section.visibleInList !== false)
+          .map(({ name, Tab }) => (
+            <div key={name} className="w-[72px] shrink-0">
+              <Tab
+                active={name === opened}
+                onClick={() => s.openSidePanel(name === opened ? "" : name)}
+              />
+            </div>
+          ))}
+      </nav>
+      {Panel ? (
+        <div
+          className="fixed inset-x-0 top-0 z-40"
+          style={{ bottom: barHeight }}
+          data-le-part="mobile-sheet"
+        >
+          <div
+            className="absolute inset-0 bg-le-scrim/60"
+            style={{ animation: "le-fade-in 160ms ease-out" }}
+            onClick={close}
+            aria-hidden="true"
+          />
+          <div
+            ref={sheetRef}
+            role="dialog"
+            aria-modal="true"
+            className="absolute inset-x-0 bottom-0 flex h-[75%] flex-col overflow-hidden rounded-t-le-xl bg-le-surface shadow-2xl"
+            style={
+              dragY !== null
+                ? { transform: `translateY(${dragY}px)` }
+                : dragged
+                  ? { transition: "transform 200ms ease-out" }
+                  : { animation: "le-sheet-up 220ms cubic-bezier(0.2, 0.8, 0.2, 1)" }
+            }
+          >
+            {/* 손잡이를 끌어내리면 닫힌다. 그냥 누르기만 해도 닫힌다. */}
+            <div
+              role="button"
+              aria-label="close"
+              tabIndex={0}
+              onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && close()}
+              onPointerDown={startDrag}
+              className="flex h-7 shrink-0 cursor-grab touch-none items-center justify-center"
+            >
+              <span className="h-1 w-10 rounded-full bg-le-ink-300" />
+            </div>
+            <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+              <Panel store={store} />
+            </div>
+          </div>
+        </div>
+      ) : null}
+    </>
+  );
+});
+
+/** 뭔가 골랐을 때 — 인스펙터 섹션 탭 띠 + 띠 바로 위에 뜨는 섹션 하나. */
+function InspectorBar({ store, inspector }: { store: unknown; inspector: ReactNode }) {
+  const s = store as StoreLike;
+  const hostRef = useRef<HTMLDivElement>(null);
+  const [titles, setTitles] = useState<string[]>([]);
+  const [active, setActive] = useState<string | null>(null);
+
+  // 인스펙터가 지금 그린 섹션 제목을 읽는다. 선택이 바뀌면 섹션도 바뀐다.
+  useEffect(() => {
+    const host = hostRef.current;
+    if (!host) return;
+    const read = () => {
+      const next = [
+        ...new Set(
+          Array.from(host.querySelectorAll<HTMLElement>("[data-le-section]"), (el) =>
+            el.getAttribute("data-le-section") ?? "",
+          ),
+        ),
+      ];
+      setTitles((prev) => (prev.join("\n") === next.join("\n") ? prev : next));
+    };
+    read();
+    const mo = new MutationObserver(read);
+    // 제목만 바뀌는 경우(언어 전환)도 있다 — 속성도 본다.
+    mo.observe(host, {
+      childList: true,
+      subtree: true,
+      attributes: true,
+      attributeFilter: ["data-le-section"],
+    });
+    return () => mo.disconnect();
+  }, []);
+
+  const shown = active !== null && titles.includes(active) ? active : null;
+
+  return (
+    <div className="relative shrink-0" data-le-part="mobile-inspector-bar">
+      <style>{`
+[data-le-mobile-inspector] [data-le-inspector-header] { display: none; }
+[data-le-mobile-inspector] [data-le-inspector-body] > :not([data-le-section]):not(:has([data-le-section])) { display: none; }
+[data-le-mobile-inspector] [data-le-section]:not([data-le-section="${shown ? CSS.escape(shown) : ""}"]) { display: none; }
+[data-le-mobile-inspector] [data-le-section] { border-top: 0; }
+`}</style>
+      <div
+        ref={hostRef}
+        data-le-mobile-inspector=""
+        className="absolute inset-x-2 bottom-full z-50 mb-2 max-h-[45dvh] overflow-y-auto rounded-le-xl border border-le-ink-200 bg-le-surface shadow-lg"
+        style={{ display: shown ? undefined : "none" }}
+      >
+        {inspector}
+      </div>
+      <div className={BAR_CLASS}>
+        <div className="flex min-w-0 flex-1 overflow-x-auto [scrollbar-width:none]">
+          {titles.map((title) => (
+            <button
+              key={title}
+              type="button"
+              aria-pressed={title === shown}
+              onClick={() => setActive(title === shown ? null : title)}
+              className={`shrink-0 whitespace-nowrap px-3.5 py-3.5 text-xs font-le-medium ${
+                title === shown ? "bg-le-ink-100 text-le-ink-950" : "text-le-ink-600"
+              }`}
+            >
+              {title}
+            </button>
+          ))}
+        </div>
+        <button
+          type="button"
+          aria-label="done"
+          onClick={() => s.selectElements([])}
+          className="m-1.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-le-ink-200 text-le-ink-900 shadow-sm"
+        >
+          <Check aria-hidden="true" size={18} />
+        </button>
+      </div>
+    </div>
+  );
+}
+
+export const MobileBottomBar = observer(function MobileBottomBar({
+  store,
+  sections,
+  inspector,
+}: {
+  store: unknown;
+  sections: ReadonlyArray<MobileSection>;
+  inspector: ReactNode;
+}) {
+  const { t } = useTranslation("branding");
+  const s = store as StoreLike;
+  const selected = selectedElementsDeep(store as never).length > 0;
+  // 시트(레이어 등)에서 골랐으면 시트는 닫는다. 안 닫으면 띠가 인스펙터로 바뀌어 시트가
+  // 숨었다가, ✓ 로 선택을 풀 때 다시 튀어나온다.
+  useEffect(() => {
+    if (selected && s.openedSidePanel) s.openSidePanel("");
+  }, [selected, s]);
+
+  // 아무것도 안 골랐을 때의 인스펙터(화면 배경·높이·복제/삭제)는 데스크톱에서는 늘
+  // 보이는 우측 패널이다. 폰에서는 띠 끝에 탭 하나로 둔다.
+  const withPage = useMemo<MobileSection[]>(() => {
+    const label = t("detailPage.properties.pageActions");
+    return [
+      ...sections,
+      {
+        name: "mobile-page-settings",
+        Tab: (props) => (
+          <SectionTab name={label} {...props}>
+            <Settings2 size={18} />
+          </SectionTab>
+        ),
+        Panel: () => (
+          <div data-le-mobile-page="" className="min-h-0 flex-1 overflow-y-auto">
+            {inspector}
+          </div>
+        ),
+      },
+    ];
+  }, [sections, inspector, t]);
+
+  return (
+    <>
+      {/* 캔버스 아래 삽입 띠(글상자·도형)는 하단 띠의 텍스트·요소 탭과 겹친다. */}
+      <style>
+        {"[data-dp-insert-dock], [data-le-mobile-page] [data-le-inspector-header] { display: none; }"}
+      </style>
+      {selected ? (
+        <InspectorBar store={store} inspector={inspector} />
+      ) : (
+        <SectionBar store={store} sections={withPage} />
+      )}
+    </>
+  );
+});

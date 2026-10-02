@@ -191,7 +191,8 @@ function IconButton({
         onClick();
       }}
       className={[
-        "flex h-6 w-6 items-center justify-center rounded transition-colors",
+        // 터치 화면(pointer: coarse)에서는 손가락 폭만큼 키운다.
+        "flex h-6 w-6 items-center justify-center rounded transition-colors pointer-coarse:h-9 pointer-coarse:w-9",
         active ? "text-le-ink-800" : "text-le-ink-400",
         disabled
           ? "cursor-not-allowed opacity-30"

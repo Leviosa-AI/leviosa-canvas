@@ -148,6 +148,15 @@ export function TextEditorOverlay({
     node.setSelectionRange(node.value.length, node.value.length);
   }, []);
 
+  // 폰 키보드가 올라와 보이는 자리가 줄면 고치는 글자를 그 안으로 데려온다.
+  useEffect(() => {
+    const vv = typeof window === "undefined" ? undefined : window.visualViewport;
+    if (!vv) return;
+    const keep = () => ref.current?.scrollIntoView({ block: "nearest" });
+    vv.addEventListener("resize", keep);
+    return () => vv.removeEventListener("resize", keep);
+  }, []);
+
   return (
     <div
       data-lc-text-editor={el.id}

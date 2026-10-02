@@ -14,6 +14,7 @@ import {
   pickFromPath,
   resolveFlip,
   toggleSelection,
+  isDoubleTap,
 } from "../render/interaction";
 import { createCanvasStore } from "../store";
 import type { DocumentJson } from "../types";
@@ -373,5 +374,18 @@ describe("nudge", () => {
     solo.set({ locked: true });
     nudge(store, [solo], 10, 10);
     expect(solo.x).toBe(0);
+  });
+});
+
+describe("isDoubleTap — 폰에서 글자 열기", () => {
+  const first = { at: 1000, x: 100, y: 100, id: "t" };
+  it("같은 요소를 빨리 두 번 누르면 두 번 누르기다", () => {
+    expect(isDoubleTap(first, { at: 1250, x: 108, y: 96, id: "t" })).toBe(true);
+  });
+  it("느리거나·멀거나·다른 요소면 아니다", () => {
+    expect(isDoubleTap(null, first)).toBe(false);
+    expect(isDoubleTap(first, { ...first, at: 1500 })).toBe(false);
+    expect(isDoubleTap(first, { ...first, at: 1100, x: 160 })).toBe(false);
+    expect(isDoubleTap(first, { ...first, at: 1100, id: "u" })).toBe(false);
   });
 });

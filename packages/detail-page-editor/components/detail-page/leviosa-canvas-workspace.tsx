@@ -20,10 +20,12 @@
 import {
   useCallback,
   useEffect,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState,
   useSyncExternalStore,
+  type PointerEvent as ReactPointerEvent,
   type ReactNode,
 } from "react";
 
@@ -46,6 +48,7 @@ import {
 import { FrameDragLayer } from "./frame-drag-layer";
 import { GifAnimator } from "./gif-animator";
 import { GroupDrillIn } from "./group-drill-in";
+import { useIsMobile } from "./mobile-editor-bars";
 import { HoverHighlightOverlay } from "./hover-highlight-overlay";
 import { CanvasSectionHeightHandle } from "./section-height-handle";
 import { loadEditorFont } from "../../lib/detail-page-canvas/editor-fonts";
@@ -101,6 +104,26 @@ const THUMB_PIXEL_RATIO = 0.12;
 
 /** 아래 띠가 가장자리·화면 목록에서 떨어지는 거리. */
 const DOCK_GAP = 16;
+
+/**
+ * 핀치를 붙잡은 자리 — 손가락 가운데 아래 있던 판과, 그 판 안의 문서 좌표.
+ *
+ * 스크롤 양으로 셈하지 않고 판의 실제 자리(DOM)로 맞춘다. 판 둘레 여백과 가운데 정렬은
+ * 배율 따라 안 늘어나서, 스크롤로 비례 계산하면 수십 px 씩 밀린다.
+ */
+type PinchAnchor = {
+  page: HTMLElement;
+  docX: number;
+  docY: number;
+  clientX: number;
+  clientY: number;
+};
+
+/** 관성 스크롤 한 걸음: 속도(px/ms)를 dt(ms)만큼 마찰로 줄인다. 충분히 느려지면 0. */
+export function flingStep(velocity: number, dt: number): number {
+  const next = velocity * Math.pow(0.997, dt);
+  return Math.abs(next) < 0.02 ? 0 : next;
+}
 
 export function LeviosaCanvasWorkspace({
   store,
@@ -205,7 +228,35 @@ export function LeviosaCanvasWorkspace({
     y: number;
     left: number;
     top: number;
+    /** 손을 뗄 때 관성으로 넘길 속도(px/ms) — 최근 움직임에 가중을 둔다. */
+    vx: number;
+    vy: number;
+    lastX: number;
+    lastY: number;
+    at: number;
   } | null>(null);
+  const fling = useRef(0);
+  const stopFling = useCallback(() => {
+    cancelAnimationFrame(fling.current);
+    fling.current = 0;
+  }, []);
+  useEffect(() => stopFling, [stopFling]);
+  const startFling = (el: HTMLElement, vx: number, vy: number) => {
+    // rAF 시각은 프레임 시작 시각이라 performance.now() 보다 이를 수 있다 — 첫 프레임을
+    // 기준으로 잡고, 탭이 멈췄다 깨어난 긴 간격은 한 프레임 남짓으로 자른다.
+    let last: number | null = null;
+    const step = (now: number) => {
+      const dt = last === null ? 16 : Math.min(64, Math.max(0, now - last));
+      last = now;
+      vx = flingStep(vx, dt);
+      vy = flingStep(vy, dt);
+      if (!vx && !vy) return void (fling.current = 0);
+      el.scrollLeft += vx * dt;
+      el.scrollTop += vy * dt;
+      fling.current = requestAnimationFrame(step);
+    };
+    fling.current = requestAnimationFrame(step);
+  };
   // 배율은 **스토어**에 산다. 확대 버튼도, 여기 휠도 같은 자리를 만져야 한 쪽이
   // 다른 쪽을 되돌려 놓지 않는다.
   const scale = store.scale;
@@ -230,6 +281,7 @@ export function LeviosaCanvasWorkspace({
   // 너무 크다(맨 처음 붙였을 때 134%가 나왔다). 그래서 **사용자가 배율을 만지기
   // 전까지는** 영역이 바뀔 때마다 다시 맞춘다. 손을 대는 순간 주인이 바뀐다.
   const fittedScale = useRef<number | null>(null);
+  const mobile = useIsMobile();
   useEffect(() => {
     if (!viewport.width || !viewport.height || store.pages.length === 0) return;
     // 우리가 맞춰 놓은 값과 다르면 사용자가 만진 것이다.
@@ -252,14 +304,19 @@ export function LeviosaCanvasWorkspace({
           ) +
           (frames.length - 1) * FRAME_GAP_DOC
         : page.width;
+    // 폰에서는 지금 보는 판 하나의 **폭**에 맞춘다. 높이까지 넣으면 긴 상세페이지가
+    // 10%대로 쪼그라들어 글자를 못 읽는다 — 아래는 손가락으로 내려 보면 된다.
     const next = clamp(
-      Math.min(usableW / spread, usableH / page.height) * 0.94,
+      mobile
+        ? // 벌이 여럿이면 판이 흰 바탕(안쪽 여백 8 + 테두리 1)에 싸여 있다.
+          (usableW - (frames.length > 1 ? 18 : 0)) / page.width
+        : Math.min(usableW / spread, usableH / page.height) * 0.94,
       MIN_SCALE,
       MAX_SCALE,
     );
     fittedScale.current = next;
     setScale(next);
-  }, [viewport, paddingX, gap, store, setScale]);
+  }, [viewport, paddingX, gap, store, setScale, mobile]);
 
   // ⌘/ctrl+휠(맥 트랙패드 핀치가 이 모양으로 온다)로 커서 자리를 붙잡고 확대.
   // 그냥 휠은 브라우저 스크롤 그대로 둔다.
@@ -267,6 +324,7 @@ export function LeviosaCanvasWorkspace({
     const inner = innerRef.current;
     if (!inner) return;
     const onWheel = (event: WheelEvent) => {
+      stopFling();
       if (!event.ctrlKey && !event.metaKey) return;
       event.preventDefault();
       const current = store.scale;
@@ -286,7 +344,136 @@ export function LeviosaCanvasWorkspace({
     };
     inner.addEventListener("wheel", onWheel, { passive: false });
     return () => inner.removeEventListener("wheel", onWheel);
+  }, [store, stopFling]);
+
+  const startPan = (event: ReactPointerEvent<HTMLDivElement>) => {
+    pan.current = {
+      pointerId: event.pointerId,
+      x: event.clientX,
+      y: event.clientY,
+      left: event.currentTarget.scrollLeft,
+      top: event.currentTarget.scrollTop,
+      vx: 0,
+      vy: 0,
+      lastX: event.clientX,
+      lastY: event.clientY,
+      at: event.timeStamp,
+    };
+    event.currentTarget.setPointerCapture?.(event.pointerId);
+    setPanning(true);
+    event.preventDefault();
+  };
+
+  // 두 손가락: 벌린 만큼 확대하고, 두 손가락 가운데를 따라 화면을 옮긴다. 두 번째
+  // 손가락이 닿는 순간부터 캔버스(요소 끌기·Konva)에는 아무것도 안 보낸다 — 첫 손가락이
+  // 요소를 집고 있었으면 그 자리에서 멈춘다.
+  const pinching = useRef<{ distance: number; scale: number } | null>(null);
+  const anchor = useRef<PinchAnchor | null>(null);
+  // 붙잡은 문서 좌표가 손가락 가운데 아래 오도록 스크롤을 옮긴다. 배율이 바뀌었으면
+  // 새 크기가 그려진 직후(레이아웃 효과)에 한다 — 먼저 하면 옛 크기에 잘린다.
+  const settleAnchor = useCallback(() => {
+    const inner = innerRef.current;
+    const at = anchor.current;
+    if (!inner || !at) return;
+    const rect = at.page.getBoundingClientRect();
+    inner.scrollLeft += rect.left + at.docX * store.scale - at.clientX;
+    inner.scrollTop += rect.top + at.docY * store.scale - at.clientY;
   }, [store]);
+  useLayoutEffect(() => {
+    if (pinching.current) settleAnchor();
+  }, [scale, settleAnchor]);
+  useEffect(() => {
+    const inner = innerRef.current;
+    if (!inner) return;
+    const points = (event: TouchEvent) => {
+      const [a, b] = [event.touches[0], event.touches[1]];
+      return {
+        x: (a.clientX + b.clientX) / 2,
+        y: (a.clientY + b.clientY) / 2,
+        distance: Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY),
+      };
+    };
+    const onStart = (event: TouchEvent) => {
+      if (event.touches.length !== 2) return;
+      event.stopPropagation();
+      const at = points(event);
+      const page =
+        document.elementFromPoint(at.x, at.y)?.closest<HTMLElement>("[data-lc-page]") ??
+        inner.querySelector<HTMLElement>("[data-lc-page]");
+      pan.current = null;
+      setPanning(false);
+      pinching.current = { distance: at.distance, scale: store.scale };
+      if (!page) return;
+      const rect = page.getBoundingClientRect();
+      anchor.current = {
+        page,
+        docX: (at.x - rect.left) / store.scale,
+        docY: (at.y - rect.top) / store.scale,
+        clientX: at.x,
+        clientY: at.y,
+      };
+    };
+    const onMove = (event: TouchEvent) => {
+      const start = pinching.current;
+      if (!start) return;
+      event.stopPropagation();
+      event.preventDefault();
+      if (event.touches.length < 2) return;
+      const at = points(event);
+      if (anchor.current) {
+        anchor.current.clientX = at.x;
+        anchor.current.clientY = at.y;
+      }
+      const next = clamp(
+        start.scale * (at.distance / Math.max(1, start.distance)),
+        MIN_SCALE,
+        MAX_SCALE,
+      );
+      if (next !== store.scale) store.setScale(next);
+      else settleAnchor();
+    };
+    const onEnd = (event: TouchEvent) => {
+      // 끝 이벤트는 흘려보낸다 — Konva 가 window 에서 받아 진행 중이던 드래그를 닫는다.
+      if (!pinching.current) return;
+      if (event.touches.length === 0) {
+        pinching.current = null;
+        anchor.current = null;
+      }
+    };
+    // 캡처로 건다 — 캔버스(안쪽)보다 먼저 받아야 끊을 수 있다.
+    const opts = { capture: true, passive: false } as const;
+    inner.addEventListener("touchstart", onStart, opts);
+    inner.addEventListener("touchmove", onMove, opts);
+    inner.addEventListener("touchend", onEnd, opts);
+    inner.addEventListener("touchcancel", onEnd, opts);
+    // Konva 는 포인터 이벤트도 듣는다. 포인터 이벤트는 touchstart 보다 먼저 오므로
+    // 두 번째 손가락은 여기서 따로 센다 — 안 그러면 그 손가락이 다른 요소를 골라 버린다.
+    const down = new Set<number>();
+    const blockPointer = (event: PointerEvent) => {
+      if (event.type === "pointerdown") stopFling();
+      if (event.pointerType !== "touch") return;
+      if (event.type === "pointerdown") {
+        const second = down.size > 0;
+        down.add(event.pointerId);
+        if (second) event.stopPropagation();
+      } else if (event.type === "pointermove") {
+        if (pinching.current || down.size > 1) event.stopPropagation();
+      } else {
+        down.delete(event.pointerId);
+      }
+    };
+    const pointerTypes = ["pointerdown", "pointermove", "pointerup", "pointercancel"];
+    for (const type of pointerTypes) inner.addEventListener(type, blockPointer as EventListener, true);
+    return () => {
+      inner.removeEventListener("touchstart", onStart, opts);
+      inner.removeEventListener("touchmove", onMove, opts);
+      inner.removeEventListener("touchend", onEnd, opts);
+      inner.removeEventListener("touchcancel", onEnd, opts);
+      for (const type of pointerTypes) {
+        inner.removeEventListener(type, blockPointer as EventListener, true);
+      }
+    };
+  }, [store, settleAnchor, stopFling]);
 
   /** 스크롤 때문에 우리가 바꾼 활성 화면 — 바깥에서 바꾼 것과 구분해 되울림을 막는다. */
   const scrollSetId = useRef<string | null>(null);
@@ -517,6 +704,17 @@ export function LeviosaCanvasWorkspace({
         onPointerDown={(event) => {
           // 페이지 바깥의 빈 자리를 누르면 선택 해제. 페이지 안은 캔버스가 처리한다.
           const target = event.target as HTMLElement;
+          // 손가락으로 판 위 빈 곳(또는 잠긴 배경)을 누르면 화면을 옮긴다. 캔버스가 먼저
+          // 받아서 요소를 짚었으면 골랐고, 빈 곳이면 선택을 비웠다 — 그걸 보고 가른다.
+          // 판 위의 터치는 브라우저 스크롤을 꺼 뒀다(touch-action) — 요소 끌기와 겹친다.
+          if (
+            event.pointerType === "touch" &&
+            target.closest("[data-lc-page]") &&
+            store.selectedElementsIds.length === 0
+          ) {
+            startPan(event);
+            return;
+          }
           if (
             target.closest("[data-lc-page]") ||
             target.closest("[data-dp-quicktoolbar]") ||
@@ -536,28 +734,32 @@ export function LeviosaCanvasWorkspace({
             if (first) store.selectPage(first.id);
           }
           if (event.button !== 0) return;
-          pan.current = {
-            pointerId: event.pointerId,
-            x: event.clientX,
-            y: event.clientY,
-            left: event.currentTarget.scrollLeft,
-            top: event.currentTarget.scrollTop,
-          };
-          event.currentTarget.setPointerCapture?.(event.pointerId);
-          setPanning(true);
-          event.preventDefault();
+          startPan(event);
         }}
         onPointerMove={(event) => {
           const start = pan.current;
-          if (!start || start.pointerId !== event.pointerId) return;
+          if (!start || start.pointerId !== event.pointerId || pinching.current) return;
           event.currentTarget.scrollLeft = start.left + start.x - event.clientX;
           event.currentTarget.scrollTop = start.top + start.y - event.clientY;
+          const dt = event.timeStamp - start.at;
+          if (dt > 0) {
+            start.vx = 0.8 * ((start.lastX - event.clientX) / dt) + 0.2 * start.vx;
+            start.vy = 0.8 * ((start.lastY - event.clientY) / dt) + 0.2 * start.vy;
+          }
+          start.lastX = event.clientX;
+          start.lastY = event.clientY;
+          start.at = event.timeStamp;
         }}
         onPointerUp={(event) => {
-          if (pan.current?.pointerId !== event.pointerId) return;
+          const start = pan.current;
+          if (start?.pointerId !== event.pointerId) return;
           pan.current = null;
           event.currentTarget.releasePointerCapture?.(event.pointerId);
           setPanning(false);
+          // 손가락만 관성으로 미끄러진다. 멈췄다 뗐으면(80ms 넘게 안 움직임) 그대로 선다.
+          if (event.pointerType === "touch" && event.timeStamp - start.at < 80) {
+            startFling(event.currentTarget, start.vx, start.vy);
+          }
         }}
         onPointerCancel={(event) => {
           if (pan.current?.pointerId !== event.pointerId) return;
@@ -574,6 +776,9 @@ export function LeviosaCanvasWorkspace({
           flexDirection: "column",
           alignItems: "flex-start",
           cursor: panning ? "grabbing" : "default",
+          // 손가락 제스처(옮기기·핀치)는 아래에서 직접 받는다. 브라우저에 맡기면 요소
+          // 끌기와 화면 스크롤이 한 손가락을 두고 다툰다.
+          touchAction: "none",
           padding: `${frameCount > 1 ? gap + FRAME_HEAD : gap}px ${paddingX}px ${gap}px`,
         }}
       >

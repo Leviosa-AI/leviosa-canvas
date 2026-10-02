@@ -1912,7 +1912,10 @@ function InspectorHeader({ els }: { els: ElementLike[] }) {
     label = t("detailPage.properties.selectionCount", { count: els.length });
   }
   return (
-    <div className="flex items-center gap-2 border-b border-le-ink-200 px-4 py-3 text-sm font-le-semibold text-le-ink-950">
+    <div
+      data-le-inspector-header=""
+      className="flex items-center gap-2 border-b border-le-ink-200 px-4 py-3 text-sm font-le-semibold text-le-ink-950"
+    >
       {icon}
       {label}
     </div>
@@ -1983,7 +1986,7 @@ export const DetailPageProperties = observer(function DetailPageProperties({
   return (
     <div className="flex h-full min-h-0 flex-col">
       <InspectorHeader els={els} />
-      <div className="min-h-0 flex-1 overflow-y-auto">
+      <div data-le-inspector-body="" className="min-h-0 flex-1 overflow-y-auto">
         {els.length === 0 ? (
           <PageInspector
             store={s}

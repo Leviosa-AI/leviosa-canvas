@@ -92,12 +92,32 @@ export function popoverPlacement(
   };
 }
 
-export type QuickPopoverPlacement = ReturnType<typeof popoverPlacement>;
+export type QuickPopoverPlacement = ReturnType<typeof popoverPlacement> & {
+  /** 띠 왼쪽 끝이 작업 영역 안에서 놓인 자리와 작업 영역 폭 — 창이 옆으로 넘치지 않게. */
+  left: number;
+  hostWidth: number;
+};
 
 const QuickPopoverContext = createContext<QuickPopoverPlacement>({
   side: "below",
   maxHeight: 520,
+  left: 0,
+  hostWidth: Infinity,
 });
+
+/**
+ * 창의 폭과 띠 기준 가로 밀기. 폰처럼 좁으면 폭을 줄이고, 오른쪽 끝 요소에서 열어도
+ * 작업 영역 안에 들어오게 왼쪽으로 민다(작업 영역이 넘침을 잘라 낸다).
+ */
+export function popoverHorizontal(
+  width: number,
+  left: number,
+  hostWidth: number,
+): { width: number; shift: number } {
+  const fit = Math.min(width, Math.max(0, hostWidth - 2 * EDGE));
+  const shift = Math.max(EDGE - left, Math.min(0, hostWidth - EDGE - fit - left));
+  return { width: fit, shift };
+}
 
 /** 창을 그리는 쪽이 자기 자리를 집는 곳. 띠 밖에서 부르면 기본값(아래)이다. */
 export function useQuickPopoverPlacement(): QuickPopoverPlacement {
@@ -259,7 +279,9 @@ export function SelectionQuickToolbar({
           </div>
         ))}
       </div>
-      <QuickPopoverContext.Provider value={placement}>
+      <QuickPopoverContext.Provider
+        value={{ ...placement, left, hostWidth: host.clientWidth }}
+      >
         {children}
       </QuickPopoverContext.Provider>
     </div>

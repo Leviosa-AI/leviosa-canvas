@@ -18,6 +18,7 @@ import { CANVAS_MENU_ICONS } from "./canvas-context-menu";
 import { ImageCropOverlay, type CropElement } from "./image-crop-overlay";
 import {
   SelectionQuickToolbar,
+  popoverHorizontal,
   useQuickPopoverPlacement,
   type QuickToolbarItem,
 } from "./selection-quick-toolbar";
@@ -58,12 +59,17 @@ function Popover({
   children: React.ReactNode;
   width?: number;
 }) {
-  const { side, maxHeight } = useQuickPopoverPlacement();
+  const { side, maxHeight, left, hostWidth } = useQuickPopoverPlacement();
+  const fit = popoverHorizontal(width, left, hostWidth);
   return (
     <div
       data-dp-quick-popover=""
       data-dp-quick-popover-side={side}
-      style={{ width, maxHeight: `min(60vh, 520px, ${maxHeight}px)` }}
+      style={{
+        width: fit.width,
+        maxHeight: `min(60vh, 520px, ${maxHeight}px)`,
+        transform: fit.shift ? `translateX(${fit.shift}px)` : undefined,
+      }}
       className={[
         "overflow-y-auto rounded-le-xl border border-le-ink-200 bg-le-surface shadow-lg",
         side === "above" ? "absolute bottom-full left-0 mb-1.5" : "mt-1.5",

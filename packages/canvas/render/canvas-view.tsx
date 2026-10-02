@@ -52,9 +52,12 @@ import {
   absorbTransform,
   applyInTransaction,
   groupResizePatches,
+  DOUBLE_TAP_PX,
+  isDoubleTap,
   resolveFlip,
   pickFromPath,
   toggleSelection,
+  type Tap,
   type TransformResult,
 } from "./interaction";
 import { createValueBus, useBusValue, type ValueBus } from "./overlay-bus";
@@ -64,6 +67,12 @@ import { useDocumentFonts, type FontLoader } from "./use-document-fonts";
 
 /** 정렬선에 붙는 거리 — 화면에서 잰다(축소해 놓아도 손맛이 같아야 한다). */
 const SNAP_TOLERANCE_PX = 6;
+/** 손가락이 주 입력인 화면(폰·태블릿). 첫 렌더에 한 번 잰다. */
+const COARSE_POINTER =
+  typeof window !== "undefined" &&
+  typeof window.matchMedia === "function" &&
+  window.matchMedia("(pointer: coarse)").matches;
+const widenAnchorHit = (anchor: Konva.Rect) => anchor.hitStrokeWidth(24);
 
 /** 지금 집을 수 있는 형제들과, 그들이 놓인 좌표계의 원점. */
 function scopeOf(
@@ -293,7 +302,9 @@ function SelectionLayer({
         ignoreStroke
         borderStroke="#2563eb"
         anchorStroke="#2563eb"
-        anchorSize={8}
+        anchorSize={COARSE_POINTER ? 12 : 8}
+        // 손가락은 8px 손잡이를 못 짚는다 — 터치 화면에서는 보이는 것보다 넓게 잡힌다.
+        anchorStyleFunc={COARSE_POINTER ? widenAnchorHit : undefined}
         // 손잡이를 반대편으로 넘기면 뒤집힌다 — 음수 scale은 `resolveFlip`이
         // flipX/flipY로 바꿔 문서에 쓴다(element-view가 그린다).
         rotationSnaps={[0, 45, 90, 135, 180, 225, 270, 315]}
@@ -396,6 +407,53 @@ const PageView = memo(function PageView({
     [store, scopeId],
   );
 
+  // 손가락 두 번 누르기. Konva 의 `dbltap` 은 못 쓴다 — 첫 탭에 고르면 선택 상자가 그
+  // 위에 깔려서, 두 번째 탭의 누른 도형(상자)과 뗀 도형(글자)이 달라 안 터진다. 그래서
+  // 누르기 두 번을 직접 잰다. 두 번째가 상자 위면 지금 고른 것을 두 번 누른 것으로 본다.
+  const lastTap = useRef<Tap | null>(null);
+  const touchDoubleTap = useCallback(
+    (event: Konva.KonvaEventObject<PointerEvent>, hit: string | null, skip: boolean) => {
+      const id = hit ?? (skip ? (store.selectedElementsIds[0] ?? null) : null);
+      if (!id) {
+        lastTap.current = null;
+        return false;
+      }
+      const tap = { at: event.evt.timeStamp, x: event.evt.clientX, y: event.evt.clientY, id };
+      // 두 손가락(핀치)은 탭이 아니다.
+      const double = event.evt.isPrimary && isDoubleTap(lastTap.current, tap);
+      lastTap.current = double || !event.evt.isPrimary ? null : tap;
+      if (!double && event.evt.isPrimary) {
+        // 끌기·취소로 끝난 누르기는 탭이 아니다 — 끌어 놓고 바로 다시 누른 것을 두 번
+        // 누르기로 보면 옮기려던 것이 편집으로 바뀐다.
+        const end = (e: PointerEvent) => {
+          window.removeEventListener("pointerup", end, true);
+          window.removeEventListener("pointercancel", end, true);
+          const moved = Math.hypot(e.clientX - tap.x, e.clientY - tap.y) > DOUBLE_TAP_PX;
+          if ((e.type === "pointercancel" || moved) && lastTap.current === tap) {
+            lastTap.current = null;
+          }
+        };
+        window.addEventListener("pointerup", end, true);
+        window.addEventListener("pointercancel", end, true);
+      }
+      if (double) {
+        // 여는 것은 손을 뗄 때다. iOS 는 터치가 끝나는 이벤트 안에서 받은 focus 에만
+        // 키보드를 띄운다 — 누르는 순간 열면 입력창은 뜨는데 키보드가 안 올라온다.
+        const pointerId = event.evt.pointerId;
+        const open = (e: PointerEvent) => {
+          if (e.pointerId !== pointerId) return;
+          window.removeEventListener("pointerup", open, true);
+          window.removeEventListener("pointercancel", open, true);
+          if (e.type === "pointerup") onDrill(id);
+        };
+        window.addEventListener("pointerup", open, true);
+        window.addEventListener("pointercancel", open, true);
+      }
+      return double;
+    },
+    [store, onDrill],
+  );
+
   /**
    * 빈 곳에서 시작한 끌기는 마퀴다.
    *
@@ -458,13 +516,21 @@ const PageView = memo(function PageView({
             interactive
               ? (event: Konva.KonvaEventObject<PointerEvent>) => {
                   const { id: hit, skip } = hitId(event);
+                  if (
+                    event.evt.pointerType === "touch" &&
+                    touchDoubleTap(event, hit, skip)
+                  ) {
+                    return;
+                  }
                   if (skip) return;
                   // 잠긴 요소는 집히지 않는다 — 빈 곳처럼 본다. 잠근 배경 위에서도
                   // 마퀴를 그을 수 있어야 한다.
                   const id = hit && store.getElementById(hit)?.locked ? null : hit;
                   onPick(id, event.evt.shiftKey);
                   // 빈 곳에서 시작한 끌기는 마퀴다(요소 위에서 시작하면 그 요소가 끌린다).
-                  if (!id) startMarquee(event);
+                  // 손가락으로 빈 곳을 끌면 마퀴가 아니라 화면 이동이다 — 폰에서는 화면을
+                  // 옮길 길이 그것뿐이다. 이동은 작업 영역이 맡는다.
+                  if (!id && event.evt.pointerType !== "touch") startMarquee(event);
                 }
               : undefined
           }
