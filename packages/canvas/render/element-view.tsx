@@ -130,6 +130,7 @@ type TransformEvent = {
     scaleX(): number;
     scaleY(): number;
     scale(value: { x: number; y: number }): void;
+    setAttrs(attrs: { x: number; y: number; rotation: number }): void;
   };
 };
 
@@ -270,6 +271,10 @@ function ElementFrame({
               // 조절에 그 위에 또 곱해진다.
               node.scale({ x: 1, y: 1 });
               edit.onTransformEnd(el.id, result);
+              // 뒤집기는 Konva가 회전 ±180°로 남기는데 문서 회전은 그대로일 수 있다 —
+              // prop이 안 바뀌면 react-konva가 다시 안 칠하므로 문서 값으로 맞춰 둔다.
+              const next = boxOf(el);
+              node.setAttrs({ x: next.x, y: next.y, rotation: num(el, "rotation", 0) });
             }
           : undefined
       }
