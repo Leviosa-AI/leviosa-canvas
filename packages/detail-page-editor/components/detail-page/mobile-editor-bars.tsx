@@ -22,6 +22,7 @@ import {
   useState,
   useSyncExternalStore,
   type ReactElement,
+  type PointerEvent as ReactPointerEvent,
   type ReactNode,
 } from "react";
 import { Check } from "lucide-react";
@@ -108,11 +109,39 @@ const SectionBar = observer(function SectionBar({
     }
   });
 
+  // 끌어내리기. 시트 높이의 1/4 을 넘기거나 빠르게 튕기면 닫고, 아니면 제자리로.
+  const sheetRef = useRef<HTMLDivElement>(null);
+  const [dragY, setDragY] = useState<number | null>(null);
+  // 한 번 끌었으면 놓을 때 여는 애니메이션을 다시 틀지 않고 제자리로 미끄러진다.
+  const [dragged, setDragged] = useState(false);
+  const startDrag = (down: ReactPointerEvent<HTMLDivElement>) => {
+    const handle = down.currentTarget as HTMLDivElement;
+    handle.setPointerCapture(down.pointerId);
+    const y0 = down.clientY;
+    const t0 = down.timeStamp;
+    setDragged(true);
+    const move = (e: PointerEvent) => setDragY(Math.max(0, e.clientY - y0));
+    const up = (e: PointerEvent) => {
+      handle.removeEventListener("pointermove", move);
+      handle.removeEventListener("pointerup", up);
+      handle.removeEventListener("pointercancel", up);
+      const dy = Math.max(0, e.clientY - y0);
+      const height = sheetRef.current?.offsetHeight ?? 1;
+      const flick = dy / Math.max(1, e.timeStamp - t0) > 0.5;
+      setDragY(null);
+      if (e.type === "pointerup" && (dy < 4 || dy > height / 4 || flick)) close();
+    };
+    handle.addEventListener("pointermove", move);
+    handle.addEventListener("pointerup", up);
+    handle.addEventListener("pointercancel", up);
+  };
+
   // 시트는 띠 위에서 멈춘다 — 띠가 보여야 다른 탭으로 바로 옮겨 간다(Canva 와 같다).
   const navRef = useRef<HTMLElement>(null);
   const [barHeight, setBarHeight] = useState(0);
   useLayoutEffect(() => {
     if (Panel) setBarHeight(navRef.current?.offsetHeight ?? 0);
+    else setDragged(false);
   }, [Panel]);
 
   return (
@@ -148,20 +177,29 @@ const SectionBar = observer(function SectionBar({
             aria-hidden="true"
           />
           <div
+            ref={sheetRef}
             role="dialog"
             aria-modal="true"
             className="absolute inset-x-0 bottom-0 flex h-[75%] flex-col overflow-hidden rounded-t-2xl bg-le-surface shadow-2xl"
-            style={{ animation: "le-sheet-up 220ms cubic-bezier(0.2, 0.8, 0.2, 1)" }}
+            style={
+              dragY !== null
+                ? { transform: `translateY(${dragY}px)` }
+                : dragged
+                  ? { transition: "transform 200ms ease-out" }
+                  : { animation: "le-sheet-up 220ms cubic-bezier(0.2, 0.8, 0.2, 1)" }
+            }
           >
-            {/* ponytail: 손잡이는 누르면 닫힌다 — 끌어내려 닫기는 바라면 붙인다. */}
-            <button
-              type="button"
-              onClick={close}
+            {/* 손잡이를 끌어내리면 닫힌다. 그냥 누르기만 해도 닫힌다. */}
+            <div
+              role="button"
               aria-label="close"
-              className="flex h-6 shrink-0 items-center justify-center"
+              tabIndex={0}
+              onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && close()}
+              onPointerDown={startDrag}
+              className="flex h-7 shrink-0 cursor-grab touch-none items-center justify-center"
             >
               <span className="h-1 w-10 rounded-full bg-le-ink-300" />
-            </button>
+            </div>
             <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
               <Panel store={store} />
             </div>
