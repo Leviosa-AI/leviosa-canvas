@@ -9,10 +9,12 @@
 import type { CanvasElement, CanvasPage, CanvasStore } from "../store";
 import { withFreshIds } from "../store";
 import type { ElementJson, PageJson } from "../types";
-import { createId } from "../types";
+import { createId, num } from "../types";
 import { frameInsertIndex, FRAME_KEY } from "../render/frames";
 import { loadImage } from "../render/image-cache";
+import { displayText, isSingleLineBox } from "../render/attrs";
 import { applyInTransaction } from "../render/interaction";
+import { measureTextLayout, singleLineTextX } from "../render/text-layout";
 import { elementRect, moveElementTo, unionRect } from "./rect";
 
 // ---------------------------------------------------------------------------
@@ -370,9 +372,28 @@ export function flipElements(store: CanvasStore, axis: "x" | "y"): boolean {
   if (!els.length) return false;
   const key = axis === "x" ? "flipX" : "flipY";
   applyInTransaction(store, () => {
-    for (const el of els) el.set({ [key]: el[key] !== true });
+    for (const el of els) el.set({ [key]: el[key] !== true, ...inkStays(el, axis) });
   });
   return true;
+}
+
+/**
+ * 한 줄 글자는 상자보다 좁게 그려진다(제목 상자 700에 글자 390). 뒤집기 축은 상자 가운데라
+ * 그대로 뒤집으면 글자가 상자 반대편으로 건너가 «제자리에서 뒤집혔다»가 아니게 된다.
+ * 보이는 글자의 가운데가 그 자리에 남도록 원점을 (회전 축을 따라) 옮긴다.
+ */
+function inkStays(el: CanvasElement, axis: "x" | "y"): { x: number; y: number } | null {
+  if (axis !== "x" || el.type !== "text" || !isSingleLineBox(el)) return null;
+  const layout = measureTextLayout(el, displayText(el));
+  const ink = singleLineTextX(el, layout) + layout.blockWidth / 2;
+  // 지금 안 뒤집혀 있으면 글자 가운데가 ink → (폭 − ink)로 가고, 뒤집혀 있으면 그 반대다.
+  const shift = (ink * 2 - num(el, "width", 0)) * (el.flipX === true ? -1 : 1);
+  if (Math.abs(shift) < 0.01) return null;
+  const rad = (num(el, "rotation", 0) * Math.PI) / 180;
+  return {
+    x: num(el, "x", 0) + shift * Math.cos(rad),
+    y: num(el, "y", 0) + shift * Math.sin(rad),
+  };
 }
 
 /**

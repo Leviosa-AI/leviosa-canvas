@@ -77,7 +77,7 @@ import {
 } from "./attrs";
 import { useEditHandlers, type EditHandlers } from "./edit-context";
 import { imageFrame, imageHasAlpha } from "./image-frame";
-import { measureTextLayout } from "./text-layout";
+import { measureTextLayout, singleLineTextX } from "./text-layout";
 import { svgFilterInsets, svgSourceFor } from "./svg-source";
 import { useImage } from "./use-image";
 
@@ -576,14 +576,7 @@ function TextBody({ el, editing }: { el: CanvasElement; editing: boolean }) {
         ? anchorWidth - box.width
         : 0;
   const textWidth = Math.max(1, box.width - padding * 2);
-  const textX = singleLine
-    ? growX + padding +
-      (align === "center"
-        ? (textWidth - layout.blockWidth) / 2
-        : align === "right" || align === "end"
-          ? textWidth - layout.blockWidth
-          : 0)
-    : padding;
+  const textX = singleLine ? singleLineTextX(el, layout) : padding;
 
   /*
    * 상자 높이를 Konva에 주지 않는다. 주면 **넘치는 줄을 조용히 버린다**
