@@ -119,6 +119,12 @@ type PinchAnchor = {
   clientY: number;
 };
 
+/** 관성 스크롤 한 걸음: 속도(px/ms)를 dt(ms)만큼 마찰로 줄인다. 충분히 느려지면 0. */
+export function flingStep(velocity: number, dt: number): number {
+  const next = velocity * Math.pow(0.997, dt);
+  return Math.abs(next) < 0.02 ? 0 : next;
+}
+
 export function LeviosaCanvasWorkspace({
   store,
   gap = 4,
@@ -222,7 +228,35 @@ export function LeviosaCanvasWorkspace({
     y: number;
     left: number;
     top: number;
+    /** 손을 뗄 때 관성으로 넘길 속도(px/ms) — 최근 움직임에 가중을 둔다. */
+    vx: number;
+    vy: number;
+    lastX: number;
+    lastY: number;
+    at: number;
   } | null>(null);
+  const fling = useRef(0);
+  const stopFling = useCallback(() => {
+    cancelAnimationFrame(fling.current);
+    fling.current = 0;
+  }, []);
+  useEffect(() => stopFling, [stopFling]);
+  const startFling = (el: HTMLElement, vx: number, vy: number) => {
+    // rAF 시각은 프레임 시작 시각이라 performance.now() 보다 이를 수 있다 — 첫 프레임을
+    // 기준으로 잡고, 탭이 멈췄다 깨어난 긴 간격은 한 프레임 남짓으로 자른다.
+    let last: number | null = null;
+    const step = (now: number) => {
+      const dt = last === null ? 16 : Math.min(64, Math.max(0, now - last));
+      last = now;
+      vx = flingStep(vx, dt);
+      vy = flingStep(vy, dt);
+      if (!vx && !vy) return void (fling.current = 0);
+      el.scrollLeft += vx * dt;
+      el.scrollTop += vy * dt;
+      fling.current = requestAnimationFrame(step);
+    };
+    fling.current = requestAnimationFrame(step);
+  };
   // 배율은 **스토어**에 산다. 확대 버튼도, 여기 휠도 같은 자리를 만져야 한 쪽이
   // 다른 쪽을 되돌려 놓지 않는다.
   const scale = store.scale;
@@ -290,6 +324,7 @@ export function LeviosaCanvasWorkspace({
     const inner = innerRef.current;
     if (!inner) return;
     const onWheel = (event: WheelEvent) => {
+      stopFling();
       if (!event.ctrlKey && !event.metaKey) return;
       event.preventDefault();
       const current = store.scale;
@@ -309,7 +344,7 @@ export function LeviosaCanvasWorkspace({
     };
     inner.addEventListener("wheel", onWheel, { passive: false });
     return () => inner.removeEventListener("wheel", onWheel);
-  }, [store]);
+  }, [store, stopFling]);
 
   const startPan = (event: ReactPointerEvent<HTMLDivElement>) => {
     pan.current = {
@@ -318,6 +353,11 @@ export function LeviosaCanvasWorkspace({
       y: event.clientY,
       left: event.currentTarget.scrollLeft,
       top: event.currentTarget.scrollTop,
+      vx: 0,
+      vy: 0,
+      lastX: event.clientX,
+      lastY: event.clientY,
+      at: event.timeStamp,
     };
     event.currentTarget.setPointerCapture?.(event.pointerId);
     setPanning(true);
@@ -410,6 +450,7 @@ export function LeviosaCanvasWorkspace({
     // 두 번째 손가락은 여기서 따로 센다 — 안 그러면 그 손가락이 다른 요소를 골라 버린다.
     const down = new Set<number>();
     const blockPointer = (event: PointerEvent) => {
+      if (event.type === "pointerdown") stopFling();
       if (event.pointerType !== "touch") return;
       if (event.type === "pointerdown") {
         const second = down.size > 0;
@@ -432,7 +473,7 @@ export function LeviosaCanvasWorkspace({
         inner.removeEventListener(type, blockPointer as EventListener, true);
       }
     };
-  }, [store, settleAnchor]);
+  }, [store, settleAnchor, stopFling]);
 
   /** 스크롤 때문에 우리가 바꾼 활성 화면 — 바깥에서 바꾼 것과 구분해 되울림을 막는다. */
   const scrollSetId = useRef<string | null>(null);
@@ -700,12 +741,25 @@ export function LeviosaCanvasWorkspace({
           if (!start || start.pointerId !== event.pointerId || pinching.current) return;
           event.currentTarget.scrollLeft = start.left + start.x - event.clientX;
           event.currentTarget.scrollTop = start.top + start.y - event.clientY;
+          const dt = event.timeStamp - start.at;
+          if (dt > 0) {
+            start.vx = 0.8 * ((start.lastX - event.clientX) / dt) + 0.2 * start.vx;
+            start.vy = 0.8 * ((start.lastY - event.clientY) / dt) + 0.2 * start.vy;
+          }
+          start.lastX = event.clientX;
+          start.lastY = event.clientY;
+          start.at = event.timeStamp;
         }}
         onPointerUp={(event) => {
-          if (pan.current?.pointerId !== event.pointerId) return;
+          const start = pan.current;
+          if (start?.pointerId !== event.pointerId) return;
           pan.current = null;
           event.currentTarget.releasePointerCapture?.(event.pointerId);
           setPanning(false);
+          // 손가락만 관성으로 미끄러진다. 멈췄다 뗐으면(80ms 넘게 안 움직임) 그대로 선다.
+          if (event.pointerType === "touch" && event.timeStamp - start.at < 80) {
+            startFling(event.currentTarget, start.vx, start.vy);
+          }
         }}
         onPointerCancel={(event) => {
           if (pan.current?.pointerId !== event.pointerId) return;

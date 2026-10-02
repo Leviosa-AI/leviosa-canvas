@@ -41,7 +41,7 @@ vi.mock("react-konva/es/ReactKonvaCore", () => {
   };
 });
 
-import { LeviosaCanvasWorkspace } from "../leviosa-canvas-workspace";
+import { flingStep, LeviosaCanvasWorkspace } from "../leviosa-canvas-workspace";
 import { PAGES_TIMELINE_HEIGHT } from "../detail-page-pages-timeline";
 import { createCanvasStore } from "@leviosa-ai/canvas/store";
 import { clearClipboard, copyElements } from "@leviosa-ai/canvas/edit/commands";
@@ -399,5 +399,23 @@ describe("LeviosaCanvasWorkspace — 붙여넣기·드롭", () => {
     await act(async () => {});
     await act(async () => {});
     expect(uploadFile).toHaveBeenCalledTimes(2);
+  });
+});
+
+describe("flingStep", () => {
+  it("손을 뗀 속도를 마찰로 줄이다가 멈춘다", () => {
+    expect(flingStep(1, 16)).toBeCloseTo(0.953, 3);
+    expect(flingStep(-1, 16)).toBeCloseTo(-0.953, 3);
+    expect(flingStep(0.02, 16)).toBe(0);
+    let v = 2;
+    let travelled = 0;
+    let frames = 0;
+    while (v && frames < 1000) {
+      v = flingStep(v, 16);
+      travelled += v * 16;
+      frames += 1;
+    }
+    expect(frames).toBeLessThan(200);
+    expect(travelled).toBeGreaterThan(400);
   });
 });
