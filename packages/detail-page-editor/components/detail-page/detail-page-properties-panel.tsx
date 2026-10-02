@@ -1986,7 +1986,7 @@ export const DetailPageProperties = observer(function DetailPageProperties({
   return (
     <div className="flex h-full min-h-0 flex-col">
       <InspectorHeader els={els} />
-      <div className="min-h-0 flex-1 overflow-y-auto">
+      <div data-le-inspector-body="" className="min-h-0 flex-1 overflow-y-auto">
         {els.length === 0 ? (
           <PageInspector
             store={s}

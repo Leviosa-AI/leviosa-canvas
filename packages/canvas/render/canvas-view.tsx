@@ -52,6 +52,7 @@ import {
   absorbTransform,
   applyInTransaction,
   groupResizePatches,
+  DOUBLE_TAP_PX,
   isDoubleTap,
   resolveFlip,
   pickFromPath,
@@ -410,8 +411,23 @@ const PageView = memo(function PageView({
         return false;
       }
       const tap = { at: event.evt.timeStamp, x: event.evt.clientX, y: event.evt.clientY, id };
-      const double = isDoubleTap(lastTap.current, tap);
-      lastTap.current = double ? null : tap;
+      // 두 손가락(핀치)은 탭이 아니다.
+      const double = event.evt.isPrimary && isDoubleTap(lastTap.current, tap);
+      lastTap.current = double || !event.evt.isPrimary ? null : tap;
+      if (!double && event.evt.isPrimary) {
+        // 끌기·취소로 끝난 누르기는 탭이 아니다 — 끌어 놓고 바로 다시 누른 것을 두 번
+        // 누르기로 보면 옮기려던 것이 편집으로 바뀐다.
+        const end = (e: PointerEvent) => {
+          window.removeEventListener("pointerup", end, true);
+          window.removeEventListener("pointercancel", end, true);
+          const moved = Math.hypot(e.clientX - tap.x, e.clientY - tap.y) > DOUBLE_TAP_PX;
+          if ((e.type === "pointercancel" || moved) && lastTap.current === tap) {
+            lastTap.current = null;
+          }
+        };
+        window.addEventListener("pointerup", end, true);
+        window.addEventListener("pointercancel", end, true);
+      }
       if (double) onDrill(id);
       return double;
     },

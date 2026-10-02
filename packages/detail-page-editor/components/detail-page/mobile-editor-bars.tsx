@@ -18,6 +18,7 @@
 import {
   useEffect,
   useLayoutEffect,
+  useMemo,
   useRef,
   useState,
   useSyncExternalStore,
@@ -25,7 +26,9 @@ import {
   type PointerEvent as ReactPointerEvent,
   type ReactNode,
 } from "react";
-import { Check } from "lucide-react";
+import { Check, Settings2 } from "lucide-react";
+import { useTranslation } from "react-i18next";
+import { SectionTab } from "@leviosa-ai/canvas";
 
 import { observer } from "./canvas-observer";
 import { selectedElementsDeep } from "./detail-page-selection";
@@ -233,7 +236,13 @@ function InspectorBar({ store, inspector }: { store: unknown; inspector: ReactNo
     };
     read();
     const mo = new MutationObserver(read);
-    mo.observe(host, { childList: true, subtree: true });
+    // 제목만 바뀌는 경우(언어 전환)도 있다 — 속성도 본다.
+    mo.observe(host, {
+      childList: true,
+      subtree: true,
+      attributes: true,
+      attributeFilter: ["data-le-section"],
+    });
     return () => mo.disconnect();
   }, []);
 
@@ -243,6 +252,7 @@ function InspectorBar({ store, inspector }: { store: unknown; inspector: ReactNo
     <div className="relative shrink-0" data-le-part="mobile-inspector-bar">
       <style>{`
 [data-le-mobile-inspector] [data-le-inspector-header] { display: none; }
+[data-le-mobile-inspector] [data-le-inspector-body] > :not([data-le-section]):not(:has([data-le-section])) { display: none; }
 [data-le-mobile-inspector] [data-le-section]:not([data-le-section="${shown ? CSS.escape(shown) : ""}"]) { display: none; }
 [data-le-mobile-inspector] [data-le-section] { border-top: 0; }
 `}</style>
@@ -292,15 +302,47 @@ export const MobileBottomBar = observer(function MobileBottomBar({
   sections: ReadonlyArray<MobileSection>;
   inspector: ReactNode;
 }) {
+  const { t } = useTranslation("branding");
+  const s = store as StoreLike;
   const selected = selectedElementsDeep(store as never).length > 0;
+  // 시트(레이어 등)에서 골랐으면 시트는 닫는다. 안 닫으면 띠가 인스펙터로 바뀌어 시트가
+  // 숨었다가, ✓ 로 선택을 풀 때 다시 튀어나온다.
+  useEffect(() => {
+    if (selected && s.openedSidePanel) s.openSidePanel("");
+  }, [selected, s]);
+
+  // 아무것도 안 골랐을 때의 인스펙터(화면 배경·높이·복제/삭제)는 데스크톱에서는 늘
+  // 보이는 우측 패널이다. 폰에서는 띠 끝에 탭 하나로 둔다.
+  const withPage = useMemo<MobileSection[]>(() => {
+    const label = t("detailPage.properties.pageActions");
+    return [
+      ...sections,
+      {
+        name: "mobile-page-settings",
+        Tab: (props) => (
+          <SectionTab name={label} {...props}>
+            <Settings2 size={18} />
+          </SectionTab>
+        ),
+        Panel: () => (
+          <div data-le-mobile-page="" className="min-h-0 flex-1 overflow-y-auto">
+            {inspector}
+          </div>
+        ),
+      },
+    ];
+  }, [sections, inspector, t]);
+
   return (
     <>
       {/* 캔버스 아래 삽입 띠(글상자·도형)는 하단 띠의 텍스트·요소 탭과 겹친다. */}
-      <style>{"[data-dp-insert-dock] { display: none; }"}</style>
+      <style>
+        {"[data-dp-insert-dock], [data-le-mobile-page] [data-le-inspector-header] { display: none; }"}
+      </style>
       {selected ? (
         <InspectorBar store={store} inspector={inspector} />
       ) : (
-        <SectionBar store={store} sections={sections} />
+        <SectionBar store={store} sections={withPage} />
       )}
     </>
   );
