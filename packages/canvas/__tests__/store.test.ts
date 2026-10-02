@@ -206,6 +206,12 @@ describe("CanvasStore — 순서·복제·삭제", () => {
     expect(store.selectedElementsIds).toEqual(["photo"]);
   });
 
+  it("그룹과 그 자손을 같이 고르면 그룹만 남는다", () => {
+    const store = createCanvasStore(doc());
+    store.selectElements(["title", "grp", "photo"]);
+    expect(store.selectedElementsIds).toEqual(["grp", "photo"]);
+  });
+
   it("삭제하면 선택에서도 빠진다", () => {
     const store = createCanvasStore(doc());
     store.selectElements(["bg", "photo"]);
