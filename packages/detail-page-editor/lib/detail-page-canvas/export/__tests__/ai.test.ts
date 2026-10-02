@@ -188,6 +188,25 @@ describe("buildAiPdf", () => {
     expect(pdf).toMatch(/\nf\n/);
   });
 
+  it("mirrors a flipped shape around its box centre, like the screen", async () => {
+    const pdf = await build({
+      width: 400,
+      height: 300,
+      pages: [
+        {
+          id: "p",
+          width: 400,
+          height: 300,
+          children: [
+            { id: "r", type: "figure", x: 10, y: 20, width: 100, height: 50, fill: "#f00", flipX: true },
+          ],
+        },
+      ],
+    });
+    // 상자 가운데(60)를 축으로: x' = 120 − x.
+    expect(pdf).toContain("-1 0 0 1 120 0 cm");
+  });
+
   it("vectorizes inline SVG icons instead of embedding them as pictures", async () => {
     const pdf = await build(doc);
     // The icon's viewBox (24) is mapped onto its 24px box: scale 1, at (300, 300).

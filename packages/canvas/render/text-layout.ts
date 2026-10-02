@@ -68,3 +68,29 @@ export function measureTextLayout(el: Attrs, text?: string): TextLayout {
 
   return { lines, lineHeight, blockHeight, blockWidth, offsetY };
 }
+
+/**
+ * 한 줄 상자에서 글자가 실제로 그려지기 시작하는 x(요소 로컬). 한 줄 글자는 상자 폭과
+ * 상관없이 제 폭만큼만 그려지고, 정렬·패딩·자라난 폭(`textFitAnchorWidth`)만큼 밀린다.
+ * element-view가 이 자리에 그린다 — 뒤집기처럼 «보이는 글자»를 기준 삼는 셈도 이걸 쓴다.
+ */
+export function singleLineTextX(el: Attrs, layout: TextLayout): number {
+  const width = num(el, "width", 0);
+  const align = str(el, "align", "left");
+  const padding = el.backgroundEnabled === true ? num(el, "backgroundPadding", 0) : 0;
+  const custom = (el.custom ?? {}) as Attrs;
+  const anchorWidth = num(custom, "textFitAnchorWidth", width);
+  const end = align === "right" || align === "end";
+  const growX =
+    align === "center" ? (anchorWidth - width) / 2 : end ? anchorWidth - width : 0;
+  const textWidth = Math.max(1, width - padding * 2);
+  return (
+    growX +
+    padding +
+    (align === "center"
+      ? (textWidth - layout.blockWidth) / 2
+      : end
+        ? textWidth - layout.blockWidth
+        : 0)
+  );
+}

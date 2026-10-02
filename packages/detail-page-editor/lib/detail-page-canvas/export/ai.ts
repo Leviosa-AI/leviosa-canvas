@@ -22,7 +22,7 @@ import {
 import { showTextOps } from "./pdf/text-ops";
 import { fmt, PdfBuilder } from "./pdf/writer";
 import { decodeSvgDataUri } from "./svg";
-import { elementMatrix, IDENTITY } from "./frame";
+import { elementMatrix, IDENTITY, isIdentity, leafMatrix } from "./frame";
 import {
   highlightBands,
   isItalic,
@@ -106,29 +106,13 @@ function shadingSpec(
   };
 }
 
-/** Rotate around the element's own origin, the way Konva does. */
+/** Rotate (and flip) around the element's own origin, the way Konva does. */
 function rotationOps(el: ExportElement): { open: string[]; close: string[] } {
-  if (el.type === "group") {
-    // 그룹은 옮기고 돌린 자리가 자식들의 원점이다(자식 좌표는 그룹 원점 기준).
-    const m = elementMatrix(el, IDENTITY);
-    if (m.every((v, i) => v === IDENTITY[i])) return { open: [], close: [] };
-    return { open: ["q", `${m.map(fmt).join(" ")} cm`], close: ["Q"] };
-  }
-  const degrees = num(el.rotation);
-  if (!degrees) return { open: [], close: [] };
-  const rad = (degrees * Math.PI) / 180;
-  const cos = Math.cos(rad);
-  const sin = Math.sin(rad);
-  const x = num(el.x);
-  const y = num(el.y);
-  return {
-    open: [
-      "q",
-      `${fmt(cos)} ${fmt(sin)} ${fmt(-sin)} ${fmt(cos)} ` +
-        `${fmt(x - x * cos + y * sin)} ${fmt(y - x * sin - y * cos)} cm`,
-    ],
-    close: ["Q"],
-  };
+  // 그룹은 옮기고 돌린 자리가 자식들의 원점이다(자식 좌표는 그룹 원점 기준). 잎은 제 x/y에
+  // 그려지므로 그 자리를 축으로 돌리고 뒤집는다.
+  const m = el.type === "group" ? elementMatrix(el, IDENTITY) : leafMatrix(el);
+  if (isIdentity(m)) return { open: [], close: [] };
+  return { open: ["q", `${m.map(fmt).join(" ")} cm`], close: ["Q"] };
 }
 
 function figureOps(el: ExportElement, env: AiEnv): string[] {

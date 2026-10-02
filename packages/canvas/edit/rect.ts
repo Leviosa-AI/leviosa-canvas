@@ -15,9 +15,16 @@
  */
 
 import type { CanvasElement } from "../store";
-import { num } from "../types";
+import { num, type Attrs } from "../types";
 
 export type Rect = { x: number; y: number; width: number; height: number };
+
+/** 네모를 잴 수 있는 것 — 편집기 요소(`CanvasElement`)든 내보내기의 평범한 JSON이든. */
+export type RectSource = Attrs & { children?: ReadonlyArray<RectSource> | null };
+
+function kidsOf(el: RectSource): ReadonlyArray<RectSource> {
+  return Array.isArray(el.children) ? el.children : [];
+}
 
 export function unionRect(rects: ReadonlyArray<Rect>): Rect | null {
   if (!rects.length) return null;
@@ -73,9 +80,10 @@ function boundsOf(
  * 그룹 안 요소를 홀로 재는 일은 정렬·스냅에 없다(그때는 그룹이 대상이다). 그래도
  * 필요하면 `absolutePosition`으로 조상 오프셋을 더해 쓰면 된다.
  */
-export function elementRect(el: CanvasElement): Rect {
+export function elementRect(el: RectSource): Rect {
   const rotation = num(el, "rotation", 0);
-  if (!el.isContainer || el.children.length === 0) {
+  const kids = kidsOf(el);
+  if (!kids.length) {
     return boundsOf(
       num(el, "x", 0),
       num(el, "y", 0),
@@ -84,7 +92,7 @@ export function elementRect(el: CanvasElement): Rect {
       rotation,
     );
   }
-  const inner = unionRect(el.children.map((child) => elementRect(child)));
+  const inner = unionRect(kids.map((child) => elementRect(child)));
   if (!inner) return boundsOf(num(el, "x", 0), num(el, "y", 0), 0, 0, rotation);
   // 그룹도 자기 원점(x/y)을 축으로 돈다 — 자식 합집합의 왼쪽 위를 그 축으로 돌려
   // 놓고, 거기서 같은 각도로 감싼다. 안 돌리면 정렬·스냅·마퀴가 돌기 전 자리를 본다.
@@ -95,6 +103,23 @@ export function elementRect(el: CanvasElement): Rect {
     inner.width,
     inner.height,
     rotation,
+  );
+}
+
+/**
+ * `flipX`/`flipY`가 축으로 삼는 네모(요소 로컬 좌표). 잎은 제 상자, 그룹은 자기 폭·높이를
+ * 안 믿으므로 자식 합집합. 화면(element-view)·손잡이 뒤집기·내보내기가 같은 축을 봐야
+ * 셋이 같은 그림을 낸다.
+ */
+export function flipArea(el: RectSource): Rect {
+  const kids = kidsOf(el);
+  return (
+    (kids.length ? unionRect(kids.map((child) => elementRect(child))) : null) ?? {
+      x: 0,
+      y: 0,
+      width: num(el, "width", 0),
+      height: num(el, "height", 0),
+    }
   );
 }
 

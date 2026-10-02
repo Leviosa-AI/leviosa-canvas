@@ -34,7 +34,7 @@ vi.mock("@leviosa-ai/canvas/render/image-cache", () => ({
   loadImage: async () => ({ naturalWidth: 400, naturalHeight: 200 }),
 }));
 
-function renderOverlay() {
+function renderOverlay(extra: Record<string, unknown> = {}) {
   const el = {
     id: "img1",
     type: "image",
@@ -43,6 +43,7 @@ function renderOverlay() {
     y: 20,
     width: 200,
     height: 200,
+    ...extra,
     set: vi.fn(),
   };
   const onClose = vi.fn();
@@ -71,6 +72,20 @@ describe("ImageCropOverlay", () => {
     expect(patch.cropWidth).toBeCloseTo(0.5, 5);
     expect(patch.cropHeight).toBeCloseTo(1, 5);
     expect(onClose).toHaveBeenCalledWith(true);
+  });
+
+  it("좌우로 뒤집힌 사진은 끈 방향도 뒤집어 읽는다(화면에서 보이는 대로)", async () => {
+    HTMLElement.prototype.setPointerCapture ??= () => undefined;
+    const { el } = renderOverlay({ flipX: true });
+    await screen.findByLabelText("detailPage.crop.apply");
+    // 뒤집힌 상자에서 «오른쪽 변» 손잡이는 화면 왼쪽에 있다 — 오른쪽으로 끌면 좁아져야 한다.
+    const east = document.querySelector('[data-dp-crop-handle="e"]') as HTMLElement;
+    fireEvent.pointerDown(east, { pointerId: 1, clientX: 0, clientY: 100 });
+    fireEvent.pointerMove(east, { pointerId: 1, clientX: 50, clientY: 100 });
+    fireEvent.pointerUp(east, { pointerId: 1, clientX: 50, clientY: 100 });
+    await userEvent.click(screen.getByLabelText("detailPage.crop.apply"));
+    const patch = el.set.mock.calls[0][0] as Record<string, number>;
+    expect(patch.cropWidth).toBeLessThan(0.5);
   });
 
   it("취소는 문서를 안 건드린다", async () => {

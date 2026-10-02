@@ -52,6 +52,7 @@ import {
   absorbTransform,
   applyInTransaction,
   groupResizePatches,
+  resolveFlip,
   pickFromPath,
   toggleSelection,
   type TransformResult,
@@ -293,9 +294,8 @@ function SelectionLayer({
         borderStroke="#2563eb"
         anchorStroke="#2563eb"
         anchorSize={8}
-        // 손잡이로 뒤집으면 scale이 음수가 되는데, 문서는 폭·높이만 들고 있어 그걸 못
-        // 받는다. 뒤집기는 flipX/flipY 속성으로만 한다(element-view가 그린다).
-        flipEnabled={false}
+        // 손잡이를 반대편으로 넘기면 뒤집힌다 — 음수 scale은 `resolveFlip`이
+        // flipX/flipY로 바꿔 문서에 쓴다(element-view가 그린다).
         rotationSnaps={[0, 45, 90, 135, 180, 225, 270, 315]}
         rotationSnapTolerance={5}
         // 여럿을 함께 늘리면 Konva가 노드마다 transformend를 부른다 — 제스처 하나를
@@ -988,15 +988,18 @@ export function CanvasView({
       onTransformEnd: (id, result: TransformResult) => {
         const el = store.getElementById(id);
         if (!el) return;
+        // 손잡이를 반대편으로 넘겼으면 음수 scale → flipX/flipY.
+        const { result: resolved, flip } = resolveFlip(el, result);
         applyInTransaction(store, () => {
           if (!el.isContainer) {
-            el.set(absorbTransform(el, result));
+            el.set({ ...absorbTransform(el, resolved), ...flip });
             return;
           }
           // 그룹은 자손 좌표까지 같이 흡수해야 그림이 안 깨진다.
-          for (const { id: target, patch } of groupResizePatches(el, result)) {
+          for (const { id: target, patch } of groupResizePatches(el, resolved)) {
             store.getElementById(target)?.set(patch);
           }
+          if (flip) el.set(flip);
         });
       },
     }),

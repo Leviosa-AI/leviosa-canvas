@@ -12,6 +12,7 @@ import {
   nudge,
   nudgeStep,
   pickFromPath,
+  resolveFlip,
   toggleSelection,
 } from "../render/interaction";
 import { createCanvasStore } from "../store";
@@ -152,6 +153,82 @@ describe("absorbTransform", () => {
     );
     expect(patch.width).toBe(1);
     expect(patch.height).toBe(1);
+  });
+});
+
+describe("resolveFlip", () => {
+  function box(attrs: Record<string, unknown> = {}) {
+    const store = createCanvasStore({
+      width: 750,
+      height: 500,
+      pages: [
+        {
+          id: "p",
+          children: [
+            { id: "a", type: "figure", x: 10, y: 20, width: 100, height: 50, ...attrs },
+          ],
+        },
+      ],
+    });
+    return store.getElementById("a")!;
+  }
+  // Konva가 실제로 내놓는 분해값(Transform.decompose)을 그대로 넣는다.
+  const base = { x: 10, y: 20, width: 100, height: 50 };
+
+  it("옆 손잡이를 넘겨 끌면 좌우로 뒤집힌다(Konva의 180° + scaleY<0을 flipX로)", () => {
+    const { result, flip } = resolveFlip(box(), {
+      ...base,
+      rotation: -180,
+      scaleX: 0.4,
+      scaleY: -1,
+    });
+    expect(flip).toEqual({ flipX: true, flipY: false });
+    expect(absorbTransform({ type: "figure" }, result)).toEqual({
+      x: -30,
+      y: 20,
+      width: 40,
+      height: 50,
+      rotation: 0,
+    });
+  });
+
+  it("아래 손잡이를 넘겨 끌면 상하로 뒤집힌다", () => {
+    const { result, flip } = resolveFlip(box(), {
+      ...base,
+      rotation: 0,
+      scaleX: 1,
+      scaleY: -0.4,
+    });
+    expect(flip).toEqual({ flipX: false, flipY: true });
+    expect(result).toMatchObject({ x: 10, y: 0, rotation: 0, scaleY: 0.4 });
+  });
+
+  it("모서리를 대각선으로 넘기면 양쪽 다 뒤집힌다", () => {
+    const { result, flip } = resolveFlip(box(), {
+      ...base,
+      rotation: -180,
+      scaleX: 0.4,
+      scaleY: 0.5,
+    });
+    expect(flip).toEqual({ flipX: true, flipY: true });
+    expect(result.rotation).toBeCloseTo(0);
+    expect(result.x).toBeCloseTo(-30);
+    expect(result.y).toBeCloseTo(-5);
+  });
+
+  it("이미 뒤집힌 것을 다시 넘기면 되돌아온다", () => {
+    const { flip } = resolveFlip(box({ flipX: true }), {
+      ...base,
+      rotation: 180,
+      scaleX: 1,
+      scaleY: -1,
+    });
+    expect(flip).toEqual({ flipX: false, flipY: false });
+  });
+
+  it("회전 손잡이로 크게 돌린 것은 뒤집기가 아니다", () => {
+    const input = { ...base, rotation: 150, scaleX: 1, scaleY: 1 };
+    expect(resolveFlip(box(), input)).toEqual({ result: input, flip: null });
   });
 });
 

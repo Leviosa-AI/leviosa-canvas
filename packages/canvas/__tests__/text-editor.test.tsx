@@ -38,6 +38,17 @@ const BASE: ElementJson = {
   fill: "rgb(17, 17, 17)",
 };
 
+/** 입력창 transform의 `matrix(a, b, c, d, …)`. */
+function matrixOf(frame: HTMLElement): number[] {
+  const inner = /matrix\(([^)]+)\)/.exec(frame.style.transform)?.[1] ?? "";
+  return inner.split(",").map((v) => Number(v));
+}
+
+function rotationOf(frame: HTMLElement): number {
+  const [a, b] = matrixOf(frame);
+  return (Math.atan2(b, a) * 180) / Math.PI;
+}
+
 describe("TextEditorOverlay — 자리 맞추기", () => {
   it("요소의 절대 좌표에 놓이고 배율은 transform으로만 준다", () => {
     const { view } = mount(BASE, 0.5);
@@ -76,7 +87,25 @@ describe("TextEditorOverlay — 자리 맞추기", () => {
     const frame = view.container.querySelector("[data-lc-text-editor]") as HTMLElement;
     expect(parseFloat(frame.style.left)).toBeCloseTo(50);
     expect(parseFloat(frame.style.top)).toBeCloseTo(100);
-    expect(frame.style.transform).toContain("rotate(100deg)");
+    expect(rotationOf(frame)).toBeCloseTo(100);
+  });
+
+  it("뒤집힌 글자는 입력창도 상자 가운데를 축으로 뒤집혀 캔버스 글자와 겹친다", () => {
+    const store = createCanvasStore({
+      width: 750,
+      height: 1000,
+      pages: [{ id: "p", children: [{ ...BASE, x: 40, y: 60, flipX: true }] }],
+    });
+    const el = store.getElementById("t") as CanvasElement;
+    const view = render(
+      <TextEditorOverlay store={store} el={el} scale={1} onDone={vi.fn()} />,
+    );
+    const frame = view.container.querySelector("[data-lc-text-editor]") as HTMLElement;
+    const [a, , , d] = matrixOf(frame);
+    // 좌우 반전: 원점이 상자 오른쪽 끝(x + 폭)으로 가고 가로가 −1.
+    expect([a, d]).toEqual([-1, 1]);
+    expect(parseFloat(frame.style.left)).toBeCloseTo(40 + Number(BASE.width));
+    expect(parseFloat(frame.style.top)).toBeCloseTo(60);
   });
 
   it("그룹 안 글자도 페이지 기준 자리에 놓인다", () => {

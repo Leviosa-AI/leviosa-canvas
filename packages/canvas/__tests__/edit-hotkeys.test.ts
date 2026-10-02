@@ -11,6 +11,8 @@ import { beforeEach, describe, expect, it } from "vitest";
 
 import { clearClipboard, isClipboardEmpty } from "../edit/commands";
 import { handleCanvasHotkey } from "../edit/hotkeys";
+import { elementRect, unionRect } from "../edit/rect";
+import { measureTextLayout } from "../render/text-layout";
 import { createCanvasStore, type CanvasStore } from "../store";
 import type { DocumentJson } from "../types";
 
@@ -227,6 +229,98 @@ describe("handleCanvasHotkey", () => {
     expect(store.getElementById("a")!.flipY).toBe(true);
     press(store, { code: "KeyH", shiftKey: true });
     expect(store.getElementById("a")!.flipX).toBe(false);
+  });
+
+  it("⇧H는 한 줄 글자를 상자가 아니라 **보이는 글자** 자리에서 뒤집는다", () => {
+    // 상자 700에 짧은 제목 — 상자 가운데로 뒤집으면 글자가 오른쪽 끝으로 건너간다.
+    const store = createCanvasStore({
+      width: 860,
+      height: 500,
+      pages: [
+        {
+          id: "p",
+          children: [
+            { id: "t", type: "text", text: "제목", x: 80, y: 0, width: 700, height: 60, fontSize: 40 },
+          ],
+        },
+      ],
+    });
+    const el = store.getElementById("t")!;
+    const ink = measureTextLayout(el, "제목").blockWidth;
+    store.selectElements(["t"]);
+
+    press(store, { code: "KeyH", shiftKey: true });
+    // 뒤집힌 글자는 상자 오른쪽 끝(x + 700 − ink ~ x + 700)에 그려진다 → 그게 80~80+ink에 오게.
+    expect(el.flipX).toBe(true);
+    expect(el.x! + 700 - ink).toBeCloseTo(80);
+
+    press(store, { code: "KeyH", shiftKey: true });
+    expect(el.flipX).toBe(false);
+    expect(el.x).toBeCloseTo(80);
+  });
+
+  it("여럿을 골라 ⇧H 하면 Figma처럼 전체를 하나로 비춰 자리까지 바뀐다", () => {
+    const store = createCanvasStore({
+      width: 860,
+      height: 500,
+      pages: [
+        {
+          id: "p",
+          children: [
+            { id: "l", type: "figure", x: 0, y: 0, width: 100, height: 50 },
+            { id: "r", type: "figure", x: 300, y: 20, width: 50, height: 50, rotation: 30 },
+          ],
+        },
+      ],
+    });
+    const l = store.getElementById("l")!;
+    const r = store.getElementById("r")!;
+    const rBefore = elementRect(r);
+    const whole = unionRect([elementRect(l), rBefore])!;
+    store.selectElements(["l", "r"]);
+
+    press(store, { code: "KeyH", shiftKey: true });
+    expect([l.flipX, r.flipX, r.rotation]).toEqual([true, true, -30]);
+    // 왼쪽 끝에 있던 l은 오른쪽 끝으로, 돈 r은 거울 자리로 — 바깥 네모는 그대로.
+    expect(elementRect(l).x + 100).toBeCloseTo(whole.x + whole.width);
+    expect(elementRect(r).x).toBeCloseTo(whole.x);
+    expect(elementRect(r).y).toBeCloseTo(rBefore.y);
+
+    press(store, { code: "KeyH", shiftKey: true });
+    expect([l.x, l.y, r.x, r.y, r.rotation]).toEqual([0, 0, 300, 20, 30].map((v) => expect.closeTo(v)));
+  });
+
+  it("짧은 한 줄 글자를 든 그룹도 보이는 그림 자리에서 뒤집힌다", () => {
+    const store = createCanvasStore({
+      width: 860,
+      height: 500,
+      pages: [
+        {
+          id: "p",
+          children: [
+            {
+              id: "g",
+              type: "group",
+              x: 0,
+              y: 0,
+              children: [
+                { id: "t", type: "text", text: "제목", x: 80, y: 0, width: 700, height: 60, fontSize: 40 },
+                { id: "b", type: "figure", x: 80, y: 70, width: 50, height: 10 },
+              ],
+            },
+          ],
+        },
+      ],
+    });
+    const g = store.getElementById("g")!;
+    const ink = measureTextLayout(store.getElementById("t")!, "제목").blockWidth;
+    store.selectElements(["g"]);
+
+    press(store, { code: "KeyH", shiftKey: true });
+    // 보이는 그림은 80~80+ink(글자가 막대보다 넓다). 상자 축(80~780 가운데)으로 뒤집으면 오른쪽 끝에 붙는다.
+    // 뒤집힌 글자 왼쪽 = g.x + (80·2 + 700) − (80 + ink) → 80에 와야 한다.
+    expect(g.flipX).toBe(true);
+    expect(g.x! + 860 - (80 + ink)).toBeCloseTo(80);
   });
 
   it("⌘⇧L은 잠그고 풀며, ⌘⇧H는 숨기고 보인다", () => {

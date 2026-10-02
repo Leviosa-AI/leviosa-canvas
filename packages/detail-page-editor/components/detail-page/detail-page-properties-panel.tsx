@@ -72,6 +72,9 @@ import {
   extractSvgColors,
 } from "../../lib/detail-page/svg-colors";
 import { readColorReplace } from "@leviosa-ai/canvas/render/svg-source";
+import { elementRect, type Rect, type RectSource } from "@leviosa-ai/canvas/edit/rect";
+import { groupResizePatches } from "@leviosa-ai/canvas/render/interaction";
+import type { CanvasElement } from "@leviosa-ai/canvas/store";
 import { selectedElementsDeep } from "./detail-page-selection";
 import { useEditorAi } from "./editor-ai-context";
 import { parseAuthoringImageSrc } from "../../lib/detail-page/authoring-image-src";
@@ -97,8 +100,6 @@ import { setZ as setElementZ, zOrderOf } from "../../lib/detail-page/z-order";
 import {
   canDistribute,
   distributeCoords,
-  toItems,
-  type DistributeElement,
 } from "../../lib/detail-page/distribute";
 import { useDetailPageHost } from "./detail-page-host-context";
 import type {
@@ -236,13 +237,28 @@ export function groupFrame(
   let lo = Infinity;
   let hi = -Infinity;
   for (const sib of siblings) {
-    const start = num(axis === "x" ? sib.x : sib.y);
-    const size = num(axis === "x" ? sib.width : sib.height);
+    const rect = rectOf(sib);
+    const start = axis === "x" ? rect.x : rect.y;
+    const size = axis === "x" ? rect.width : rect.height;
     lo = Math.min(lo, start);
     hi = Math.max(hi, start + size);
   }
   if (!Number.isFinite(lo) || !Number.isFinite(hi) || hi <= lo) return null;
   return { start: lo, size: hi - lo };
+}
+
+/**
+ * 요소가 **보이는** 네모(부모 좌표). 그룹은 자기 x/y·폭·높이를 안 믿으므로(자식이 좌표를
+ * 들고, 그룹 폭·높이는 0일 수 있다) x/width를 그대로 읽으면 정렬이 그룹을 날려 보낸다.
+ * 캔버스가 정렬·스냅에 쓰는 `elementRect`로 잰다.
+ */
+function rectOf(el: unknown): Rect {
+  return elementRect(el as RectSource);
+}
+
+/** 보이는 네모의 축 시작이 `coord`에 오게 하는 x(또는 y) 값. */
+function placeAt(el: ElementLike, axis: AlignAxis, coord: number): number {
+  return num(el[axis]) + coord - rectOf(el)[axis];
 }
 
 /** Where a box of `size` lands when aligned inside `frame`. */
@@ -287,8 +303,9 @@ function alignInFrame(
     for (const el of els) {
       const frame = frameOf(store, el, axis);
       if (!frame) continue;
-      const size = num(axis === "x" ? el.width : el.height);
-      const coord = Math.round(alignedCoord(frame, size, where));
+      const rect = rectOf(el);
+      const size = axis === "x" ? rect.width : rect.height;
+      const coord = Math.round(placeAt(el, axis, alignedCoord(frame, size, where)));
       el.set(axis === "x" ? { x: coord } : { y: coord });
     }
   });
@@ -307,9 +324,10 @@ function currentAlign(
   for (const el of els) {
     const frame = frameOf(store, el, axis);
     if (!frame) return null;
-    const size = num(axis === "x" ? el.width : el.height);
+    const rect = rectOf(el);
+    const size = axis === "x" ? rect.width : rect.height;
     if (frame.size - size < 1) return null; // 상자를 꽉 채움: 정렬 구분 무의미
-    const coord = num(axis === "x" ? el.x : el.y);
+    const coord = rect[axis];
     let where: AlignWhere | null = null;
     for (const w of ["start", "center", "end"] as const) {
       if (Math.abs(alignedCoord(frame, size, w) - coord) <= 1) {
@@ -326,14 +344,19 @@ function currentAlign(
 
 // 선택 요소끼리 간격을 고르게. 양 끝은 그대로 두고 사이 여백만 나눈다(distribute.ts).
 function spreadEvenly(els: ElementLike[], axis: "x" | "y") {
-  const items = toItems(els as DistributeElement[], axis);
-  const coords = items && distributeCoords(items);
+  // 보이는 네모로 잰다 — 그룹이 섞여 있어도 같은 자로 벌린다.
+  const items = els.map((el) => {
+    const rect = rectOf(el);
+    return { id: el.id, start: rect[axis], size: axis === "x" ? rect.width : rect.height };
+  });
+  const coords = distributeCoords(items);
   if (!coords) return;
   transact(historyOf(els[0]), () => {
     for (const el of els) {
       const coord = coords.get(el.id);
       if (coord == null) continue;
-      el.set(axis === "x" ? { x: coord } : { y: coord });
+      const next = Math.round(placeAt(el, axis, coord));
+      el.set(axis === "x" ? { x: next } : { y: next });
     }
   });
 }
@@ -741,13 +764,21 @@ const SizeSection = observer(function SizeSection({ els }: { els: ElementLike[] 
   const { t } = useTranslation("branding");
   const el = els[0];
   if (!el) return null;
+  // 그룹은 자기 x/y·폭·높이를 안 믿는다 — 보이는 네모를 보여 주고, 고치면 그 네모가
+  // 움직이거나 커지게 한다(자손까지 같이). 잎은 제 값 그대로.
+  const group = el.type === "group" && Array.isArray(el.children);
+  const rect = group ? rectOf(el) : null;
   const field = (label: string, key: "width" | "height" | "x" | "y") => (
     <NumberField
       label={label}
-      value={num(el[key])}
+      value={rect ? Math.round(rect[key] * 100) / 100 : num(el[key])}
       min={key === "width" || key === "height" ? 1 : undefined}
       history={historyOf(el)}
-      onChange={(v) => el.set({ [key]: Math.round(v) })}
+      onChange={(v) => {
+        if (!rect) el.set({ [key]: Math.round(v) });
+        else if (key === "x" || key === "y") el.set({ [key]: Math.round(placeAt(el, key, v)) });
+        else resizeGroup(el, key, v);
+      }}
     />
   );
   return (
@@ -762,6 +793,29 @@ const SizeSection = observer(function SizeSection({ els }: { els: ElementLike[] 
   );
 });
 SizeSection.displayName = "SizeSection";
+
+/** 그룹의 보이는 폭(또는 높이)을 `size`로 — 자손을 같이 늘리고 왼쪽 위는 제자리에 둔다. */
+function resizeGroup(el: ElementLike, key: "width" | "height", size: number) {
+  const before = rectOf(el);
+  const scale = size / (key === "width" ? before.width : before.height);
+  if (!Number.isFinite(scale) || scale <= 0) return;
+  const group = el as unknown as CanvasElement;
+  transact(historyOf(el), () => {
+    const patches = groupResizePatches(group, {
+      x: num(el.x),
+      y: num(el.y),
+      width: num(el.width),
+      height: num(el.height),
+      rotation: num(el.rotation),
+      scaleX: key === "width" ? scale : 1,
+      scaleY: key === "height" ? scale : 1,
+    });
+    for (const { id, patch } of patches) group.store.getElementById(id)?.set(patch);
+    // 자손 좌표는 그룹 원점 기준으로 곱해지므로 보이는 왼쪽 위가 밀린다 — 되돌린다.
+    const after = rectOf(el);
+    el.set({ x: num(el.x) + before.x - after.x, y: num(el.y) + before.y - after.y });
+  });
+}
 
 function DeleteRow({ store, els }: { store: StoreLike; els: ElementLike[] }) {
   const { t } = useTranslation("branding");

@@ -27,11 +27,61 @@
 
 import { useEffect, useLayoutEffect, useRef } from "react";
 
+import { flipArea } from "../edit/rect";
 import type { CanvasElement, CanvasStore } from "../store";
 import { num, str, type Attrs } from "../types";
 import { useElementVersion } from "../use-canvas";
 import { isSingleLineBox, konvaFontStyle, lineHeightRatio, textDecoration } from "./attrs";
 import { measureTextLayout } from "./text-layout";
+
+type Matrix = [number, number, number, number, number, number];
+
+/** m · n — n을 먼저 먹이고 m을 먹인다(CSS `matrix()` 순서). */
+function multiply(m: Matrix, n: Matrix): Matrix {
+  return [
+    m[0] * n[0] + m[2] * n[1],
+    m[1] * n[0] + m[3] * n[1],
+    m[0] * n[2] + m[2] * n[3],
+    m[1] * n[2] + m[3] * n[3],
+    m[0] * n[4] + m[2] * n[5] + m[4],
+    m[1] * n[4] + m[3] * n[5] + m[5],
+  ];
+}
+
+/**
+ * 요소 로컬 → 페이지 좌표. 요소와 조상 그룹마다 `T(x, y) · R(rotation) · F(flip)` —
+ * element-view가 바깥 Group(자리·회전)과 안쪽 Group(`flipped`, `flipArea` 가운데 축)으로
+ * 그리는 순서 그대로다.
+ */
+function pageTransform(el: CanvasElement): Matrix {
+  let m: Matrix = [1, 0, 0, 1, 0, 0];
+  for (let node: unknown = el; node instanceof Object && "isContainer" in node; ) {
+    const one = node as CanvasElement;
+    const rad = (num(one, "rotation", 0) * Math.PI) / 180;
+    let local: Matrix = [
+      Math.cos(rad),
+      Math.sin(rad),
+      -Math.sin(rad),
+      Math.cos(rad),
+      num(one, "x", 0),
+      num(one, "y", 0),
+    ];
+    if (one.flipX === true || one.flipY === true) {
+      const area = flipArea(one);
+      local = multiply(local, [
+        one.flipX === true ? -1 : 1,
+        0,
+        0,
+        one.flipY === true ? -1 : 1,
+        one.flipX === true ? area.x * 2 + area.width : 0,
+        one.flipY === true ? area.y * 2 + area.height : 0,
+      ]);
+    }
+    m = multiply(local, m);
+    node = one.parent;
+  }
+  return m;
+}
 
 function cssFontWeight(el: Attrs): number | string {
   const raw = el.fontWeight;
@@ -78,12 +128,9 @@ export function TextEditorOverlay({
       : ["right", "end"].includes(str(el, "align", "left"))
         ? savedAnchorWidth - box.width
         : 0;
-  const position = el.absolutePosition;
-  // 돌린 그룹 안 글자는 조상 회전까지 더해야 캔버스 위 글자와 겹친다.
-  let turn = num(el, "rotation", 0);
-  for (let node = el.parent; node && "isContainer" in node; node = (node as CanvasElement).parent) {
-    turn += num(node as CanvasElement, "rotation", 0);
-  }
+  // 캔버스가 이 글자를 그리는 변환 그대로 — 조상 그룹의 이동·회전·뒤집기까지. 회전만
+  // 따라가면 뒤집힌 글자를 고칠 때 입력창이 상자 반대편(또는 섹션 밖)에 뜬다.
+  const placed = pageTransform(el);
   const singleLine = isSingleLineBox(el);
   const style = konvaFontStyle(el);
 
@@ -106,9 +153,9 @@ export function TextEditorOverlay({
       data-lc-text-editor={el.id}
       style={{
         position: "absolute",
-        left: position.x * scale,
-        top: position.y * scale,
-        transform: `scale(${scale}) rotate(${turn}deg)`,
+        left: placed[4] * scale,
+        top: placed[5] * scale,
+        transform: `scale(${scale}) matrix(${placed.slice(0, 4).join(", ")}, 0, 0)`,
         transformOrigin: "top left",
         // 상자 자체는 문서 단위 그대로 — 배율은 transform이 혼자 진다.
         width: box.width,

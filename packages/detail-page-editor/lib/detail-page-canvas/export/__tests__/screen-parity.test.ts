@@ -146,6 +146,50 @@ describe("rotation", () => {
   });
 });
 
+describe("flip", () => {
+  // x 10~110 상자를 좌우로 — 상자 가운데(60)를 축으로 뒤집는다: x' = 120 − x.
+  const flippedBox: ExportElement = {
+    id: "r",
+    type: "figure",
+    x: 10,
+    y: 20,
+    width: 100,
+    height: 50,
+    fill: "#f00",
+    flipX: true,
+  };
+
+  it("svg mirrors a flipped shape around its box centre", () => {
+    const svg = buildSvgDocument(page([flippedBox]), { measure });
+    expect(svg).toMatch(/<rect[^>]*transform="matrix\(-1 0 0 1 120 0\)"/);
+  });
+
+  it("svg mirrors a flipped group around its children's union", () => {
+    const svg = buildSvgDocument(
+      page([
+        {
+          id: "g",
+          type: "group",
+          flipY: true,
+          children: [{ id: "c", type: "figure", x: 0, y: 10, width: 5, height: 30, fill: "#000" }],
+        },
+      ]),
+      { measure },
+    );
+    // 자식 합집합 y 10~40 → 가운데 25를 축으로: y' = 50 − y.
+    expect(svg).toContain('transform="matrix(1 0 0 -1 0 50)"');
+  });
+
+  it("psd draws a flipped shape through the mirrored matrix", async () => {
+    const calls: Call[] = [];
+    await buildPsd(page([flippedBox]), {
+      createCanvas: (width, height) => ({ width, height, getContext: () => recordingCtx(calls) }),
+    });
+    const transform = calls.find((call) => call.name === "transform");
+    expect(transform?.args.slice(0, 4)).toEqual([-1, 0, 0, 1]);
+  });
+});
+
 describe("text highlight band", () => {
   const marked: ExportElement = {
     id: "m",

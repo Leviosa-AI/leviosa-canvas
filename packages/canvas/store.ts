@@ -731,7 +731,17 @@ export class CanvasStore {
   // -- 선택 ----------------------------------------------------------------
 
   selectElements(ids: string[]): void {
-    const next = ids.filter((id) => this.getElementById(id) !== null);
+    // 그룹과 그 자손을 함께 고르지 않는다(피그마도 그렇다). 둘 다 트랜스포머에 걸리면
+    // 자손이 그룹 따라 한 번, 제 몫으로 또 한 번 움직여 끌기·크기 조절이 두 번 먹는다.
+    const wanted = new Set(ids);
+    const next = ids.filter((id) => {
+      const el = this.getElementById(id);
+      if (!el) return false;
+      for (let up = el.parent; up instanceof CanvasElement; up = up.parent) {
+        if (wanted.has(up.id)) return false;
+      }
+      return true;
+    });
     this.uiChange(() => {
       const current = this.selectedElementsIds;
       if (

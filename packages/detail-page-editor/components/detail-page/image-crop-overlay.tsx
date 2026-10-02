@@ -57,6 +57,8 @@ export type CropElement = {
   width?: unknown;
   height?: unknown;
   rotation?: unknown;
+  flipX?: unknown;
+  flipY?: unknown;
   set: (patch: Record<string, unknown>) => void;
 };
 
@@ -64,8 +66,8 @@ const ACCENT = "rgb(0, 161, 255)";
 const HANDLE = 10;
 /** 자르기 밖을 덮는 그림자의 짙기. 잘려 나가는 부분이 보이되 상자 안이 또렷해야 한다. */
 const OUTSIDE_OPACITY = 0.5;
-/** 조작 줄을 작업 영역 안에 남기는 여백/높이. */
-const BAR_MARGIN = 180;
+/** 조작 줄을 작업 영역 안에 남기는 여백/높이. 여백은 줄 너비의 반에 이만큼을 더한다. */
+const BAR_MARGIN = 8;
 const BAR_HEIGHT = 56;
 
 const CORNERS: CropHandle[] = ["nw", "ne", "sw", "se"];
@@ -123,6 +125,8 @@ export function ImageCropOverlay({
   const [presetId, setPresetId] = useState<CropPresetId>("custom");
   const [menuOpen, setMenuOpen] = useState(false);
   const drag = useRef<DragState | null>(null);
+  // 조작 줄의 실제 너비 — 언어에 따라 달라서 재야 가장자리에서 안 잘린다.
+  const barRef = useRef<HTMLDivElement | null>(null);
 
   // 그림은 캔버스가 이미 받아 둔 것을 그대로 꺼내 쓴다 — 다시 받으면 같은 그림이 두 벌
   // 디코드되고, 교차 출처 설정이 달라 알파 판정이 어긋날 수 있다.
@@ -236,6 +240,20 @@ export function ImageCropOverlay({
     setRect(applyAspect(rect, start.image, resolveAspect(next, natural)));
   };
 
+  const [barWidth, setBarWidth] = useState(0);
+  const barShown = Boolean(start && rect && box);
+  useLayoutEffect(() => {
+    const node = barRef.current;
+    if (!node) return;
+    const measure = () => setBarWidth(node.offsetWidth);
+    measure();
+    // 글꼴·스타일이 늦게 붙으면 너비가 바뀐다.
+    if (typeof ResizeObserver === "undefined") return;
+    const observer = new ResizeObserver(measure);
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, [barShown]);
+
   if (!start || !rect || !box) return null;
 
   const scale = box.scale || 1;
@@ -243,6 +261,10 @@ export function ImageCropOverlay({
   const cos = Math.cos(radians);
   const sin = Math.sin(radians);
   const zoom = rectZoom(rect, start.image, aspect);
+  // 뒤집힌 사진은 화면에서도 뒤집혀 있다 — 오버레이도 상자 가운데를 축으로 같이 뒤집어야
+  // 보이는 자리와 자르는 자리가 맞는다. 끈 양도 그 축으로 되돌린다.
+  const flipX = el.flipX === true;
+  const flipY = el.flipY === true;
 
   const begin = (event: ReactPointerEvent<HTMLElement>, handle: CropHandle) => {
     event.preventDefault();
@@ -264,8 +286,8 @@ export function ImageCropOverlay({
     const screenX = event.clientX - state.startX;
     const screenY = event.clientY - state.startY;
     // 화면에서 끈 양을 요소 좌표로 되돌린다(배율을 나누고 회전을 되감는다).
-    const dx = (screenX * cos + screenY * sin) / scale;
-    const dy = (-screenX * sin + screenY * cos) / scale;
+    const dx = ((screenX * cos + screenY * sin) / scale) * (flipX ? -1 : 1);
+    const dy = ((-screenX * sin + screenY * cos) / scale) * (flipY ? -1 : 1);
     setRect(dragCrop(state.rect, state.handle, dx, dy, start.image, { aspect }));
   };
 
@@ -294,10 +316,12 @@ export function ImageCropOverlay({
   const host = containerRef.current;
   const hostWidth = host?.clientWidth ?? 0;
   const hostHeight = host?.clientHeight ?? 0;
-  const barCenter = box.left + view.left + view.width / 2;
+  const barCenter =
+    box.left + (flipX ? box.width - view.left - view.width : view.left) + view.width / 2;
+  const barEdge = barWidth / 2 + BAR_MARGIN;
   const barPosition = {
     left: hostWidth
-      ? Math.max(BAR_MARGIN, Math.min(barCenter, hostWidth - BAR_MARGIN))
+      ? Math.max(barEdge, Math.min(barCenter, hostWidth - barEdge))
       : barCenter,
     top: hostHeight
       ? Math.min(box.top + view.top + view.height + 12, hostHeight - BAR_HEIGHT)
@@ -327,7 +351,11 @@ export function ImageCropOverlay({
           top: box.top,
           width: box.width,
           height: box.height,
-          transform: `rotate(${box.rotation}deg)`,
+          transform: [
+            `rotate(${box.rotation}deg)`,
+            flipX ? `translateX(${box.width}px) scaleX(-1)` : "",
+            flipY ? `translateY(${box.height}px) scaleY(-1)` : "",
+          ].join(" "),
           transformOrigin: "0 0",
         }}
       >
@@ -416,7 +444,13 @@ export function ImageCropOverlay({
                 background: "#fff",
                 border: `1px solid ${ACCENT}`,
                 boxSizing: "border-box",
-                cursor: CURSOR[handle],
+                // 한 번 뒤집힌 상자에서는 대각선 손잡이가 반대 대각선에 놓인다.
+                cursor:
+                  flipX !== flipY && (handle === "nw" || handle === "se")
+                    ? "nesw-resize"
+                    : flipX !== flipY && (handle === "ne" || handle === "sw")
+                      ? "nwse-resize"
+                      : CURSOR[handle],
                 touchAction: "none",
               }}
             />
@@ -426,6 +460,7 @@ export function ImageCropOverlay({
 
       {/* 조작 줄은 회전과 무관하게 세워 둔다 — 기울어진 버튼은 누르기 어렵다. */}
       <div
+        ref={barRef}
         data-dp-crop-bar=""
         onPointerDown={(event) => event.stopPropagation()}
         style={{ position: "absolute", ...barPosition, transform: "translateX(-50%)" }}
