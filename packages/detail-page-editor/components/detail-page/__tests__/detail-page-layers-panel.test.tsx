@@ -9,6 +9,7 @@ import {
   groupContextIds,
   rangeIds,
   selectionExpandIds,
+  shiftAnchor,
   zoneAt,
 } from "../detail-page-layers-panel";
 import { renderWithDetailPageHost } from "./host-stub";
@@ -613,6 +614,14 @@ describe("flattenLayers / rangeIds", () => {
     const rows = [{ el: { id: "a" } }, { el: { id: "b" } }];
     expect(rangeIds(rows, "없음", "b")).toEqual(["b"]);
     expect(rangeIds(rows, null, "b")).toEqual(["b"]);
+  });
+
+  it("캔버스에서 고른 뒤 ⇧클릭하면 지금 선택이 기준점이 된다", () => {
+    // 목록에서는 "a"를 눌렀었지만 그 뒤 캔버스에서 "c"를 골랐다.
+    expect(shiftAnchor("a", ["c"])).toBe("c");
+    expect(shiftAnchor("a", ["a", "b"])).toBe("a");
+    expect(shiftAnchor("a", [])).toBe("a");
+    expect(shiftAnchor(null, [])).toBeNull();
   });
 });
 

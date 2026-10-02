@@ -342,6 +342,18 @@ export function matchLayers<
   );
 }
 
+/**
+ * ⇧클릭의 기준점 — 기억해 둔 줄이 아직 선택에 있으면(또는 아무것도 안 골랐으면) 그것,
+ * 아니면 지금 선택의 마지막 것.
+ */
+export function shiftAnchor(
+  anchorId: string | null,
+  selected: readonly string[],
+): string | null {
+  if (anchorId && (!selected.length || selected.includes(anchorId))) return anchorId;
+  return selected[selected.length - 1] ?? null;
+}
+
 /** 누른 줄 하나를 선택에서 넣거나 뺀다(⌘/Ctrl 클릭). */
 export function toggleId(selected: readonly string[], id: string): string[] {
   return selected.includes(id)
@@ -636,8 +648,13 @@ export const DetailPageLayersPanel = observer(function DetailPageLayersPanel({
    */
   const onSelect = (id: string, mods: { shift: boolean; meta: boolean }) => {
     if (mods.shift) {
-      s.selectElements(rangeIds(rows, anchorId, id));
-      // 기준점은 그대로 둔다 — 범위를 잡았다 놨다 하며 늘릴 수 있어야 한다.
+      // 기준점은 목록에서 마지막으로 누른 줄인데, 그사이 캔버스에서 다른 걸 골랐으면
+      // 낡은 값이다(없거나 선택 밖). 그때 그대로 쓰면 누른 줄 하나만 잡혀 ⇧클릭이
+      // «가끔 안 되는» 것처럼 보인다 — 지금 선택의 마지막 것을 기준점으로 삼는다.
+      const anchor = shiftAnchor(anchorId, selectedIds) ?? id;
+      s.selectElements(rangeIds(rows, anchor, id));
+      // 기준점은 옮기지 않는다 — 범위를 잡았다 놨다 하며 늘릴 수 있어야 한다.
+      setAnchorId(anchor);
       return;
     }
     if (mods.meta) {

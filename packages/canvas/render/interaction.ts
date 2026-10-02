@@ -5,6 +5,7 @@
  * 순수 함수만 둔다 — React도 Konva 인스턴스도 필요 없어야 테스트할 수 있다.
  */
 
+import { elementRect, unionRect } from "../edit/rect";
 import type { CanvasElement, CanvasStore } from "../store";
 import { num, type Attrs } from "../types";
 
@@ -92,6 +93,72 @@ export function absorbTransform(
     patch.fontSize = num(el, "fontSize", 14) * result.scaleX;
   }
   return patch;
+}
+
+/**
+ * 손잡이를 반대편으로 넘겨 끌면(피그마·포토샵처럼) 뒤집힌다 — 음수 scale을 **`flipX`/`flipY`로
+ * 바꿔 읽는다.** 돌려주는 `result`는 scale이 양수라 `absorbTransform`·`groupResizePatches`가
+ * 그대로 먹는다.
+ *
+ * Konva는 뒤집힌 행렬을 분해할 때 음수를 scaleY에만 싣는다. 좌우 반전은 «180° 회전 +
+ * 상하 반전»으로, 대각선 반전은 «180° 회전»으로 나온다. 눈에는 같은 그림이지만 회전값이
+ * 튀므로, 180°를 더 돌린 쪽까지 두 표현 중 **원래 회전에 가까운 쪽**을 고른다.
+ *
+ * 문서의 뒤집기는 바깥 Group 안쪽에서 상자 가운데를 축으로 한다(element-view `flipped`).
+ * Konva의 음수 scale은 원점을 축으로 하므로, 그 차이만큼 x/y를 옮겨 그림을 제자리에 둔다.
+ */
+export function resolveFlip(
+  el: CanvasElement,
+  result: TransformResult,
+): { result: TransformResult; flip: Attrs | null } {
+  const mirrored = result.scaleX < 0 || result.scaleY < 0;
+  // 회전 손잡이로 90° 넘게 돌린 것도 «180° 더 돈» 것처럼 보인다. 회전은 크기를 안
+  // 바꾸므로 scale이 그대로(1)면 회전으로 읽는다.
+  const rotatedOnly =
+    Math.abs(result.scaleX - 1) < 1e-3 && Math.abs(result.scaleY - 1) < 1e-3;
+  if (!mirrored && (rotatedOnly || !turnedHalf(el, result.rotation))) {
+    return { result, flip: null };
+  }
+  // 180° 더 돈 표현: R(r)·S(sx, sy) = R(r + 180)·S(−sx, −sy).
+  let { rotation, scaleX: sx, scaleY: sy } = result;
+  if (turnedHalf(el, rotation)) {
+    rotation = normalizeDeg(rotation + 180);
+    sx = -sx;
+    sy = -sy;
+  }
+  const area =
+    (el.isContainer ? unionRect(el.children.map((child) => elementRect(child))) : null) ??
+    { x: 0, y: 0, width: result.width, height: result.height };
+  const offX = sx < 0 ? -sx * (area.x * 2 + area.width) : 0;
+  const offY = sy < 0 ? -sy * (area.y * 2 + area.height) : 0;
+  const rad = (rotation * Math.PI) / 180;
+  const cos = Math.cos(rad);
+  const sin = Math.sin(rad);
+  return {
+    result: {
+      ...result,
+      x: result.x - (offX * cos - offY * sin),
+      y: result.y - (offX * sin + offY * cos),
+      rotation,
+      scaleX: Math.abs(sx),
+      scaleY: Math.abs(sy),
+    },
+    flip: {
+      flipX: (el.flipX === true) !== sx < 0,
+      flipY: (el.flipY === true) !== sy < 0,
+    },
+  };
+}
+
+/** Konva가 준 회전이 원래 회전에서 90°보다 멀리 돌았나 — 그러면 180° 더 돈 표현이 원래 뜻이다. */
+function turnedHalf(el: Attrs, rotation: number): boolean {
+  return Math.abs(normalizeDeg(rotation - num(el, "rotation", 0))) > 90;
+}
+
+/** (−180, 180] */
+function normalizeDeg(deg: number): number {
+  const d = ((deg % 360) + 360) % 360;
+  return d > 180 ? d - 360 : d;
 }
 
 export type ElementPatch = { id: string; patch: Attrs };
