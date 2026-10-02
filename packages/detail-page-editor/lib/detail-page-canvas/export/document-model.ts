@@ -20,6 +20,9 @@ export type ExportElement = {
   width?: number;
   height?: number;
   rotation?: number;
+  /** 상자 가운데를 축으로 좌우·상하 뒤집기(`@leviosa-ai/canvas/edit/rect`의 `flipArea`). */
+  flipX?: boolean;
+  flipY?: boolean;
   opacity?: number;
   visible?: boolean;
   fill?: string;

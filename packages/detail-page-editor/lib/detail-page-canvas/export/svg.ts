@@ -12,7 +12,7 @@ import {
   type ExportElement,
   type ExportPage,
 } from "./document-model";
-import { documentCropFrame, type Size } from "./frame";
+import { documentCropFrame, elementMatrix, leafMatrix, type Matrix, type Size } from "./frame";
 import {
   highlightBands,
   isItalic,
@@ -161,12 +161,14 @@ function elementMarkup(el: ExportElement, env: SvgEnv): string | null {
     const gx = num(el.x);
     const gy = num(el.y);
     const r = num(el.rotation);
-    const transform = [
-      gx || gy ? `translate(${fmt(gx)} ${fmt(gy)})` : "",
-      r ? `rotate(${fmt(r)})` : "",
-    ]
-      .filter(Boolean)
-      .join(" ");
+    const transform = flipped(el)
+      ? matrixAttr(elementMatrix(el))
+      : [
+          gx || gy ? `translate(${fmt(gx)} ${fmt(gy)})` : "",
+          r ? `rotate(${fmt(r)})` : "",
+        ]
+          .filter(Boolean)
+          .join(" ");
     return `<g ${attrs({ id: el.name || el.id, opacity: opacityAttr(el), transform })}>\n${inner}\n</g>`;
   }
   if (el.type === "text") return textMarkup(el, env);
@@ -174,15 +176,29 @@ function elementMarkup(el: ExportElement, env: SvgEnv): string | null {
   if (el.type === "svg") {
     const inline = inlineSvgMarkup(el);
     // 중첩 <svg>의 transform은 SVG 2에만 있다 — 돌아간 아이콘은 <g>로 감싸 돌린다.
-    if (inline) return num(el.rotation) ? `<g ${attrs(rotateAttr(el))}>${inline}</g>` : inline;
+    if (inline) {
+      return num(el.rotation) || flipped(el) ? `<g ${attrs(rotateAttr(el))}>${inline}</g>` : inline;
+    }
     return imageMarkup(el, env);
   }
   if (el.type === "image") return imageMarkup(el, env);
   return null;
 }
 
-/** 요소 회전 — 화면(Konva)처럼 요소의 왼쪽 위(x, y)를 축으로 돈다. */
+function flipped(el: ExportElement): boolean {
+  return el.flipX === true || el.flipY === true;
+}
+
+function matrixAttr(m: Matrix): string {
+  return `matrix(${m.map(fmt).join(" ")})`;
+}
+
+/**
+ * 요소 회전 — 화면(Konva)처럼 요소의 왼쪽 위(x, y)를 축으로 돈다. 뒤집힌 요소는 회전과
+ * 뒤집기를 합친 행렬로 쓴다(`frame.ts`의 `leafMatrix`).
+ */
 function rotateAttr(el: ExportElement): { transform?: string } {
+  if (flipped(el)) return { transform: matrixAttr(leafMatrix(el)) };
   const r = num(el.rotation);
   return r ? { transform: `rotate(${fmt(r)} ${fmt(num(el.x))} ${fmt(num(el.y))})` } : {};
 }
@@ -351,7 +367,7 @@ function sameLineRun(a: ExportElement, b: ExportElement, env: SvgEnv): boolean {
   // 흐르고, 위로 띄운 첨자(sup)는 선이 다르니 제 자리에 남는다.
   if (Math.abs(baselineOf(a, env) - baselineOf(b, env)) > 0.3 * fs) return false;
   if ((a.fontFamily || "") !== (b.fontFamily || "")) return false;
-  if (num(a.rotation) || num(b.rotation)) return false;
+  if (num(a.rotation) || num(b.rotation) || flipped(a) || flipped(b)) return false;
   // 형광펜 띠는 런마다 따로 그려야 한다 — 한 줄로 합치면 띠가 사라진다.
   if (a.custom?.highlightColor || b.custom?.highlightColor) return false;
   if (num(a.opacity, 1) !== num(b.opacity, 1)) return false;

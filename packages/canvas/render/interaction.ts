@@ -5,7 +5,7 @@
  * 순수 함수만 둔다 — React도 Konva 인스턴스도 필요 없어야 테스트할 수 있다.
  */
 
-import { elementRect, unionRect } from "../edit/rect";
+import { flipArea } from "../edit/rect";
 import type { CanvasElement, CanvasStore } from "../store";
 import { num, type Attrs } from "../types";
 
@@ -126,9 +126,7 @@ export function resolveFlip(
     sx = -sx;
     sy = -sy;
   }
-  const area =
-    (el.isContainer ? unionRect(el.children.map((child) => elementRect(child))) : null) ??
-    { x: 0, y: 0, width: result.width, height: result.height };
+  const area = flipArea(el);
   const offX = sx < 0 ? -sx * (area.x * 2 + area.width) : 0;
   const offY = sy < 0 ? -sy * (area.y * 2 + area.height) : 0;
   const rad = (rotation * Math.PI) / 180;

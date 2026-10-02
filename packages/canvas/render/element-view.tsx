@@ -54,7 +54,7 @@ import {
 } from "../paint/inset-shadow";
 import { computeHighlightBands } from "../paint/text-highlight-bands";
 
-import { elementRect, unionRect } from "../edit/rect";
+import { flipArea } from "../edit/rect";
 import { CanvasElement } from "../store";
 import { asRecord, num, str, type Attrs } from "../types";
 import { useElementVersion } from "../use-canvas";
@@ -279,7 +279,7 @@ function ElementFrame({
           : undefined
       }
     >
-      {flipped(el, box, children)}
+      {flipped(el, children)}
     </Group>
   );
 }
@@ -291,13 +291,11 @@ function ElementFrame({
  * 손잡이·히트 테스트·스냅이 뒤집기와 상관없이 같은 상자를 본다. 그룹은 자기 폭·높이를
  * 안 믿으므로(rect.ts) 자식 합집합의 가운데를 축으로 쓴다.
  */
-function flipped(el: CanvasElement, box: Box, children: ReactNode): ReactNode {
+function flipped(el: CanvasElement, children: ReactNode): ReactNode {
   const flipX = el.flipX === true;
   const flipY = el.flipY === true;
   if (!flipX && !flipY) return children;
-  const area =
-    (el.isContainer ? unionRect(el.children.map((child) => elementRect(child))) : null) ??
-    { x: 0, y: 0, width: box.width, height: box.height };
+  const area = flipArea(el);
   return (
     <Group
       x={flipX ? area.x * 2 + area.width : 0}

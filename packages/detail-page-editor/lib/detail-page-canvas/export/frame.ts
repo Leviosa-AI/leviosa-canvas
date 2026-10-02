@@ -10,6 +10,7 @@
  *    언젠가 둘이 갈라진다.
  */
 
+import { flipArea } from "@leviosa-ai/canvas/edit/rect";
 import {
   hasDocumentCrop,
   imageFrame,
@@ -54,15 +55,40 @@ export function isTranslation(m: Matrix): boolean {
 }
 
 /**
- * 요소의 로컬 좌표(상자 왼쪽 위가 0,0) → 부모 좌표. `parent · T(x, y) · R(rotation)`.
+ * 요소의 로컬 좌표(상자 왼쪽 위가 0,0) → 부모 좌표. `parent · T(x, y) · R(rotation) · F`.
  * 그룹이면 이 행렬이 자식들의 부모 행렬이 된다.
+ *
+ * `F`는 `flipX`/`flipY` — 화면(element-view `flipped`)처럼 `flipArea` 가운데를 축으로
+ * 안쪽만 뒤집는다.
  */
 export function elementMatrix(el: ExportElement, parent: Matrix = IDENTITY): Matrix {
   const rad = (num(el.rotation) * Math.PI) / 180;
   // 0°·90° 같은 각에서 cos/sin 꼬리(6e-17)가 붙어 isTranslation이 틀리지 않게 다듬는다.
   const cos = Math.abs(Math.cos(rad)) < 1e-12 ? 0 : Math.cos(rad);
   const sin = Math.abs(Math.sin(rad)) < 1e-12 ? 0 : Math.sin(rad);
-  return multiply(parent, [cos, sin, -sin, cos, num(el.x), num(el.y)]);
+  const placed = multiply(parent, [cos, sin, -sin, cos, num(el.x), num(el.y)]);
+  if (el.flipX !== true && el.flipY !== true) return placed;
+  const area = flipArea(el);
+  return multiply(placed, [
+    el.flipX === true ? -1 : 1,
+    0,
+    0,
+    el.flipY === true ? -1 : 1,
+    el.flipX === true ? area.x * 2 + area.width : 0,
+    el.flipY === true ? area.y * 2 + area.height : 0,
+  ]);
+}
+
+/**
+ * 잎 요소를 **제 x/y 그대로** 그릴 때 씌울 행렬 — `elementMatrix · T(−x, −y)`. 회전·뒤집기가
+ * 없으면 단위 행렬이다(그리기 함수들이 부모 좌표 x/y에 그리므로).
+ */
+export function leafMatrix(el: ExportElement): Matrix {
+  return multiply(elementMatrix(el), [1, 0, 0, 1, -num(el.x), -num(el.y)]);
+}
+
+export function isIdentity(m: Matrix): boolean {
+  return m.every((v, i) => Math.abs(v - IDENTITY[i]) < 1e-9);
 }
 
 /**
