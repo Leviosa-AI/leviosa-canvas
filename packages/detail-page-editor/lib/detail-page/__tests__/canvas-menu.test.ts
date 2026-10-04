@@ -81,8 +81,10 @@ describe("canvasMenuItems", () => {
     expect(canvasMenuItems({ selectedElements: [] })).toEqual([]);
   });
 
-  it("단일 선택: 복제·잠금·삭제·서식·순서 넷", () => {
+  it("단일 선택: 복사·붙여넣기·복제·잠금·삭제·서식·순서 넷", () => {
     expect(actions(makeStore(["b"]))).toEqual([
+      "copy",
+      "paste",
       "duplicate",
       "lock",
       "delete",

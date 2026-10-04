@@ -11,6 +11,10 @@
  *    쓰지 않는다(죽은 코드). 우리 문서는 대부분이 그룹이라 그룹 해제가 꼭 필요하다.
  */
 
+import { copyElements, hasClip, pasteElements } from "@leviosa-ai/canvas/edit/commands";
+import type { CanvasStore } from "@leviosa-ai/canvas/store";
+
+import { markCanvasCopy } from "./canvas-paste";
 import { groupAction } from "./group-action";
 import {
   applyFormat,
@@ -23,6 +27,8 @@ import {
 import { canMoveZ, moveZ, zOrderOf, type ZOrderElement } from "./z-order";
 
 export type CanvasMenuAction =
+  | "copy"
+  | "paste"
   | "duplicate"
   | "delete"
   | "lock"
@@ -83,8 +89,11 @@ export function canvasMenuItems(store: CanvasMenuStore): CanvasMenuItem[] {
   const ungroup = groupAction(store, true);
 
   const items: CanvasMenuItem[] = [
+    // 폰에는 ⌘C·⌘V 가 없다 — 다른 화면으로 옮겨 붙이려면 메뉴에 있어야 한다.
+    { action: "copy", disabled: false },
+    { action: "paste", disabled: !hasClip() },
     // 잠긴 요소를 복제하면 잠긴 사본이 생겨 만질 수도 지울 수도 없다.
-    { action: "duplicate", disabled: anyLocked },
+    { action: "duplicate", disabled: anyLocked, separated: true },
     { action: locked ? "unlock" : "lock", disabled: false },
     { action: "delete", disabled: anyLocked },
     // 서식은 하나에서 떠서 여럿에 먹인다 — 복사는 단일 선택일 때만.
@@ -137,6 +146,14 @@ export function runCanvasMenuAction(
   };
 
   switch (action) {
+    case "copy":
+      copyElements(store as unknown as CanvasStore);
+      // OS 클립보드에도 표식을 남긴다 — 안 남기면 ⌘V 가 옛 OS 내용을 붙인다.
+      markCanvasCopy();
+      return;
+    case "paste":
+      pasteElements(store as unknown as CanvasStore);
+      return;
     case "duplicate":
       // clone()은 항상 요소의 **페이지**에 추가한다(node-model: e.page.addElement).
       // 그룹 자식의 x/y도 페이지 좌표라, 그룹 안 도형을 복제하면 제자리에 사본이

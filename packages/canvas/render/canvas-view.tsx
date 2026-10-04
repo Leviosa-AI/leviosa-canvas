@@ -97,6 +97,35 @@ function scopeOf(
  * 이미 골라 둔 것을 (시프트 없이) 누르면 **선택을 그대로 둔다** — 여럿을 골라 놓고 그중
  * 하나를 잡아 끌면 다 같이 움직여야 한다. 거기서 하나로 줄여 버리면 끌기가 그 하나만 옮긴다.
  */
+/**
+ * 이 손가락이 거의 안 움직이고 떨어지면(탭) `tap` 을 부른다. 두 번째 손가락이 닿았으면
+ * 핀치였다 — 탭이 아니다. `done` 은 탭이든 아니든 손가락이 떨어질 때 부른다.
+ */
+function onTap(down: PointerEvent, tap: () => void, done?: () => void): void {
+  const { pointerId, clientX: x, clientY: y } = down;
+  let pinched = false;
+  const other = (e: PointerEvent) => {
+    if (e.pointerId !== pointerId) pinched = true;
+  };
+  const end = (e: PointerEvent) => {
+    if (e.pointerId !== pointerId) return;
+    window.removeEventListener("pointerdown", other, true);
+    window.removeEventListener("pointerup", end, true);
+    window.removeEventListener("pointercancel", end, true);
+    done?.();
+    if (
+      !pinched &&
+      e.type === "pointerup" &&
+      Math.hypot(e.clientX - x, e.clientY - y) < DOUBLE_TAP_PX
+    ) {
+      tap();
+    }
+  };
+  window.addEventListener("pointerdown", other, true);
+  window.addEventListener("pointerup", end, true);
+  window.addEventListener("pointercancel", end, true);
+}
+
 export function nextSelection(
   current: string[],
   id: string,
@@ -466,8 +495,12 @@ const PageView = memo(function PageView({
     (event: Konva.KonvaEventObject<PointerEvent>, hit: string | null, skip: boolean) => {
       // 잠긴 요소는 집히지 않는다 — 빈 곳처럼 본다.
       const id = hit && !store.getElementById(hit)?.locked ? hit : null;
-      if (skip || (id && store.selectedElementsIds.includes(id))) {
+      const multi = store.multiSelect;
+      const picked = id !== null && store.selectedElementsIds.includes(id);
+      if (skip || picked) {
         event.evt.preventDefault();
+        // 여러 개 고르는 중이면 고른 것을 탭해 뺀다. 끌면 그대로 옮긴다.
+        if (picked && multi) onTap(event.evt, () => onPick(id, true));
         return;
       }
       // Konva 는 이 뒤에 오는 touchstart 에서 끌기를 준비하고, 그 touchstart 는 조상
@@ -480,29 +513,13 @@ const PageView = memo(function PageView({
           restore.push(node);
         }
       }
-      const { pointerId, clientX: x, clientY: y } = event.evt;
-      let pinched = false;
-      const other = (e: PointerEvent) => {
-        if (e.pointerId !== pointerId) pinched = true;
-      };
-      const end = (e: PointerEvent) => {
-        if (e.pointerId !== pointerId) return;
-        window.removeEventListener("pointerdown", other, true);
-        window.removeEventListener("pointerup", end, true);
-        window.removeEventListener("pointercancel", end, true);
-        for (const node of restore) node.draggable(true);
-        // 두 번째 손가락이 닿았으면 핀치였다 — 탭이 아니다.
-        if (
-          !pinched &&
-          e.type === "pointerup" &&
-          Math.hypot(e.clientX - x, e.clientY - y) < DOUBLE_TAP_PX
-        ) {
-          onPick(id, false);
-        }
-      };
-      window.addEventListener("pointerdown", other, true);
-      window.addEventListener("pointerup", end, true);
-      window.addEventListener("pointercancel", end, true);
+      onTap(
+        event.evt,
+        () => onPick(id, multi),
+        () => {
+          for (const node of restore) node.draggable(true);
+        },
+      );
     },
     [store, onPick],
   );

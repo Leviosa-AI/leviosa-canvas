@@ -219,6 +219,11 @@ export function clearClipboard(): void {
  * 클립보드에는 **페이지 좌표**로 적는다. 그룹 안에서 복사해 밖(또는 다른 그룹)에
  * 붙여도 눈에 보이던 자리에 놓이게 — 붙일 때 들어갈 컨테이너 기준으로 되돌린다.
  */
+/** 붙일 것이 있는가 — 메뉴의 붙여넣기를 켜고 끈다. */
+export function hasClip(): boolean {
+  return readClip().data.length > 0;
+}
+
 export function copyElements(store: CanvasStore): void {
   const els = store.selectedElements;
   if (!els.length) return;

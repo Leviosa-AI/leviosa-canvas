@@ -3,7 +3,10 @@
 
 import { observer } from "./canvas-observer";
 import { useTranslation } from "react-i18next";
-import { Redo2, Undo2 } from "lucide-react";
+import { Redo2, Search, Undo2 } from "lucide-react";
+
+import { openFindReplace } from "./find-replace-panel";
+import { useIsMobile } from "./mobile-editor-bars";
 
 import {
   safeRedo,
@@ -66,8 +69,19 @@ export const DetailPageHistoryButtons = observer(function DetailPageHistoryButto
   const { t } = useTranslation("branding");
   const { history } = store as HistoryStoreLike;
   const s = store as HistoryStore;
+  // 폰에는 ⌘F 가 없다. 헤더는 셸마다 따로 짜도 이 부품은 다 쓰니 여기 단다.
+  const mobile = useIsMobile();
   return (
     <div className="flex items-center">
+      {mobile ? (
+        <HistoryButton
+          label={t("detailPage.mobile.find")}
+          onClick={openFindReplace}
+          disabled={false}
+        >
+          <Search size={17} />
+        </HistoryButton>
+      ) : null}
       <HistoryButton
         label={t("editor.undo")}
         onClick={() => safeUndo(s)}

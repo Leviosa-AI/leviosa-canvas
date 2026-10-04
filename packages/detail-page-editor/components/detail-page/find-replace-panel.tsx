@@ -46,6 +46,12 @@ export function revealMatch(store: PanelStore, match: TextMatch): void {
   store.selectElements?.([match.elementId]);
 }
 
+/** 버튼으로 찾기·바꾸기를 연다 — 폰에는 ⌘F 가 없다. */
+const OPEN_EVENT = "le-find-replace-open";
+export function openFindReplace(): void {
+  document.dispatchEvent(new Event(OPEN_EVENT));
+}
+
 export const FindReplacePanel = observer(function FindReplacePanel({
   store,
 }: {
@@ -79,8 +85,13 @@ export const FindReplacePanel = observer(function FindReplacePanel({
       e.stopPropagation();
       setOpen(true);
     };
+    const onOpen = () => setOpen(true);
     document.addEventListener("keydown", onKey, { capture: true });
-    return () => document.removeEventListener("keydown", onKey, { capture: true });
+    document.addEventListener(OPEN_EVENT, onOpen);
+    return () => {
+      document.removeEventListener("keydown", onKey, { capture: true });
+      document.removeEventListener(OPEN_EVENT, onOpen);
+    };
   }, []);
 
   const step = useCallback(

@@ -865,7 +865,13 @@
       "bubbleTail": {
         "handle": "꼬리 끝을 끌어 위치를 바꿉니다 (몸통 안으로 끌면 꼬리가 사라집니다)"
       },
+      "mobile": {
+        "multiSelect": "여러 개 선택",
+        "find": "찾기·바꾸기"
+      },
       "canvasMenu": {
+        "copy": "복사",
+        "paste": "붙여넣기",
         "duplicate": "복제",
         "lock": "잠그기",
         "unlock": "잠금 해제",

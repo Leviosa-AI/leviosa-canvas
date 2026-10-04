@@ -834,6 +834,20 @@ export class CanvasStore {
     });
   }
 
+  /**
+   * 터치로 여러 개 고르는 중인가. 켜져 있으면 탭이 선택을 바꾸지 않고 더하거나 뺀다 —
+   * 폰에는 시프트가 없다. 보는 방식이라 히스토리에도 `toJSON()`에도 안 간다.
+   */
+  multiSelect = false;
+
+  setMultiSelect(on: boolean): void {
+    this.uiChange(() => {
+      if (this.multiSelect === on) return false;
+      this.multiSelect = on;
+      return true;
+    });
+  }
+
   selectPage(id: string): void {
     this.uiChange(() => {
       if (this.activePageId === id) return false;
