@@ -10,7 +10,9 @@ import {
   ChevronUp,
   ChevronsDown,
   ChevronsUp,
+  ClipboardPaste,
   Copy,
+  CopyPlus,
   Group,
   Lock,
   Paintbrush,
@@ -52,7 +54,9 @@ type MenuStore = CanvasMenuStore & {
 
 /** 항목 → 아이콘. 우클릭 메뉴와 캔버스 위 띠의 "더보기"가 같은 그림을 쓴다. */
 export const CANVAS_MENU_ICONS: Record<CanvasMenuAction, LucideIcon> = {
-  duplicate: Copy,
+  copy: Copy,
+  paste: ClipboardPaste,
+  duplicate: CopyPlus,
   lock: Lock,
   unlock: Unlock,
   delete: Trash2,

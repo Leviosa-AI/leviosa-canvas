@@ -865,7 +865,13 @@
       "bubbleTail": {
         "handle": "Drag the tail tip to move it (drag inside the body to remove the tail)"
       },
+      "mobile": {
+        "multiSelect": "Select multiple",
+        "find": "Find and replace"
+      },
       "canvasMenu": {
+        "copy": "Copy",
+        "paste": "Paste",
         "duplicate": "Duplicate",
         "lock": "Lock",
         "unlock": "Unlock",

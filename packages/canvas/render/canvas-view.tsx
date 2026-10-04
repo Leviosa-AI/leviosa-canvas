@@ -97,6 +97,35 @@ function scopeOf(
  * 이미 골라 둔 것을 (시프트 없이) 누르면 **선택을 그대로 둔다** — 여럿을 골라 놓고 그중
  * 하나를 잡아 끌면 다 같이 움직여야 한다. 거기서 하나로 줄여 버리면 끌기가 그 하나만 옮긴다.
  */
+/**
+ * 이 손가락이 거의 안 움직이고 떨어지면(탭) `tap` 을 부른다. 두 번째 손가락이 닿았으면
+ * 핀치였다 — 탭이 아니다. `done` 은 탭이든 아니든 손가락이 떨어질 때 부른다.
+ */
+function onTap(down: PointerEvent, tap: () => void, done?: () => void): void {
+  const { pointerId, clientX: x, clientY: y } = down;
+  let pinched = false;
+  const other = (e: PointerEvent) => {
+    if (e.pointerId !== pointerId) pinched = true;
+  };
+  const end = (e: PointerEvent) => {
+    if (e.pointerId !== pointerId) return;
+    window.removeEventListener("pointerdown", other, true);
+    window.removeEventListener("pointerup", end, true);
+    window.removeEventListener("pointercancel", end, true);
+    done?.();
+    if (
+      !pinched &&
+      e.type === "pointerup" &&
+      Math.hypot(e.clientX - x, e.clientY - y) < DOUBLE_TAP_PX
+    ) {
+      tap();
+    }
+  };
+  window.addEventListener("pointerdown", other, true);
+  window.addEventListener("pointerup", end, true);
+  window.addEventListener("pointercancel", end, true);
+}
+
 export function nextSelection(
   current: string[],
   id: string,
@@ -455,6 +484,47 @@ const PageView = memo(function PageView({
   );
 
   /**
+   * 손가락은 **이미 고른 것**(또는 그 손잡이)만 끈다. 그 밖의 터치는 화면 이동·확대의
+   * 시작일 수 있어서, 누르는 순간 고르고 끌면 화면을 옮기려다 요소가 집혀 튄다. 그래서
+   * 고르기는 거의 안 움직이고 뗐을 때(탭) 한다 — Canva 모바일과 같은 손버릇이다.
+   *
+   * 캔버스가 잡은 터치는 `preventDefault` 로 표시한다. 작업 영역은 표시 없는 터치를
+   * 화면 이동으로 받는다.
+   */
+  const touchPick = useCallback(
+    (event: Konva.KonvaEventObject<PointerEvent>, hit: string | null, skip: boolean) => {
+      // 잠긴 요소는 집히지 않는다 — 빈 곳처럼 본다.
+      const id = hit && !store.getElementById(hit)?.locked ? hit : null;
+      const multi = store.multiSelect;
+      const picked = id !== null && store.selectedElementsIds.includes(id);
+      if (skip || picked) {
+        event.evt.preventDefault();
+        // 여러 개 고르는 중이면 고른 것을 탭해 뺀다. 끌면 그대로 옮긴다.
+        if (picked && multi) onTap(event.evt, () => onPick(id, true));
+        return;
+      }
+      // Konva 는 이 뒤에 오는 touchstart 에서 끌기를 준비하고, 그 touchstart 는 조상
+      // 그룹으로도 올라간다(그룹 안에 들어가 있을 때) — 그 전에 짚은 자리부터 위로 끌 수
+      // 있는 것을 전부 꺼 둔다.
+      const restore: Konva.Node[] = [];
+      for (let node: Konva.Node | null = event.target; node; node = node.getParent()) {
+        if (node.draggable()) {
+          node.draggable(false);
+          restore.push(node);
+        }
+      }
+      onTap(
+        event.evt,
+        () => onPick(id, multi),
+        () => {
+          for (const node of restore) node.draggable(true);
+        },
+      );
+    },
+    [store, onPick],
+  );
+
+  /**
    * 빈 곳에서 시작한 끌기는 마퀴다.
    *
    * 움직임과 손 떼기는 **창에서** 듣는다. Stage에서 들으면 판 밖으로 나가는 순간
@@ -516,10 +586,12 @@ const PageView = memo(function PageView({
             interactive
               ? (event: Konva.KonvaEventObject<PointerEvent>) => {
                   const { id: hit, skip } = hitId(event);
-                  if (
-                    event.evt.pointerType === "touch" &&
-                    touchDoubleTap(event, hit, skip)
-                  ) {
+                  if (event.evt.pointerType === "touch") {
+                    if (touchDoubleTap(event, hit, skip)) {
+                      event.evt.preventDefault();
+                      return;
+                    }
+                    touchPick(event, hit, skip);
                     return;
                   }
                   if (skip) return;

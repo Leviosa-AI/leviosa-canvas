@@ -143,6 +143,8 @@ describe("CanvasContextMenu", () => {
         (b) => (b as HTMLElement).dataset.dpMenuAction,
       ),
     ).toEqual([
+      "copy",
+      "paste",
       "duplicate",
       "lock",
       "delete",

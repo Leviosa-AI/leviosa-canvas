@@ -26,7 +26,7 @@ import {
   type PointerEvent as ReactPointerEvent,
   type ReactNode,
 } from "react";
-import { Check, Settings2 } from "lucide-react";
+import { Check, ListChecks, Settings2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { SectionTab } from "@leviosa-ai/canvas";
 
@@ -94,6 +94,8 @@ type StoreLike = {
   openedSidePanel: string;
   openSidePanel: (name: string) => void;
   selectElements: (ids: string[]) => void;
+  multiSelect?: boolean;
+  setMultiSelect?: (on: boolean) => void;
 };
 
 const BAR_CLASS =
@@ -247,7 +249,14 @@ const SectionBar = observer(function SectionBar({
 });
 
 /** 뭔가 골랐을 때 — 인스펙터 섹션 탭 띠 + 띠 바로 위에 뜨는 섹션 하나. */
-function InspectorBar({ store, inspector }: { store: unknown; inspector: ReactNode }) {
+const InspectorBar = observer(function InspectorBar({
+  store,
+  inspector,
+}: {
+  store: unknown;
+  inspector: ReactNode;
+}) {
+  const { t } = useTranslation("branding");
   const s = store as StoreLike;
   const hostRef = useRef<HTMLDivElement>(null);
   const [titles, setTitles] = useState<string[]>([]);
@@ -313,6 +322,20 @@ function InspectorBar({ store, inspector }: { store: unknown; inspector: ReactNo
             </button>
           ))}
         </div>
+        {/* 폰에는 시프트가 없다 — 켜 두면 탭할 때마다 선택에 더하거나 뺀다. */}
+        <button
+          type="button"
+          aria-label={t("detailPage.mobile.multiSelect")}
+          title={t("detailPage.mobile.multiSelect")}
+          aria-pressed={!!s.multiSelect}
+          data-le-mobile-multi=""
+          onClick={() => s.setMultiSelect?.(!s.multiSelect)}
+          className={`my-1.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-full ${
+            s.multiSelect ? "bg-le-ink-900 text-le-surface" : "text-le-ink-600"
+          }`}
+        >
+          <ListChecks aria-hidden="true" size={18} />
+        </button>
         <button
           type="button"
           aria-label="done"
@@ -324,7 +347,7 @@ function InspectorBar({ store, inspector }: { store: unknown; inspector: ReactNo
       </div>
     </div>
   );
-}
+});
 
 export const MobileBottomBar = observer(function MobileBottomBar({
   store,
@@ -342,6 +365,8 @@ export const MobileBottomBar = observer(function MobileBottomBar({
   // 숨었다가, ✓ 로 선택을 풀 때 다시 튀어나온다.
   useEffect(() => {
     if (selected && s.openedSidePanel) s.openSidePanel("");
+    // 다 풀었으면 여러 개 고르기도 끝난다 — 다음 탭은 다시 하나만 고른다.
+    if (!selected && s.multiSelect) s.setMultiSelect?.(false);
   }, [selected, s]);
 
   // 아무것도 안 골랐을 때의 인스펙터(화면 배경·높이·복제/삭제)는 데스크톱에서는 늘
