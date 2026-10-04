@@ -522,6 +522,9 @@ export class CanvasHistory {
     // 트랜잭션이 실제로 아무것도 안 바꿨으면 undo 단계를 만들지 않는다.
     if (pending.json === JSON.stringify(this.store.toJSON())) return;
     this.push(pending, key);
+    // 트랜잭션 안의 변경은 이미 알렸지만 그때는 undo 단계가 없었다 — 되돌리기 버튼처럼
+    // `canUndo` 를 읽는 쪽이 낡지 않게 한 번 더 알린다.
+    this.store.historyChanged();
   }
 
   /**
@@ -696,6 +699,11 @@ export class CanvasStore {
         this.notifyChange();
       }
     }
+  }
+
+  /** 히스토리 단계가 생겼다 — 문서는 그대로지만 `canUndo` 를 읽는 쪽은 다시 그려야 한다. */
+  historyChanged(): void {
+    this.uiChange(() => true);
   }
 
   /** 히스토리를 남기지 않는 변경(선택·페이지 전환처럼 문서가 아닌 것). */

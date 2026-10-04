@@ -470,22 +470,37 @@ const PageView = memo(function PageView({
         event.evt.preventDefault();
         return;
       }
-      // Konva 는 이 뒤에 오는 touchstart 에서 끌기를 준비한다 — 그 전에 끌기를 꺼 둔다.
-      const node = id
-        ? event.target.getStage()?.findOne((one: Konva.Node) => one.id() === id)
-        : undefined;
-      const restore = node?.draggable() ? node : undefined;
-      restore?.draggable(false);
+      // Konva 는 이 뒤에 오는 touchstart 에서 끌기를 준비하고, 그 touchstart 는 조상
+      // 그룹으로도 올라간다(그룹 안에 들어가 있을 때) — 그 전에 짚은 자리부터 위로 끌 수
+      // 있는 것을 전부 꺼 둔다.
+      const restore: Konva.Node[] = [];
+      for (let node: Konva.Node | null = event.target; node; node = node.getParent()) {
+        if (node.draggable()) {
+          node.draggable(false);
+          restore.push(node);
+        }
+      }
       const { pointerId, clientX: x, clientY: y } = event.evt;
+      let pinched = false;
+      const other = (e: PointerEvent) => {
+        if (e.pointerId !== pointerId) pinched = true;
+      };
       const end = (e: PointerEvent) => {
         if (e.pointerId !== pointerId) return;
+        window.removeEventListener("pointerdown", other, true);
         window.removeEventListener("pointerup", end, true);
         window.removeEventListener("pointercancel", end, true);
-        restore?.draggable(true);
-        if (e.type === "pointerup" && Math.hypot(e.clientX - x, e.clientY - y) < DOUBLE_TAP_PX) {
+        for (const node of restore) node.draggable(true);
+        // 두 번째 손가락이 닿았으면 핀치였다 — 탭이 아니다.
+        if (
+          !pinched &&
+          e.type === "pointerup" &&
+          Math.hypot(e.clientX - x, e.clientY - y) < DOUBLE_TAP_PX
+        ) {
           onPick(id, false);
         }
       };
+      window.addEventListener("pointerdown", other, true);
       window.addEventListener("pointerup", end, true);
       window.addEventListener("pointercancel", end, true);
     },

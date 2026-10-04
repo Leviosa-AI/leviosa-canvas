@@ -355,6 +355,16 @@ describe("CanvasStore — 히스토리", () => {
     expect(store.history.canUndo).toBe(false);
   });
 
+  it("트랜잭션이 끝나 undo 단계가 생기면 구독자에게 알린다 — 되돌리기 버튼이 켜진다", () => {
+    const store = createCanvasStore(doc());
+    store.history.startTransaction();
+    store.getElementById("title")!.set({ x: 1 });
+    const seen: boolean[] = [];
+    store.subscribe(() => seen.push(store.history.canUndo));
+    store.history.endTransaction();
+    expect(seen).toEqual([true]);
+  });
+
   it("아무것도 안 바꾼 트랜잭션은 undo 단계를 만들지 않는다", () => {
     const store = createCanvasStore(doc());
     store.history.startTransaction();
