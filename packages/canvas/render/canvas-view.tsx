@@ -455,6 +455,44 @@ const PageView = memo(function PageView({
   );
 
   /**
+   * 손가락은 **이미 고른 것**(또는 그 손잡이)만 끈다. 그 밖의 터치는 화면 이동·확대의
+   * 시작일 수 있어서, 누르는 순간 고르고 끌면 화면을 옮기려다 요소가 집혀 튄다. 그래서
+   * 고르기는 거의 안 움직이고 뗐을 때(탭) 한다 — Canva 모바일과 같은 손버릇이다.
+   *
+   * 캔버스가 잡은 터치는 `preventDefault` 로 표시한다. 작업 영역은 표시 없는 터치를
+   * 화면 이동으로 받는다.
+   */
+  const touchPick = useCallback(
+    (event: Konva.KonvaEventObject<PointerEvent>, hit: string | null, skip: boolean) => {
+      // 잠긴 요소는 집히지 않는다 — 빈 곳처럼 본다.
+      const id = hit && !store.getElementById(hit)?.locked ? hit : null;
+      if (skip || (id && store.selectedElementsIds.includes(id))) {
+        event.evt.preventDefault();
+        return;
+      }
+      // Konva 는 이 뒤에 오는 touchstart 에서 끌기를 준비한다 — 그 전에 끌기를 꺼 둔다.
+      const node = id
+        ? event.target.getStage()?.findOne((one: Konva.Node) => one.id() === id)
+        : undefined;
+      const restore = node?.draggable() ? node : undefined;
+      restore?.draggable(false);
+      const { pointerId, clientX: x, clientY: y } = event.evt;
+      const end = (e: PointerEvent) => {
+        if (e.pointerId !== pointerId) return;
+        window.removeEventListener("pointerup", end, true);
+        window.removeEventListener("pointercancel", end, true);
+        restore?.draggable(true);
+        if (e.type === "pointerup" && Math.hypot(e.clientX - x, e.clientY - y) < DOUBLE_TAP_PX) {
+          onPick(id, false);
+        }
+      };
+      window.addEventListener("pointerup", end, true);
+      window.addEventListener("pointercancel", end, true);
+    },
+    [store, onPick],
+  );
+
+  /**
    * 빈 곳에서 시작한 끌기는 마퀴다.
    *
    * 움직임과 손 떼기는 **창에서** 듣는다. Stage에서 들으면 판 밖으로 나가는 순간
@@ -516,10 +554,12 @@ const PageView = memo(function PageView({
             interactive
               ? (event: Konva.KonvaEventObject<PointerEvent>) => {
                   const { id: hit, skip } = hitId(event);
-                  if (
-                    event.evt.pointerType === "touch" &&
-                    touchDoubleTap(event, hit, skip)
-                  ) {
+                  if (event.evt.pointerType === "touch") {
+                    if (touchDoubleTap(event, hit, skip)) {
+                      event.evt.preventDefault();
+                      return;
+                    }
+                    touchPick(event, hit, skip);
                     return;
                   }
                   if (skip) return;

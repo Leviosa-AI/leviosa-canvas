@@ -704,13 +704,14 @@ export function LeviosaCanvasWorkspace({
         onPointerDown={(event) => {
           // 페이지 바깥의 빈 자리를 누르면 선택 해제. 페이지 안은 캔버스가 처리한다.
           const target = event.target as HTMLElement;
-          // 손가락으로 판 위 빈 곳(또는 잠긴 배경)을 누르면 화면을 옮긴다. 캔버스가 먼저
-          // 받아서 요소를 짚었으면 골랐고, 빈 곳이면 선택을 비웠다 — 그걸 보고 가른다.
-          // 판 위의 터치는 브라우저 스크롤을 꺼 뒀다(touch-action) — 요소 끌기와 겹친다.
+          // 손가락으로 판 위를 끌면 화면을 옮긴다 — 캔버스가 먼저 받아서 고른 요소나 손잡이를
+          // 잡았으면 preventDefault 로 표시해 둔다(그때만 요소가 끌린다). 고르기는 캔버스가
+          // 손을 뗄 때 한다. 판 위의 터치는 브라우저 스크롤을 꺼 뒀다(touch-action).
           if (
             event.pointerType === "touch" &&
             target.closest("[data-lc-page]") &&
-            store.selectedElementsIds.length === 0
+            !target.closest("button, a, input, textarea, select, [contenteditable='true']") &&
+            !event.nativeEvent.defaultPrevented
           ) {
             startPan(event);
             return;
