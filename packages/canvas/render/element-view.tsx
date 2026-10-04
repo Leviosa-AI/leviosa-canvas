@@ -103,6 +103,20 @@ function subtreeVersion(el: CanvasElement): number {
  * 그룹 안쪽을 들여다보고 있지 않으면 자식은 못 끈다 — 그룹이 통째로 움직여야 한다.
  * 잠긴 요소도 못 끈다.
  */
+/**
+ * 끌기 이벤트의 화면 좌표. 손가락 끌기는 Konva 가 **터치 이벤트**로 끝내는데, 터치
+ * 이벤트에는 clientX 가 없고 손가락 목록(changedTouches)에 있다 — 그대로 읽으면
+ * undefined 가 흘러가 놓는 자리 계산이 터지고, 끌어 놓은 자리가 저장되지 않는다.
+ */
+export function clientPoint(
+  evt: { clientX?: number; clientY?: number; changedTouches?: ArrayLike<{ clientX: number; clientY: number }> } | null | undefined,
+): { x: number; y: number } | undefined {
+  const point = evt?.changedTouches?.[0] ?? evt;
+  return typeof point?.clientX === "number" && typeof point.clientY === "number"
+    ? { x: point.clientX, y: point.clientY }
+    : undefined;
+}
+
 function isDraggable(el: CanvasElement, edit: EditHandlers | null): boolean {
   if (!edit?.interactive || el.locked) return false;
   const parent = el.parent;
@@ -210,15 +224,7 @@ function ElementFrame({
         draggable && edit
           ? (event: DragEvent) => {
               altRef.current = event.evt?.altKey === true;
-              const start = event.evt;
-              edit.onDragStart(
-                el.id,
-                event.target,
-                typeof start?.clientX === "number" &&
-                  typeof start?.clientY === "number"
-                  ? { x: start.clientX, y: start.clientY }
-                  : undefined,
-              );
+              edit.onDragStart(el.id, event.target, clientPoint(event.evt));
             }
           : undefined
       }
@@ -242,14 +248,11 @@ function ElementFrame({
           ? (event: DragEvent) => {
               const alt = altRef.current;
               altRef.current = false;
-              const native = event.evt as PointerEvent | MouseEvent | undefined;
               edit.onDragEnd(
                 el.id,
                 { x: event.target.x(), y: event.target.y() },
                 alt,
-                native
-                  ? { x: native.clientX, y: native.clientY }
-                  : undefined,
+                clientPoint(event.evt),
               );
             }
           : undefined

@@ -47,7 +47,7 @@ vi.mock("react-konva/es/ReactKonvaCore", () => {
   };
 });
 
-import { ElementView } from "../render/element-view";
+import { clientPoint, ElementView } from "../render/element-view";
 import { encodeSvgSrc } from "../render/svg-source";
 import { createCanvasStore } from "../store";
 import type { ElementJson } from "../types";
@@ -479,5 +479,14 @@ describe("ElementView — 뒤집기", () => {
   it("안 뒤집은 요소에는 Group을 더 끼우지 않는다", () => {
     const { view } = mount({ id: "f", type: "figure", x: 0, y: 0, width: 10, height: 10 });
     expect(view.container.querySelectorAll('[data-konva="group"]').length).toBe(1);
+  });
+});
+
+describe("clientPoint", () => {
+  it("손가락 끌기가 끝난 터치 이벤트에서도 놓은 자리를 읽는다", () => {
+    expect(clientPoint({ clientX: 10, clientY: 20 })).toEqual({ x: 10, y: 20 });
+    expect(clientPoint({ changedTouches: [{ clientX: 30, clientY: 40 }] })).toEqual({ x: 30, y: 40 });
+    expect(clientPoint({})).toBeUndefined();
+    expect(clientPoint(undefined)).toBeUndefined();
   });
 });
